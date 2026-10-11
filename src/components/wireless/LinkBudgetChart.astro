@@ -1,0 +1,64 @@
+---
+// مخطط درجات (Link Budget): مستوى الإشارة بعد كل مرحلة.
+// stages: [{ label, delta }] حيث أول عنصر هو قيمة البداية (absolute) والباقي ربح (+) أو فقد (−).
+interface Stage { label: string; value: number; }
+interface Props { start: Stage; steps: Stage[]; unit?: string; caption?: string; }
+const { start, steps, unit = 'dBm', caption } = Astro.props;
+
+const levels: { label: string; delta?: number; level: number }[] = [{ label: start.label, level: start.value }];
+for (const s of steps) levels.push({ label: s.label, delta: s.value, level: levels[levels.length - 1].level + s.value });
+
+const W = 640, H = 290, padL = 50, padR = 16, padT = 28, padB = 72;
+const vals = levels.map((l) => l.level).concat(0);
+const yMax = Math.max(...vals), yMin = Math.min(...vals);
+const span = yMax - yMin || 1;
+const Y = (v: number) => padT + ((H - padT - padB) * (yMax - v)) / span;
+const colW = (W - padL - padR) / levels.length;
+const X = (i: number) => padL + colW * i;
+const f = (x: number) => (Math.round(x * 10) / 10).toString();
+---
+
+<figure class="lb-fig">
+	<svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={caption ?? 'مخطط مستوى الإشارة عبر المراحل'}>
+		<line x1={padL} y1={Y(0)} x2={W - padR} y2={Y(0)} class="zero" />
+		<text x={padL - 6} y={Y(0) + 4} class="ax">0</text>
+		{
+			levels.map((l, i) => {
+				const x = X(i) + colW * 0.15;
+				const w = colW * 0.7;
+				const top = Math.min(Y(l.level), Y(0));
+				const h = Math.max(Math.abs(Y(l.level) - Y(0)), 2);
+				const cls = i === 0 ? 'bar start' : i === levels.length - 1 ? 'bar end' : 'bar';
+				return (
+					<g>
+						<rect x={x} y={top} width={w} height={h} rx="4" class={cls} />
+						{i > 0 && <line x1={X(i - 1) + colW * 0.85} y1={Y(levels[i - 1].level)} x2={x} y2={Y(levels[i - 1].level)} class="link" />}
+						<text x={x + w / 2} y={l.level >= 0 ? top - 6 : top + h + 16} class="val">{`${f(l.level)} ${unit}`}</text>
+						<text x={x + w / 2} y={H - 22} class="lab">{l.label}</text>
+						{l.delta !== undefined && (
+							<text x={x + w / 2} y={H - 6} class={l.delta >= 0 ? 'dl up' : 'dl down'}>{`${l.delta >= 0 ? '+' : ''}${f(l.delta)} dB`}</text>
+						)}
+					</g>
+				);
+			})
+		}
+	</svg>
+	{caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+	.lb-fig { margin-block: 1.5rem; }
+	.lb-fig svg { width: 100%; height: auto; display: block; direction: ltr; }
+	.lb-fig figcaption { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-top: 0.4rem; }
+	.bar { fill: #3a9ec2; opacity: 0.85; }
+	.bar.start { fill: var(--sl-color-gray-3); }
+	.bar.end { fill: var(--sl-color-accent); opacity: 1; }
+	.link { stroke: var(--sl-color-gray-4); stroke-dasharray: 3 3; }
+	.zero { stroke: var(--sl-color-gray-4); }
+	text { font-family: var(--sl-font); fill: var(--sl-color-white); text-anchor: middle; }
+	.ax { font-size: 11px; text-anchor: end; fill: var(--sl-color-gray-3); }
+	.val { font-size: 12px; font-weight: 700; font-family: sans-serif; }
+	.lab { font-size: 13px; }
+	.dl { font-size: 12px; font-weight: 700; font-family: sans-serif; }
+	.up { fill: #2fb36b; } .down { fill: #e5534b; }
+</style>

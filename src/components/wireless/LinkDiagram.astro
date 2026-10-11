@@ -1,0 +1,56 @@
+---
+// رسمة «رحلة الإشارة»: مرسل ← هوائي ← مسافة ← هوائي ← مستقبل
+---
+
+<figure class="wl-fig">
+	<svg viewBox="0 0 640 210" role="img" aria-label="رحلة الإشارة من المرسل للمستقبل: Pt ثم ربح هوائي الإرسال ثم فقد المسار ثم ربح هوائي الاستقبال ثم Pr">
+		<!-- المرسل -->
+		<rect x="10" y="80" width="90" height="56" rx="8" class="box" />
+		<text x="55" y="104" class="t">المرسل</text>
+		<text x="55" y="124" class="m">Pt</text>
+		<!-- هوائي الإرسال -->
+		<line x1="100" y1="108" x2="130" y2="108" class="wire" />
+		<path d="M130 108 V70 M118 60 L130 70 L142 60" class="ant" />
+		<text x="130" y="152" class="g">+Gt</text>
+		<!-- الموجات -->
+		<path d="M160 70 a40 40 0 0 1 0 76" class="wave w1" />
+		<path d="M200 60 a55 55 0 0 1 0 96" class="wave w2" />
+		<path d="M245 50 a70 70 0 0 1 0 116" class="wave w3" />
+		<path d="M295 44 a80 80 0 0 1 0 128" class="wave w4" />
+		<!-- المسافة -->
+		<line x1="140" y1="190" x2="500" y2="190" class="dim" marker-start="url(#wl-ar)" marker-end="url(#wl-ar)" />
+		<text x="320" y="182" class="m">d</text>
+		<text x="320" y="30" class="l">−L (فقد المسار)</text>
+		<!-- هوائي الاستقبال -->
+		<path d="M510 108 V70 M498 60 L510 70 L522 60" class="ant" />
+		<line x1="510" y1="108" x2="540" y2="108" class="wire" />
+		<text x="510" y="152" class="g">+Gr</text>
+		<!-- المستقبل -->
+		<rect x="540" y="80" width="90" height="56" rx="8" class="box" />
+		<text x="585" y="104" class="t">المستقبل</text>
+		<text x="585" y="124" class="m">Pr</text>
+		<defs>
+			<marker id="wl-ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+				<path d="M0 0 L10 5 L0 10 z" class="arrow" />
+			</marker>
+		</defs>
+	</svg>
+	<figcaption>الإشارة بتطلع من المرسل بقوة <strong>Pt</strong>، هوائي الإرسال بيزيدها <strong>Gt</strong>، الطريق بياكل منها <strong>L</strong>، وهوائي الاستقبال بيزيدها <strong>Gr</strong>، فبتوصل بقوة <strong>Pr</strong>.</figcaption>
+</figure>
+
+<style>
+	.wl-fig { margin-block: 1.5rem; }
+	.wl-fig svg { width: 100%; height: auto; display: block; direction: ltr; }
+	.wl-fig figcaption { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-top: 0.4rem; }
+	.box { fill: var(--sl-color-accent-low); stroke: var(--sl-color-accent); stroke-width: 2; }
+	.wire, .ant { stroke: var(--sl-color-gray-2); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+	.wave { fill: none; stroke: #3a9ec2; stroke-width: 3; stroke-linecap: round; }
+	.w2 { opacity: 0.8; } .w3 { opacity: 0.55; stroke-width: 2.5; } .w4 { opacity: 0.35; stroke-width: 2; }
+	.dim { stroke: var(--sl-color-gray-3); stroke-width: 1.5; }
+	.arrow { fill: var(--sl-color-gray-3); }
+	text { text-anchor: middle; font-family: var(--sl-font); fill: var(--sl-color-white); }
+	.t { font-size: 17px; font-weight: 600; }
+	.m { font-size: 18px; font-weight: 700; font-family: sans-serif; }
+	.g { font-size: 17px; font-weight: 700; fill: #2fb36b; font-family: sans-serif; }
+	.l { font-size: 17px; font-weight: 700; fill: #e5534b; }
+</style>

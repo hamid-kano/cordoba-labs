@@ -1,0 +1,278 @@
+---
+// حاسبة فقد المسار التفاعلية (الجلسة 5 بالشبكات اللاسلكية).
+// L(dB) = 20 log10(f) + 10 n log10(d) − 147.56   (f بالهرتز، d بالمتر)
+// لما n = 2 هي نفسها فقد مسار الفضاء الحر: 20 log10(4πd/λ)
+// Pr(dBm) = Pt(dBm) + Gt + Gr − L
+---
+
+<div class="pl-lab" data-pl-lab>
+	<div class="pl-presets">
+		<span>جرّب مثال جاهز:</span>
+		<button type="button" data-preset="wifi">راوتر بالبيت</button>
+		<button type="button" data-preset="sens">مسألة الحساسية</button>
+		<button type="button" data-preset="sat">القمر الصناعي</button>
+		<button type="button" data-preset="cell2">خليوي (فضاء حر)</button>
+		<button type="button" data-preset="cell3">خليوي (مدينة)</button>
+	</div>
+
+	<div class="pl-grid">
+		<label>
+			<span>التردد f</span>
+			<span class="pl-row">
+				<input type="number" step="any" min="0" data-in="f" value="2.4" />
+				<select data-in="fu">
+					<option value="1e6">MHz</option>
+					<option value="1e9" selected>GHz</option>
+				</select>
+			</span>
+		</label>
+		<label>
+			<span>المسافة d</span>
+			<span class="pl-row">
+				<input type="number" step="any" min="0" data-in="d" value="10" />
+				<select data-in="du">
+					<option value="1" selected>m</option>
+					<option value="1000">km</option>
+				</select>
+			</span>
+		</label>
+		<label>
+			<span>البيئة (n)</span>
+			<select data-in="n">
+				<option value="2" selected>فضاء حر (n = 2)</option>
+				<option value="3">داخل بناء (n = 3)</option>
+				<option value="3.1">مدينة (n = 3.1)</option>
+				<option value="4">مدينة مزدحمة (n = 4)</option>
+			</select>
+		</label>
+		<label>
+			<span>استطاعة المرسل Pt</span>
+			<span class="pl-row">
+				<input type="number" step="any" data-in="pt" value="100" />
+				<select data-in="ptu">
+					<option value="mw" selected>mW</option>
+					<option value="w">W</option>
+					<option value="dbm">dBm</option>
+				</select>
+			</span>
+		</label>
+		<label>
+			<span>ربح هوائي الإرسال Gt (dB)</span>
+			<input type="number" step="any" data-in="gt" value="0" />
+		</label>
+		<label>
+			<span>ربح هوائي الاستقبال Gr (dB)</span>
+			<input type="number" step="any" data-in="gr" value="0" />
+		</label>
+		<label>
+			<span>حساسية المستقبل S (dBm)</span>
+			<input type="number" step="any" data-in="s" value="-80" />
+		</label>
+	</div>
+
+	<div class="pl-results">
+		<div><span>طول الموجة λ</span><strong data-out="lambda">–</strong></div>
+		<div><span>فقد المسار L</span><strong data-out="loss">–</strong></div>
+		<div><span>استطاعة الإرسال</span><strong data-out="ptdbm">–</strong></div>
+		<div><span>الإشارة الواصلة Pr</span><strong data-out="pr">–</strong><small data-out="prw"></small></div>
+	</div>
+	<p class="pl-verdict" data-out="verdict"></p>
+
+	<figure class="pl-chart">
+		<svg viewBox="0 0 320 170" role="img" aria-label="رسمة الإشارة الواصلة مقابل المسافة" data-out="chart"></svg>
+		<figcaption>الخط الأزرق: الإشارة الواصلة كلما بعدنا. الخط الأحمر المنقّط: الحساسية. النقطة: المسافة يلي اخترتها.</figcaption>
+	</figure>
+</div>
+
+<script>
+	const PRESETS: Record<string, Record<string, string>> = {
+		wifi: { f: '2.4', fu: '1e9', d: '10', du: '1', n: '2', pt: '100', ptu: 'mw', gt: '0', gr: '0', s: '-80' },
+		sens: { f: '3', fu: '1e9', d: '3', du: '1000', n: '2', pt: '2', ptu: 'w', gt: '0', gr: '0', s: '-78.52' },
+		sat: { f: '4', fu: '1e9', d: '35863', du: '1000', n: '2', pt: '250', ptu: 'w', gt: '44', gr: '48', s: '-100' },
+		cell2: { f: '1.9', fu: '1e9', d: '1.5', du: '1000', n: '2', pt: '1', ptu: 'w', gt: '0', gr: '0', s: '-100' },
+		cell3: { f: '1.9', fu: '1e9', d: '1.5', du: '1000', n: '3.1', pt: '1', ptu: 'w', gt: '0', gr: '0', s: '-100' },
+	};
+
+	const fmt = (x: number, digits = 2) =>
+		Number.isFinite(x) ? x.toLocaleString('en-US', { maximumFractionDigits: digits }) : '–';
+
+	// رقم مع وحدته، معزول عن اتجاه الجملة العربية
+	const bdi = (x: number, unit: string) => `<bdi dir="ltr">${fmt(x)} ${unit}</bdi>`;
+
+	function lossDb(fHz: number, dM: number, n: number) {
+		return 20 * Math.log10(fHz) + 10 * n * Math.log10(dM) - 147.56;
+	}
+
+	function setup(root: HTMLElement) {
+		const inp = (k: string) => root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-in="${k}"]`)!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const num = (k: string) => parseFloat(inp(k).value);
+
+		function update() {
+			const fHz = num('f') * num('fu');
+			const dM = num('d') * num('du');
+			const n = num('n');
+			const ptu = inp('ptu').value;
+			const ptRaw = num('pt');
+			const ptDbm = ptu === 'dbm' ? ptRaw : 10 * Math.log10(ptRaw * (ptu === 'w' ? 1000 : 1));
+			const gt = num('gt') || 0;
+			const gr = num('gr') || 0;
+			const s = num('s');
+
+			const ok = fHz > 0 && dM > 0 && Number.isFinite(ptDbm);
+			const lambda = 3e8 / fHz;
+			const L = ok ? lossDb(fHz, dM, n) : NaN;
+			const pr = ptDbm + gt + gr - L;
+
+			out('lambda').textContent = ok ? `${fmt(lambda, lambda < 1 ? 4 : 2)} m` : '–';
+			out('loss').textContent = ok ? `${fmt(L)} dB` : '–';
+			out('ptdbm').textContent = ok ? `${fmt(ptDbm)} dBm` : '–';
+			out('pr').textContent = ok ? `${fmt(pr)} dBm` : '–';
+			out('prw').textContent = ok ? `= ${fmt(pr - 30)} dBW` : '';
+
+			const v = out('verdict');
+			if (!ok || !Number.isFinite(s)) {
+				v.textContent = '';
+				v.className = 'pl-verdict';
+			} else if (pr >= s) {
+				v.innerHTML = `✔ الإشارة بتوصل: ${bdi(pr, 'dBm')} أقوى من الحساسية ${bdi(s, 'dBm')}، بفرق ${bdi(pr - s, 'dB')}.`;
+				v.className = 'pl-verdict good';
+			} else {
+				v.innerHTML = `✘ الإشارة ما بتوصل: ${bdi(pr, 'dBm')} أضعف من الحساسية ${bdi(s, 'dBm')}، ناقصها ${bdi(s - pr, 'dB')}.`;
+				v.className = 'pl-verdict bad';
+			}
+
+			drawChart(out('chart') as unknown as SVGSVGElement, ok, fHz, dM, n, ptDbm + gt + gr, s);
+		}
+
+		root.addEventListener('input', update);
+		root.addEventListener('change', update);
+		root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const p = PRESETS[b.dataset.preset!];
+				for (const [k, val] of Object.entries(p)) inp(k).value = val;
+				update();
+			})
+		);
+		update();
+	}
+
+	function drawChart(svg: SVGSVGElement, ok: boolean, fHz: number, dM: number, n: number, eirp: number, s: number) {
+		svg.innerHTML = '';
+		if (!ok) return;
+		const W = 320, H = 170, padL = 44, padR = 10, padT = 10, padB = 28;
+		const dMax = dM * 2;
+		const pts: [number, number][] = [];
+		for (let i = 1; i <= 60; i++) {
+			const d = (dMax * i) / 60;
+			pts.push([d, eirp - lossDb(fHz, d, n)]);
+		}
+		const ys = pts.map((p) => p[1]).concat(Number.isFinite(s) ? [s] : []);
+		const yMax = Math.max(...ys), yMin = Math.min(...ys);
+		const span = Math.max(yMax - yMin, 1);
+		const X = (d: number) => padL + ((W - padL - padR) * d) / dMax;
+		const Y = (p: number) => padT + ((H - padT - padB) * (yMax - p)) / span;
+		const ns = 'http://www.w3.org/2000/svg';
+		const el = (tag: string, attrs: Record<string, string | number>, text?: string) => {
+			const e = document.createElementNS(ns, tag);
+			for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+			if (text) e.textContent = text;
+			svg.appendChild(e);
+			return e;
+		};
+		el('line', { x1: padL, y1: H - padB, x2: W - padR, y2: H - padB, class: 'axis' });
+		el('line', { x1: padL, y1: padT, x2: padL, y2: H - padB, class: 'axis' });
+		el('text', { x: padL - 4, y: padT + 8, class: 'lbl', 'text-anchor': 'end' }, `${Math.round(yMax)}`);
+		el('text', { x: padL - 4, y: H - padB, class: 'lbl', 'text-anchor': 'end' }, `${Math.round(yMin)}`);
+		el('text', { x: 6, y: H / 2, class: 'lbl' }, 'dBm');
+		el('text', { x: X(dMax), y: H - 8, class: 'lbl', 'text-anchor': 'end' }, `${fmt(dMax >= 1000 ? dMax / 1000 : dMax, 1)} ${dMax >= 1000 ? 'km' : 'm'}`);
+		el('text', { x: padL, y: H - 8, class: 'lbl' }, '0');
+		if (Number.isFinite(s)) el('line', { x1: padL, y1: Y(s), x2: W - padR, y2: Y(s), class: 'sens' });
+		el('polyline', { points: pts.map(([d, p]) => `${X(d)},${Y(p)}`).join(' '), class: 'curve' });
+		el('circle', { cx: X(dM), cy: Y(eirp - lossDb(fHz, dM, n)), r: 4, class: 'dot' });
+	}
+
+	document.querySelectorAll<HTMLElement>('[data-pl-lab]').forEach(setup);
+</script>
+
+<style>
+	.pl-lab {
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.75rem;
+		padding: 1rem;
+		margin-block: 1.5rem;
+		background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+	}
+	.pl-presets {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		align-items: center;
+		margin-bottom: 1rem;
+		font-size: var(--sl-text-sm);
+	}
+	.pl-presets button,
+	.pl-lab input,
+	.pl-lab select {
+		font: inherit;
+		font-size: var(--sl-text-sm);
+		border: 1px solid var(--sl-color-gray-4);
+		border-radius: 0.4rem;
+		padding: 0.3rem 0.5rem;
+		background: var(--sl-color-black);
+		color: var(--sl-color-white);
+	}
+	.pl-presets button {
+		cursor: pointer;
+		border-color: var(--sl-color-accent);
+	}
+	.pl-presets button:hover { background: var(--sl-color-accent-low); }
+	.pl-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+		gap: 0.75rem;
+	}
+	.pl-grid label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		font-size: var(--sl-text-sm);
+		margin: 0;
+	}
+	.pl-row { display: flex; gap: 0.3rem; }
+	.pl-row input { flex: 1; min-width: 0; }
+	.pl-lab input { direction: ltr; }
+	.pl-results {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+	.pl-results div {
+		display: flex;
+		flex-direction: column;
+		padding: 0.5rem 0.75rem;
+		border-radius: 0.5rem;
+		background: var(--sl-color-accent-low);
+		font-size: var(--sl-text-sm);
+		margin: 0;
+	}
+	.pl-results strong {
+		direction: ltr;
+		unicode-bidi: isolate;
+		font-size: var(--sl-text-lg);
+		color: var(--sl-color-white);
+	}
+	.pl-verdict { margin-top: 0.75rem; font-weight: 600; }
+	.pl-results small { direction: ltr; unicode-bidi: isolate; color: var(--sl-color-gray-3); }
+	.pl-verdict.good { color: #2fb36b; }
+	.pl-verdict.bad { color: #e5534b; }
+	.pl-chart { margin: 0.75rem 0 0; }
+	.pl-chart svg { width: 100%; max-width: 32rem; height: auto; direction: ltr; display: block; }
+	.pl-chart figcaption { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
+	.pl-chart :global(.axis) { stroke: var(--sl-color-gray-4); stroke-width: 1; }
+	.pl-chart :global(.curve) { fill: none; stroke: #3a9ec2; stroke-width: 2.5; }
+	.pl-chart :global(.sens) { stroke: #e5534b; stroke-width: 1.5; stroke-dasharray: 5 4; }
+	.pl-chart :global(.dot) { fill: var(--sl-color-accent); }
+	.pl-chart :global(.lbl) { fill: var(--sl-color-gray-3); font-size: 10px; font-family: sans-serif; }
+</style>
