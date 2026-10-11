@@ -84,6 +84,13 @@ code,
 /* المعادلات من اليسار لليمين */
 .katex-display, .katex { direction: ltr; }
 
+/* الكود والمعادلات جوّا سطر عربي: منعزلهم عن اتجاه النص، وإلا الرموز المحايدة
+   (; . , ( ) ...) بتنقلب لعند الطرف الغلط. مثال: `a = 5;` كانت تطلع `;a = 5` */
+:not(pre) > code,
+.katex {
+	unicode-bidi: isolate;
+}
+
 /* مربعات «الفكرة ببساطة» (tip) بأخضر الجامعة بدل البنفسجي */
 .starlight-aside--tip {
 	--sl-color-asides-text-accent: var(--sl-color-accent-high);
@@ -98,4 +105,11 @@ code,
 	padding: 0.25rem 0.3rem;
 	box-sizing: content-box;
 	height: calc(var(--sl-nav-height) - 2 * var(--sl-nav-pad-y) - 0.5rem);
+}
+
+/* تعليقات عربية جوّا الكود (متل: % حرف s خاص بتوابع التحويل):
+   كل قطعة بالسطر بتاخد اتجاهها من محتواها، فالتعليق العربي بينقرا من اليمين
+   لليسار حتى لو فيه حرف إنكليزي، والكود بيضل من اليسار لليمين */
+.expressive-code .ec-line .code > span {
+	unicode-bidi: plaintext;
 }
