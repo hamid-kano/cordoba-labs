@@ -25,7 +25,7 @@ switch project
 end
 fprintf('المشروع: %s\nالمطلوب: %s\n\n', name, goal);
 
-%% 2. المتحكم العائم
+%% 2. المتحكم الضبابي
 fis = buildFuzzyPD(3);
 
 %% 3. الأزرار: غيّر هون

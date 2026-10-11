@@ -1,5 +1,5 @@
 function [t, y, u] = simFuzzy(fis, Ke, Kd, Ku, varargin)
-%SIMFUZZY محاكاة حلقة تحكم مغلقة بمتحكم عائم (Fuzzy)
+%SIMFUZZY محاكاة حلقة تحكم مغلقة بمتحكم ضبابي (Fuzzy)
 %
 %   simFuzzy(fis, Ke, Kd, Ku)
 %       بيحاكي وبيرسم الخرج y وإشارة التحكم u، وبيطبع النتائج.

@@ -25,14 +25,14 @@ export const announcements: Announcement[] = [
 	{
 		date: '2026-10-11',
 		course: 'ai2',
-		title: 'تحديث خطة الذكاء الصنعي 2: جلسة جديدة لأساسيات المنطق العائم',
-		body: 'صارت الجلسة 3 لأساسيات المنطق العائم، وجلسة تصميم المتحكم Fuzzy-PD صارت الجلسة 4.',
+		title: 'تحديث خطة الذكاء الصنعي 2: جلسة جديدة لأساسيات المنطق الضبابي',
+		body: 'صارت الجلسة 3 لأساسيات المنطق الضبابي، وجلسة تصميم المتحكم Fuzzy-PD صارت الجلسة 4.',
 		link: 'ai2/lab-03-fuzzy-basics',
 	},
 	{
 		date: '2026-10-11',
 		course: 'ai2',
-		title: 'نُشرت جلسة تصميم المتحكم العائم (Fuzzy Controller)',
+		title: 'نُشرت جلسة تصميم المتحكم الضبابي (Fuzzy Controller)',
 		body: 'يرجى تجهيز MATLAB مع Fuzzy Logic Toolbox و Simulink قبل الجلسة.',
 		link: 'ai2/lab-04-fuzzy-pd-controller',
 	},

@@ -1,4 +1,4 @@
-%% الجلسة 5: ضبط المتحكم العائم
+%% الجلسة 5: ضبط المتحكم الضبابي
 %  يحتاج: simFuzzy.m و buildFuzzyPD.m بنفس المجلد
 %  شغّل كل قسم لحاله بـ Run Section
 clc; clear; close all;

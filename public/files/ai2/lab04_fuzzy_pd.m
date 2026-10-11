@@ -1,4 +1,4 @@
-%% الجلسة 4: أول متحكم عائم (Fuzzy-PD)
+%% الجلسة 4: أول متحكم ضبابي (Fuzzy-PD)
 %  يحتاج: Fuzzy Logic Toolbox (R2018b أو أحدث)، والملف simFuzzy.m بنفس المجلد
 %  شغّل كل قسم لحاله بـ Run Section
 clc; clear; close all;

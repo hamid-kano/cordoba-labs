@@ -1,6 +1,6 @@
 ---
 title: الذكاء الصنعي 2 – خطة العملي
-description: خطة الجلسات العملية لمادة الذكاء الصنعي 2، مع التركيز على MATLAB و Simulink وتصميم المتحكم العائم، بشرح مبسّط.
+description: خطة الجلسات العملية لمادة الذكاء الصنعي 2، مع التركيز على MATLAB و Simulink وتصميم المتحكم الضبابي، بشرح مبسّط.
 sidebar:
   label: خطة المادة
   order: 0
@@ -10,11 +10,11 @@ import { Aside, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components'
 
 ## شو رح نتعلم؟
 
-العملي بيركز على 3 أشياء: **MATLAB**، و**Simulink**، وكيف **نصمم متحكم عائم (Fuzzy Controller)**. بآخر الجلسات رح تعرف:
+العملي بيركز على 3 أشياء: **MATLAB**، و**Simulink**، وكيف **نصمم متحكم ضبابي (Fuzzy Controller)**. بآخر الجلسات رح تعرف:
 
 1. تكتب أوامر بسيطة بـ MATLAB وترسم.
 2. تبني حلقة تحكم بـ Simulink بالسحب والتوصيل.
-3. تكتب متحكم عائم من **قواعد بالكلام** («إذا ... فـ ...»).
+3. تكتب متحكم ضبابي من **قواعد بالكلام** («إذا ... فـ ...»).
 4. تضبط المتحكم وتقارنه مع PID.
 
 <Aside type="tip" title="كيف تستخدم صفحات الجلسات">
@@ -30,7 +30,7 @@ import { Aside, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components'
 | MATLAB (R2021a أو أحدث) | يفضّل R2023a أو أحدث |
 | Simulink | |
 | Control System Toolbox | للأوامر `tf` و `step` و `pidtune` |
-| Fuzzy Logic Toolbox | للمتحكم العائم |
+| Fuzzy Logic Toolbox | للمتحكم الضبابي |
 
 <Aside type="note" title="ما عندك MATLAB على جهازك؟">
 فيك تستخدم **MATLAB Online** من المتصفح عن طريق حساب MathWorks، إذا كان عند الجامعة ترخيص Campus-Wide. وبمختبر الكلية النسخة مثبتة على كل الأجهزة.
@@ -42,7 +42,7 @@ import { Aside, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components'
 
 | الملف | شو بيعمل |
 | --- | --- |
-| [simFuzzy.m](../files/ai2/simFuzzy.m) | بيجرّب المتحكم العائم على النظام بسطر واحد، وبيرسم النتيجة |
+| [simFuzzy.m](../files/ai2/simFuzzy.m) | بيجرّب المتحكم الضبابي على النظام بسطر واحد، وبيرسم النتيجة |
 | [buildFuzzyPD.m](../files/ai2/buildFuzzyPD.m) | بيبني متحكم الجلسة 4 جاهز (أو بـ 5 مجموعات، أو من نوع Sugeno) |
 
 ## الجلسات
@@ -51,9 +51,9 @@ import { Aside, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components'
 | --- | --- | --- |
 | 1 | [أول خطوة بـ MATLAB](lab-01-matlab-basics/) | الواجهة، والمتغيرات، والرسم، وأول نظام |
 | 2 | [Simulink ومتحكم PID](lab-02-simulink-pid/) | أول نموذج بالبلوكات، وشو يعني P و I و D |
-| 3 | [المنطق العائم ببساطة](lab-03-fuzzy-basics/) | درجة الانتماء والقواعد، بمثال مروحة |
-| 4 | [أول متحكم عائم](lab-04-fuzzy-pd-controller/) | 9 قواعد، وتجربته، وربطه بـ Simulink |
-| 5 | [ضبط المتحكم العائم](lab-05-tuning/) | الأزرار التلاتة `Ke` و `Kd` و `Ku` |
+| 3 | [المنطق الضبابي ببساطة](lab-03-fuzzy-basics/) | درجة الانتماء والقواعد، بمثال مروحة |
+| 4 | [أول متحكم ضبابي](lab-04-fuzzy-pd-controller/) | 9 قواعد، وتجربته، وربطه بـ Simulink |
+| 5 | [ضبط المتحكم الضبابي](lab-05-tuning/) | الأزرار التلاتة `Ke` و `Kd` و `Ku` |
 | 6 | [Sugeno والتكامل](lab-06-sugeno-fuzzy-pid/) | نوع تاني من المتحكمات، وكيف نقاوم الاضطراب |
 | 7 | [خزان مياه](lab-07-water-tank/) | تطبيق على نظام حقيقي إله حدود |
 | 8 | [المشروع والمناقشة](lab-08-project/) | مشروع بسيط بتطبّق فيه كل شي |
