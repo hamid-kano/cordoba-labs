@@ -90,3 +90,12 @@ code,
 	--sl-color-asides-border: var(--sl-color-accent);
 	background-color: var(--sl-color-accent-low);
 }
+
+/* رمز الجامعة بالهيدر: على مربع أبيض لحتى يبيّن الأخضر الغامق بالوضع الليلي */
+.site-title img {
+	background: #fff;
+	border-radius: 0.5rem;
+	padding: 0.25rem 0.3rem;
+	box-sizing: content-box;
+	height: calc(var(--sl-nav-height) - 2 * var(--sl-nav-pad-y) - 0.5rem);
+}
