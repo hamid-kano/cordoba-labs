@@ -51,7 +51,7 @@ public/files/<course>/      ملفات التحميل (.m، .c ...)
 
 ## Git والنشر
 
-- المستودع: https://github.com/hamid-kano/cordoba-labs (الفرع `main`). الموقع رح يكون على https://hamid-kano.github.io/cordoba-labs/
+- المستودع: https://github.com/hamid-kano/cordoba-labs (الفرع `main`). الموقع منشور على https://hamid-kano.github.io/cordoba-labs/ وكل push على `main` بيعيد النشر لحاله.
 - ما في `gh` على الجهاز، فإعدادات GitHub بيعملها المستخدم من المتصفح.
 - لازم يكون **Settings ← Pages ← Source = GitHub Actions** مفعّل، وإلا `configure-pages` بيفشل بخطأ `Get Pages site failed ... Not Found`.
 
@@ -60,7 +60,7 @@ public/files/<course>/      ملفات التحميل (.m، .c ...)
 - شغّل السيرفر بالخلفية: `npx astro dev --background` (http://localhost:4321)، وللإيقاف `npx astro dev stop`، وللحالة `npx astro dev status`، وللسجلات `npx astro dev logs`.
 - البناء: `npm run build`. لتجرب base فرعي من Git Bash: `MSYS_NO_PATHCONV=1 BASE_PATH=/cordoba-labs npm run build` (بدون `MSYS_NO_PATHCONV` بيخرب Git Bash المسار).
 - بـ Bash على هالجهاز، heredoc طويل فيه عربي ممكن يفشل، فاستخدم أداة Write للملفات.
-- هالملف (`CLAUDE.md`) هو المرجع الوحيد للمشروع، وهو ملف عادي مو symlink لأن الـ symlinks ما بتشتغل على Windows هون (`core.symlinks=false`).
+- هالملف (`CLAUDE.md`) هو المرجع الوحيد للمشروع، وهو ملف عادي مو symlink لأن الـ symlinks ما بتشتغل على Windows هون (`core.symlinks=false`). لازم يضل بـ git بالـ mode `100644` (تأكد بـ `git ls-files -s CLAUDE.md`)، لأنه إذا رجع `120000` بيفشل `checkout` بالـ CI.
 
 ## التوثيق
 
