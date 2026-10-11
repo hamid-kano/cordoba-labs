@@ -1,20 +1,31 @@
-%% الجلسة 2: ضبط PID وتشغيل نموذج Simulink
+%% الجلسة 2: متحكم PID
+%  شغّل كل قسم لحاله بـ Run Section
 clc; clear; close all;
 
 s = tf('s');
-G = 1 / (s*(0.5*s + 1));
+G = 1 / (s*(0.5*s + 1));      % النظام تبعنا
 
-%% الضبط التلقائي
-C = pidtune(G, 'PID')
-Kp = C.Kp; Ki = C.Ki; Kd = C.Kd;
-T = feedback(C*G, 1);
-figure; step(T); grid on; title('PID (pidtune)');
-stepinfo(T)
+%% 1. تجارب الضبط اليدوي (بدون Saturation)
+P = [1 5 5 5];  I = [0 0 0 0.5];  D = [0 0 1 1];
+figure; hold on; grid on;
+for k = 1:4
+    C = pid(P(k), I(k), D(k));
+    step(feedback(C*G, 1), 10);
+end
+legend('أ: P=1', 'ب: P=5', 'ج: P=5, D=1', 'د: P=5, I=0.5, D=1');
+title('تجارب الضبط اليدوي');
 
-%% تشغيل النموذج (لازم يكون lab02_pid.slx بنفس المجلد،
-%% وبلوك PID فيه Kp و Ki و Kd كمتغيرات)
+%% 2. الضبط التلقائي
+C = pidtune(G, 'PID')         % القيم المقترحة
+figure;
+step(feedback(C*G, 1)); grid on;
+title('PID من pidtune');
+stepinfo(feedback(C*G, 1))
+
+%% 3. تشغيل نموذج Simulink (لازم يكون lab02_pid.slx بنفس المجلد)
 if exist('lab02_pid.slx', 'file')
-    out = sim('lab02_pid');
-    figure; plot(out.y.Time, out.y.Data, 'LineWidth', 1.5);
-    grid on; xlabel('Time (s)'); ylabel('y(t)'); title('Simulink: PID');
+    open_system('lab02_pid');
+    sim('lab02_pid');
+else
+    disp('ما لقيت lab02_pid.slx. ابنيه متل الخطوة 1 بصفحة الجلسة.');
 end

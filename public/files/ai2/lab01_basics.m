@@ -1,24 +1,41 @@
-%% الجلسة 1: أساسيات MATLAB لأنظمة التحكم
+%% الجلسة 1: أول خطوة بـ MATLAB
+%  شغّل كل قسم لحاله بـ Run Section، أو كل الملف بـ Run
 clc; clear; close all;
 
-%% 1. المصفوفات
-A = [1 2 3; 4 5 6; 7 8 10];
-b = [1; 2; 3];
-x = A \ b
+%% 1. أوامر بسيطة
+a = 5
+b = 3
+c = a + b
+d = a * b
 
-%% 2. الرسم
-t  = 0:0.01:5;
-y1 = exp(-t) .* sin(2*pi*t);
-y2 = exp(-0.5*t);
+%% 2. المتجهات
+t = 0:1:5
+t = 0:0.5:5
+
+%% 3. أول رسمة
+t = 0:0.01:5;             % الزمن من 0 لـ 5 ثواني
+y = sin(2*pi*t);          % موجة جيبية
 figure;
-plot(t, y1, 'LineWidth', 1.5); hold on;
-plot(t, y2, '--', 'LineWidth', 1.5);
-grid on; xlabel('Time (s)'); ylabel('Amplitude');
-legend('e^{-t} sin(2\pi t)', 'e^{-0.5t}'); title('My first plot');
+plot(t, y)
+grid on
+xlabel('Time (s)')
+ylabel('y')
+title('My first plot')
 
-%% 3. تابع التحويل والاستجابة
+%% 4. نظام واستجابته
 s = tf('s');
-G = 1 / (s*(0.5*s + 1));
-T = feedback(G, 1);
-figure; step(T); grid on; title('Closed-loop step response');
-info = stepinfo(T)
+G = 1 / (s*(0.5*s + 1))   % النظام تبعنا
+
+T = feedback(G, 1);       % حلقة مغلقة
+figure;
+step(T)                   % أمر "روح لـ 1"
+grid on
+stepinfo(T)               % التجاوز وزمن الاستقرار
+
+%% 5. الوظيفة: ربح أكبر
+T4 = feedback(4*G, 1);
+figure;
+step(T, T4)
+grid on
+legend('ربح 1', 'ربح 4')
+stepinfo(T4)

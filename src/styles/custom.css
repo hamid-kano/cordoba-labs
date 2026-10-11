@@ -47,6 +47,15 @@ code,
 }
 .sl-markdown-content details.answer summary { cursor: pointer; font-weight: 500; }
 
+/* ملاحظات المدرّس: صندوق منقّط بلون مميز */
+.sl-markdown-content details:not(.answer) {
+	border: 1px dashed var(--sl-color-accent);
+	border-radius: 0.5rem;
+	padding: 0.5rem 1rem;
+	background: var(--sl-color-accent-low);
+}
+.sl-markdown-content details:not(.answer) summary { cursor: pointer; }
+
 /* جداول عريضة قابلة للتمرير على الموبايل */
 .sl-markdown-content table { display: block; overflow-x: auto; }
 

@@ -1,6 +1,6 @@
 ---
 title: الذكاء الصنعي 2 – خطة العملي
-description: خطة الجلسات العملية لمادة الذكاء الصنعي 2، مع التركيز على MATLAB و Simulink والمتحكمات العائمة.
+description: خطة الجلسات العملية لمادة الذكاء الصنعي 2، مع التركيز على MATLAB و Simulink وتصميم المتحكم العائم، بشرح مبسّط.
 sidebar:
   label: خطة المادة
   order: 0
@@ -8,14 +8,20 @@ sidebar:
 
 import { Aside, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components';
 
-## أهداف العملي
+## شو رح نتعلم؟
 
-بنهاية الجلسات العملية بيكون الطالب قادر على:
+العملي بيركز على 3 أشياء: **MATLAB**، و**Simulink**، وكيف **نصمم متحكم عائم (Fuzzy Controller)**. بآخر الجلسات رح تعرف:
 
-1. استخدام **MATLAB** لتمثيل الأنظمة الديناميكية ورسم استجابتها.
-2. بناء نموذج نظام تحكم مغلق في **Simulink** ومحاكاته وتحليل نتائجه.
-3. تصميم **متحكم عائم (Fuzzy Logic Controller)** من الصفر: المتغيرات، ودوال الانتماء، والقواعد.
-4. ربط المتحكم العائم بنموذج Simulink ومقارنته مع متحكم PID تقليدي.
+1. تكتب أوامر بسيطة بـ MATLAB وترسم.
+2. تبني حلقة تحكم بـ Simulink بالسحب والتوصيل.
+3. تكتب متحكم عائم من **قواعد بالكلام** («إذا ... فـ ...»).
+4. تضبط المتحكم وتقارنه مع PID.
+
+<Aside type="tip" title="كيف تستخدم صفحات الجلسات">
+- كل جلسة بتبلّش بمربع **«الفكرة ببساطة»**. اقراه أول شي.
+- بعد كل خطوة في **«شو لازم تشوف»**. إذا شفت شي تاني، ارجع للخطوة أو شوف جدول **«أخطاء شائعة»**.
+- أي كلمة ما فهمتها؟ شوف [قاموس المصطلحات](glossary/).
+</Aside>
 
 ## البرامج المطلوبة
 
@@ -23,25 +29,34 @@ import { Aside, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components'
 | --- | --- |
 | MATLAB (R2021a أو أحدث) | يفضّل R2023a أو أحدث |
 | Simulink | |
-| Control System Toolbox | للدوال `tf` و `step` و `pidtune` |
-| Fuzzy Logic Toolbox | لتصميم المتحكم العائم |
+| Control System Toolbox | للأوامر `tf` و `step` و `pidtune` |
+| Fuzzy Logic Toolbox | للمتحكم العائم |
 
-<Aside type="tip" title="ما عندك MATLAB على جهازك؟">
+<Aside type="note" title="ما عندك MATLAB على جهازك؟">
 فيك تستخدم **MATLAB Online** من المتصفح عن طريق حساب MathWorks، إذا كان عند الجامعة ترخيص Campus-Wide. وبمختبر الكلية النسخة مثبتة على كل الأجهزة.
 </Aside>
 
+## الملفات المساعدة
+
+من الجلسة 4 وطالع منستخدم ملفين جاهزين. **نزّلهم مرة وحدة** وحطهم بمجلد العمل `AI2-Lab`:
+
+| الملف | شو بيعمل |
+| --- | --- |
+| [simFuzzy.m](../files/ai2/simFuzzy.m) | بيجرّب المتحكم العائم على النظام بسطر واحد، وبيرسم النتيجة |
+| [buildFuzzyPD.m](../files/ai2/buildFuzzyPD.m) | بيبني متحكم الجلسة 4 جاهز (أو بـ 5 مجموعات، أو من نوع Sugeno) |
+
 ## الجلسات
 
-| # | الجلسة | الحالة |
+| # | الجلسة | شو فيها |
 | --- | --- | --- |
-| 1 | [أساسيات MATLAB لأنظمة التحكم](lab-01-matlab-basics/) | <Badge text="متاحة" variant="success" /> |
-| 2 | [مدخل إلى Simulink ومتحكم PID](lab-02-simulink-pid/) | <Badge text="متاحة" variant="success" /> |
-| 3 | [أساسيات المنطق العائم بـ MATLAB](lab-03-fuzzy-basics/) | <Badge text="متاحة" variant="success" /> |
-| 4 | [تصميم متحكم Fuzzy-PD وربطه بـ Simulink](lab-04-fuzzy-pd-controller/) | <Badge text="متاحة" variant="success" /> |
-| 5 | [ضبط المتحكم العائم](lab-05-tuning/) | <Badge text="متاحة" variant="success" /> |
-| 6 | [Sugeno ومتحكم Fuzzy-PID](lab-06-sugeno-fuzzy-pid/) | <Badge text="متاحة" variant="success" /> |
-| 7 | [التحكم بمستوى خزان مياه (نظام غير خطي)](lab-07-water-tank/) | <Badge text="متاحة" variant="success" /> |
-| 8 | [المشروع العملي والمناقشة](lab-08-project/) | <Badge text="متاحة" variant="success" /> |
+| 1 | [أول خطوة بـ MATLAB](lab-01-matlab-basics/) | الواجهة، والمتغيرات، والرسم، وأول نظام |
+| 2 | [Simulink ومتحكم PID](lab-02-simulink-pid/) | أول نموذج بالبلوكات، وشو يعني P و I و D |
+| 3 | [المنطق العائم ببساطة](lab-03-fuzzy-basics/) | درجة الانتماء والقواعد، بمثال مروحة |
+| 4 | [أول متحكم عائم](lab-04-fuzzy-pd-controller/) | 9 قواعد، وتجربته، وربطه بـ Simulink |
+| 5 | [ضبط المتحكم العائم](lab-05-tuning/) | الأزرار التلاتة `Ke` و `Kd` و `Ku` |
+| 6 | [Sugeno والتكامل](lab-06-sugeno-fuzzy-pid/) | نوع تاني من المتحكمات، وكيف نقاوم الاضطراب |
+| 7 | [خزان مياه](lab-07-water-tank/) | تطبيق على نظام حقيقي إله حدود |
+| 8 | [المشروع والمناقشة](lab-08-project/) | مشروع بسيط بتطبّق فيه كل شي |
 
 ## التقييم
 
@@ -59,4 +74,4 @@ import { Aside, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components'
 
 ## ابدأ من هون
 
-<LinkCard title="الجلسة 1: أساسيات MATLAB لأنظمة التحكم" href="lab-01-matlab-basics/" />
+<LinkCard title="الجلسة 1: أول خطوة بـ MATLAB" href="lab-01-matlab-basics/" />
