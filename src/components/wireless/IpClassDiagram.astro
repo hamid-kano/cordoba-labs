@@ -1,0 +1,47 @@
+---
+// تقسيم عنوان IP لقسم الشبكة وقسم الجهاز حسب الفئة
+const rows = [
+	{ c: 'A', net: 1, range: '1 – 126', ex: '10.0.0.5', mask: '255.0.0.0' },
+	{ c: 'B', net: 2, range: '128 – 191', ex: '172.16.4.9', mask: '255.255.0.0' },
+	{ c: 'C', net: 3, range: '192 – 223', ex: '192.168.1.10', mask: '255.255.255.0' },
+];
+const x0 = 70, w = 92, gap = 6;
+---
+
+<figure class="wl-fig">
+	<svg viewBox="0 0 660 250" role="img" aria-label="عنوان IP من 4 أرقام: قسم للشبكة وقسم للجهاز، وحجم كل قسم بيعتمد على الفئة">
+		<text x={x0 + 2 * (w + gap)} y="18" class="d-s">4 أرقام، كل رقم من 0 لـ 255</text>
+		<text x="560" y="18" class="d-s">أول رقم، والقناع</text>
+		{
+			rows.map((r, i) => {
+				const y = 34 + i * 66;
+				const parts = r.ex.split('.');
+				return (
+					<g>
+						<text x="30" y={y + 30} class="d-t d-b d-ltr">{r.c}</text>
+						{parts.map((p, j) => (
+							<g>
+								<rect x={x0 + j * (w + gap)} y={y} width={w} height="44" rx="6" class={j < r.net ? 'ipn' : 'iph'} />
+								<text x={x0 + j * (w + gap) + w / 2} y={y + 28} class={`${j < r.net ? "ipt" : "ipt ipt2"} d-ltr`}>{p}</text>
+							</g>
+						))}
+						<text x="560" y={y + 18} class="d-t d-b d-ltr">{r.range}</text>
+						<text x="560" y={y + 38} class="d-s d-ltr">{r.mask}</text>
+					</g>
+				);
+			})
+		}
+		<rect x="70" y="236" width="14" height="10" class="ipn" />
+		<text x="90" y="245" class="d-s d-end">الشبكة (متل اسم الشارع)</text>
+		<rect x="270" y="236" width="14" height="10" class="iph" />
+		<text x="290" y="245" class="d-s d-end">الجهاز (متل رقم البيت)</text>
+	</svg>
+	<figcaption>كل ما كان قسم الشبكة أصغر (الفئة A)، بيبقى مكان لأجهزة أكتر بكل شبكة. والقناع (Subnet Mask) هو يلي بيقول وين بيخلص قسم الشبكة: الـ 255 فوق قسم الشبكة، والـ 0 فوق قسم الجهاز.</figcaption>
+</figure>
+
+<style>
+	.ipn { fill: #2a7ea3; }
+	.iph { fill: var(--sl-color-gray-5); }
+	.ipt { fill: #fff; font-size: 17px; font-weight: 700; text-anchor: middle; }
+	.ipt2 { fill: var(--sl-color-white); }
+</style>

@@ -1,0 +1,69 @@
+---
+// مخطط قنوات 2.4 GHz: كل قناة عرضها 22 MHz، والمراكز بينها 5 MHz
+const chans = Array.from({ length: 13 }, (_, i) => i + 1);
+const aps = [
+	{ id: 0, name: 'AP1', ch: 1, c: '#3a9ec2' },
+	{ id: 1, name: 'AP2', ch: 3, c: '#e0a030' },
+	{ id: 2, name: 'AP3', ch: 6, c: '#2fb36b' },
+];
+---
+
+<div class="not-content wl-box" data-cp>
+	<h4>جرّب: وزّع القنوات على 3 نقاط وصول متجاورة</h4>
+	<div class="wl-row">
+		{
+			aps.map((a) => (
+				<label class="wl-row">
+					<span style={`color:${a.c};font-weight:700`}>{a.name}</span>
+					<select class="wl-select" data-ap={a.id}>{chans.map((c) => <option value={c} selected={c === a.ch}>{`قناة ${c}`}</option>)}</select>
+				</label>
+			))
+		}
+		<button type="button" class="wl-btn" data-best>الحل الصح</button>
+	</div>
+	<figure class="wl-fig" style="margin:0">
+		<svg viewBox="0 0 660 200" role="img" aria-label="قنوات 2.4 GHz وكيف بتتداخل" data-svg></svg>
+	</figure>
+	<p class="wl-msg" data-msg></p>
+</div>
+
+<script>
+	const COLORS = ['#3a9ec2', '#e0a030', '#2fb36b'];
+	const freq = (ch: number) => 2407 + 5 * ch; // MHz
+	document.querySelectorAll<HTMLElement>('[data-cp]').forEach((root) => {
+		const sels = [...root.querySelectorAll<HTMLSelectElement>('[data-ap]')];
+		const svg = root.querySelector<SVGSVGElement>('[data-svg]')!;
+		const msg = root.querySelector<HTMLElement>('[data-msg]')!;
+		const fMin = 2400, fMax = 2484, X = (f: number) => 20 + ((f - fMin) / (fMax - fMin)) * 620;
+
+		function draw() {
+			const chs = sels.map((s) => +s.value);
+			let h = `<line x1="20" y1="160" x2="640" y2="160" class="d-line" />`;
+			for (let c = 1; c <= 13; c++) {
+				h += `<line x1="${X(freq(c))}" y1="160" x2="${X(freq(c))}" y2="166" class="d-line" /><text x="${X(freq(c))}" y="182" class="d-s d-ltr">${c}</text>`;
+			}
+			h += `<text x="330" y="198" class="d-s">رقم القناة (حزمة 2.4 GHz)</text>`;
+			chs.forEach((c, i) => {
+				const f = freq(c), l = X(f - 11), r = X(f + 11), mid = X(f);
+				h += `<path d="M ${l} 160 Q ${l + (mid - l) * 0.15} ${60 + i * 12} ${mid} ${60 + i * 12} Q ${r - (r - mid) * 0.15} ${60 + i * 12} ${r} 160" fill="${COLORS[i]}" fill-opacity="0.28" stroke="${COLORS[i]}" stroke-width="2.5" />`;
+				h += `<text x="${mid}" y="${52 + i * 12}" class="d-t d-b d-ltr" style="fill:${COLORS[i]}">AP${i + 1}</text>`;
+			});
+			svg.innerHTML = h;
+
+			const clashes: string[] = [];
+			for (let i = 0; i < 3; i++)
+				for (let j = i + 1; j < 3; j++)
+					if (Math.abs(chs[i] - chs[j]) < 5) clashes.push(`AP${i + 1} و AP${j + 1}`);
+			msg.className = 'wl-msg ' + (clashes.length ? 'wl-bad' : 'wl-good');
+			msg.textContent = clashes.length
+				? `✘ في تداخل بين: ${clashes.join('، ')}. القنوات لازم يكون الفرق بينها 5 أو أكتر.`
+				: '✔ ما في تداخل! كل نقطة وصول عندها حيّز لحالها.';
+		}
+		sels.forEach((s) => s.addEventListener('change', draw));
+		root.querySelector('[data-best]')!.addEventListener('click', () => {
+			[1, 6, 11].forEach((c, i) => (sels[i].value = String(c)));
+			draw();
+		});
+		draw();
+	});
+</script>

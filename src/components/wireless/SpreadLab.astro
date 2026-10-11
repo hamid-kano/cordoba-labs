@@ -1,0 +1,99 @@
+---
+// الطيف المنثور بالسلسلة المباشرة (XOR) و CDMA
+interface Props { tool: 'dsss' | 'cdma'; }
+const { tool } = Astro.props;
+---
+
+{
+	tool === 'dsss' && (
+		<div class="not-content wl-box" data-dsss>
+			<h4>جرّب: نثر البيانات بـ XOR</h4>
+			<div class="wl-grid">
+				<label class="wl-label">البيانات (بتات)<input class="wl-input" value="101" data-in="data" /></label>
+				<label class="wl-label">سلسلة النثر (رقاقات)<input class="wl-input" value="1011" data-in="code" /></label>
+			</div>
+			<div style="overflow-x:auto"><table class="wl-table sp-table" data-out="t"></table></div>
+			<p class="wl-msg" data-out="msg"></p>
+		</div>
+	)
+}
+
+{
+	tool === 'cdma' && (
+		<div class="not-content wl-box" data-cdma>
+			<h4>جرّب: مستخدمَين بنفس الوقت وبنفس التردد</h4>
+			<div class="wl-row">
+				<span>بت المستخدم 1:</span>
+				<button type="button" class="wl-btn" data-u="1" data-v="1">1</button>
+				<button type="button" class="wl-btn" data-u="1" data-v="-1">0</button>
+				<span style="margin-inline-start:1rem">بت المستخدم 2:</span>
+				<button type="button" class="wl-btn" data-u="2" data-v="1">1</button>
+				<button type="button" class="wl-btn" data-u="2" data-v="-1">0</button>
+			</div>
+			<div style="overflow-x:auto"><table class="wl-table" data-out="t"></table></div>
+			<p class="wl-msg" data-out="msg"></p>
+		</div>
+	)
+}
+
+<script>
+	// DSSS: كل بت بيتبدل بسلسلة رقاقات = بت XOR الرمز
+	document.querySelectorAll<HTMLElement>('[data-dsss]').forEach((root) => {
+		const v = (k: string) => root.querySelector<HTMLInputElement>(`[data-in="${k}"]`)!.value.replace(/[^01]/g, '');
+		const o = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		function update() {
+			const data = v('data').slice(0, 8), code = v('code').slice(0, 8);
+			if (!data || !code) { o('t').innerHTML = ''; o('msg').textContent = 'اكتب أصفار وواحدات بس.'; return; }
+			const cell = (s: string, cls = '') => s.split('').map((c) => `<span class="sp-c ${cls} b${c}">${c}</span>`).join('');
+			const rows = [...data].map((b) => {
+				const tx = [...code].map((c) => String(+b ^ +c)).join('');
+				const rx = [...tx].map((c, i) => String(+c ^ +code[i])).join('');
+				return { b, tx, rx, out: rx[0] };
+			});
+			o('t').innerHTML = `<thead><tr><th>البت</th><th>سلسلة النثر</th><th>المُرسَل = البت XOR السلسلة</th><th>عند المستقبل: المُرسَل XOR السلسلة</th><th>البت المسترجع</th></tr></thead><tbody>` +
+				rows.map((r) => `<tr><td>${cell(r.b)}</td><td>${cell(code)}</td><td>${cell(r.tx, 'tx')}</td><td>${cell(r.rx)}</td><td>${cell(r.out)}</td></tr>`).join('') + '</tbody>';
+			o('msg').textContent = `كل بت صار ${code.length} رقاقات، يعني الإشارة صارت أعرض بـ ${code.length} مرات. وعند المستقبل نفس العملية بترجّع البيانات: ${rows.map((r) => r.out).join('')}.`;
+		}
+		root.addEventListener('input', update);
+		update();
+	});
+
+	// CDMA: رمزين متعامدين، والقناة بتجمعهن، وكل مستقبل بيضرب برمزه
+	document.querySelectorAll<HTMLElement>('[data-cdma]').forEach((root) => {
+		const c1 = [1, 1, 1, 1], c2 = [1, -1, 1, -1];
+		const bits: Record<string, number> = { '1': 1, '2': -1 };
+		const o = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const vec = (a: number[]) => `<span class="wl-mono">[${a.map((x) => (x > 0 ? `+${x}` : `${x}`)).join(', ')}]</span>`;
+		function update() {
+			root.querySelectorAll<HTMLButtonElement>('[data-u]').forEach((b) => b.setAttribute('aria-pressed', String(bits[b.dataset.u!] === +b.dataset.v!)));
+			const d1 = bits['1'], d2 = bits['2'];
+			const s1 = c1.map((c) => c * d1), s2 = c2.map((c) => c * d2);
+			const ch = s1.map((x, i) => x + s2[i]);
+			const r1 = ch.reduce((s, x, i) => s + x * c1[i], 0) / 4;
+			const r2 = ch.reduce((s, x, i) => s + x * c2[i], 0) / 4;
+			const b = (x: number) => (x > 0 ? '1' : '0');
+			o('t').innerHTML = `<tbody>
+				<tr><th>رمز المستخدم 1</th><td>${vec(c1)}</td></tr>
+				<tr><th>رمز المستخدم 2</th><td>${vec(c2)}</td></tr>
+				<tr><th>المستخدم 1 بيبعت (بته × رمزه)</th><td>${vec(s1)}</td></tr>
+				<tr><th>المستخدم 2 بيبعت (بته × رمزه)</th><td>${vec(s2)}</td></tr>
+				<tr class="hl"><th>بالقناة (الاتنين مجموعين)</th><td>${vec(ch)}</td></tr>
+				<tr><th>المستقبل 1: (القناة × رمز 1) ÷ 4</th><td><bdi dir="ltr"><b>${r1 > 0 ? '+1' : '−1'}</b></bdi> ← البت ${b(r1)}</td></tr>
+				<tr><th>المستقبل 2: (القناة × رمز 2) ÷ 4</th><td><bdi dir="ltr"><b>${r2 > 0 ? '+1' : '−1'}</b></bdi> ← البت ${b(r2)}</td></tr>
+			</tbody>`;
+			o('msg').textContent = `الاتنين بعتوا سوا وانخلطوا بالقناة، بس كل مستقبل طلّع بت صاحبه صح: ${b(d1)} و ${b(d2)}. السبب إنه الرمزين «متعامدين» (حاصل ضربهن صفر).`;
+		}
+		root.querySelectorAll<HTMLButtonElement>('[data-u]').forEach((btn) =>
+			btn.addEventListener('click', () => { bits[btn.dataset.u!] = +btn.dataset.v!; update(); })
+		);
+		update();
+	});
+</script>
+
+<style>
+	.sp-table :global(td) { white-space: nowrap; direction: ltr; }
+	:global(.sp-c) { display: inline-block; width: 1.3rem; padding: 0.1rem 0; margin: 1px; border-radius: 0.2rem; font-family: var(--sl-font-system-mono); font-weight: 700; direction: ltr; }
+	:global(.sp-c.b1) { background: #2a7ea3; color: #fff; }
+	:global(.sp-c.b0) { background: var(--sl-color-gray-5); color: var(--sl-color-white); }
+	:global(.sp-c.tx.b1) { background: #b7791f; }
+</style>

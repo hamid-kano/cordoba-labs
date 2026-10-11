@@ -1,0 +1,145 @@
+---
+// حاسبة عناوين IP والشبكات الفرعية
+const prefixes = Array.from({ length: 23 }, (_, i) => i + 8); // 8..30
+---
+
+<div class="not-content wl-box" data-sub>
+	<h4>حاسبة الشبكات الفرعية</h4>
+	<div class="wl-row">
+		<label class="wl-label">عنوان IP<input class="wl-input" value="192.168.10.0" data-in="ip" size="16" /></label>
+		<label class="wl-label">طول القناع
+			<select class="wl-select" data-in="p" dir="ltr">{prefixes.map((p) => <option value={p} selected={p === 25}>{`/${p}`}</option>)}</select>
+		</label>
+	</div>
+	<div class="wl-row">
+		<span>أمثلة:</span>
+		<button type="button" class="wl-btn" data-ex="192.168.10.0/25">مسألة العملي <bdi dir="ltr">/25</bdi></button>
+		<button type="button" class="wl-btn" data-ex="192.168.1.0/26" dir="ltr">192.168.1.0/26</button>
+		<button type="button" class="wl-btn" data-ex="10.0.0.5/8" dir="ltr">10.0.0.5/8</button>
+		<button type="button" class="wl-btn" data-ex="172.16.0.0/16" dir="ltr">172.16.0.0/16</button>
+	</div>
+	<p class="wl-msg wl-bad" data-err hidden></p>
+	<div data-res>
+		<div class="wl-grid">
+			<div class="wl-out"><span>الفئة (Class)</span><strong data-o="cls">–</strong></div>
+			<div class="wl-out"><span>القناع (Subnet Mask)</span><strong data-o="mask">–</strong></div>
+			<div class="wl-out"><span>عدد الشبكات الفرعية</span><strong data-o="nets">–</strong></div>
+			<div class="wl-out"><span>عدد الأجهزة بكل شبكة</span><strong data-o="hosts">–</strong></div>
+		</div>
+		<div class="sub-bin" data-o="bin"></div>
+		<p data-o="kind"></p>
+		<div style="overflow-x:auto">
+			<table class="wl-table">
+				<thead><tr><th>الشبكة</th><th>عنوان الشبكة</th><th>أول جهاز</th><th>آخر جهاز</th><th>عنوان البث (Broadcast)</th></tr></thead>
+				<tbody data-o="rows"></tbody>
+			</table>
+		</div>
+		<p class="wl-msg" data-o="note"></p>
+	</div>
+</div>
+
+<script>
+	const toInt = (o: number[]) => ((o[0] << 24) >>> 0) + (o[1] << 16) + (o[2] << 8) + o[3];
+	const toStr = (n: number) => [24, 16, 8, 0].map((s) => (n >>> s) & 255).join('.');
+
+	function classOf(first: number) {
+		if (first >= 1 && first <= 126) return { c: 'A', def: 8, note: '' };
+		if (first === 127) return { c: 'A', def: 8, note: '127 محجوزة لاختبار الجهاز نفسه (loopback)، ما بتنستخدم بالشبكة.' };
+		if (first >= 128 && first <= 191) return { c: 'B', def: 16, note: '' };
+		if (first >= 192 && first <= 223) return { c: 'C', def: 24, note: '' };
+		if (first >= 224 && first <= 239) return { c: 'D', def: 0, note: 'الفئة D للبث لمجموعة أجهزة (Multicast)، ما بتنقسم لشبكات.' };
+		if (first >= 240) return { c: 'E', def: 0, note: 'الفئة E للتجارب والمستقبل، ما بتنستخدم.' };
+		return { c: '–', def: 0, note: 'أول رقم 0 ما بينفع لعنوان جهاز.' };
+	}
+
+	function isPrivate(o: number[]) {
+		return o[0] === 10 || (o[0] === 172 && o[1] >= 16 && o[1] <= 31) || (o[0] === 192 && o[1] === 168);
+	}
+
+	document.querySelectorAll<HTMLElement>('[data-sub]').forEach((root) => {
+		const ipIn = root.querySelector<HTMLInputElement>('[data-in="ip"]')!;
+		const pIn = root.querySelector<HTMLSelectElement>('[data-in="p"]')!;
+		const o = (k: string) => root.querySelector<HTMLElement>(`[data-o="${k}"]`)!;
+		const err = root.querySelector<HTMLElement>('[data-err]')!;
+		const res = root.querySelector<HTMLElement>('[data-res]')!;
+
+		function update() {
+			const parts = ipIn.value.trim().split('.');
+			const oct = parts.map((x) => Number(x));
+			if (parts.length !== 4 || oct.some((x, i) => parts[i] === '' || !Number.isInteger(x) || x < 0 || x > 255)) {
+				err.hidden = false;
+				err.textContent = 'العنوان لازم يكون 4 أرقام بينهن نقاط، وكل رقم من 0 لـ 255. مثال: 192.168.1.10';
+				res.hidden = true;
+				return;
+			}
+			err.hidden = true;
+			res.hidden = false;
+			const p = +pIn.value;
+			const ip = toInt(oct);
+			const mask = p === 0 ? 0 : (0xffffffff << (32 - p)) >>> 0;
+			const cls = classOf(oct[0]);
+			o('cls').textContent = cls.c;
+			o('mask').textContent = toStr(mask);
+			o('hosts').textContent = `2^${32 - p} − 2 = ${(2 ** (32 - p) - 2).toLocaleString('en-US')}`;
+
+			// القناع بالثنائي: بتات الشبكة ملوّنة
+			const bits = Array.from({ length: 32 }, (_, i) => (i < p ? '1' : '0'));
+			o('bin').innerHTML = [0, 1, 2, 3]
+				.map((g) => `<span>${bits.slice(g * 8, g * 8 + 8).map((b, j) => `<i class="${g * 8 + j < p ? 'n' : 'h'}">${b}</i>`).join('')}</span>`)
+				.join('<b>.</b>');
+
+			const notes: string[] = [];
+			if (cls.note) notes.push(cls.note);
+			let subnets: number[] = [];
+			if (cls.def && p >= cls.def) {
+				const borrowed = p - cls.def;
+				const count = 2 ** borrowed;
+				o('nets').textContent = `2^${borrowed} = ${count.toLocaleString('en-US')}`;
+				const base = (ip & ((0xffffffff << (32 - cls.def)) >>> 0)) >>> 0;
+				const size = 2 ** (32 - p);
+				const show = Math.min(count, 8);
+				subnets = Array.from({ length: show }, (_, i) => (base + i * size) >>> 0);
+				if (count > show) notes.push(`عرضنا أول ${show} شبكات بس من أصل ${count.toLocaleString('en-US')}.`);
+				notes.push(borrowed === 0
+					? `القناع هو القناع الأساسي للفئة ${cls.c}، فما في تقسيم: شبكة وحدة.`
+					: `استعرنا ${borrowed} بت من قسم الأجهزة لنعمل شبكات فرعية.`);
+			} else {
+				o('nets').textContent = '–';
+				if (cls.def) notes.push(`القناع أصغر من القناع الأساسي للفئة ${cls.c} (/${cls.def})، فهون منكون عم نجمع شبكات مش نقسم.`);
+				const net = (ip & mask) >>> 0;
+				subnets = cls.def ? [net] : [];
+			}
+			const mine = (ip & mask) >>> 0;
+			o('rows').innerHTML = subnets
+				.map((net, i) => {
+					const bc = (net + 2 ** (32 - p) - 1) >>> 0;
+					return `<tr class="${net === mine ? 'hl' : ''}"><td>${i + 1}</td><td class="wl-mono">${toStr(net)}</td><td class="wl-mono">${toStr(net + 1)}</td><td class="wl-mono">${toStr(bc - 1)}</td><td class="wl-mono">${toStr(bc)}</td></tr>`;
+				})
+				.join('');
+			o('kind').textContent = cls.def
+				? `${isPrivate(oct) ? 'عنوان خاص (Private): بينفع جوّا الشبكات المحلية بس، متل بيتك أو المختبر.' : 'عنوان عام (Public): بينشاف على الإنترنت.'} السطر الملوّن هو الشبكة يلي فيها العنوان يلي كتبته.`
+				: '';
+			o('note').textContent = notes.join(' ');
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const [ip, p] = b.dataset.ex!.split('/');
+				ipIn.value = ip;
+				pIn.value = p;
+				update();
+			})
+		);
+		root.addEventListener('input', update);
+		root.addEventListener('change', update);
+		update();
+	});
+</script>
+
+<style>
+	.sub-bin { direction: ltr; font-family: var(--sl-font-system-mono); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 0.15rem; align-items: center; }
+	.sub-bin :global(i) { font-style: normal; padding: 0.1rem 0.15rem; border-radius: 0.2rem; }
+	.sub-bin :global(i.n) { background: #2a7ea3; color: #fff; }
+	.sub-bin :global(i.h) { background: var(--sl-color-gray-5); color: var(--sl-color-white); }
+	.sub-bin :global(b) { padding: 0 0.15rem; }
+</style>

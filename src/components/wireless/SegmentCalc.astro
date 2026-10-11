@@ -1,0 +1,60 @@
+---
+// حاسبة تقسيم رسالة TCP لقطع (Segments)
+---
+
+<div class="not-content wl-box" data-seg>
+	<h4>حاسبة: قديش قطعة بتلزم؟</h4>
+	<div class="wl-grid">
+		<label class="wl-label">حجم الرسالة (byte)<input class="wl-input" type="number" min="1" value="5000" data-in="msg" /></label>
+		<label class="wl-label">أكبر حجم للقطعة مع رأسها (byte)<input class="wl-input" type="number" min="2" value="1460" data-in="max" /></label>
+		<label class="wl-label">حجم الرأس لكل قطعة (byte)<input class="wl-input" type="number" min="0" value="20" data-in="head" /></label>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>بيانات بكل قطعة</span><strong data-out="payload">–</strong></div>
+		<div class="wl-out"><span>عدد القطع</span><strong data-out="n">–</strong></div>
+		<div class="wl-out"><span>الحجم الكلي مع الرؤوس</span><strong data-out="total">–</strong></div>
+	</div>
+	<div class="seg-bar" data-out="bar"></div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-seg]').forEach((root) => {
+		const v = (k: string) => Math.max(0, parseInt(root.querySelector<HTMLInputElement>(`[data-in="${k}"]`)!.value) || 0);
+		const o = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		function update() {
+			const msg = v('msg'), max = v('max'), head = v('head');
+			const payload = max - head;
+			if (msg < 1 || payload < 1) {
+				o('payload').textContent = o('n').textContent = o('total').textContent = '–';
+				o('bar').innerHTML = '';
+				o('msg').textContent = 'الرأس لازم يكون أصغر من حجم القطعة.';
+				return;
+			}
+			const n = Math.ceil(msg / payload);
+			const total = msg + n * head;
+			o('payload').textContent = `${max} − ${head} = ${payload} byte`;
+			o('n').textContent = `⌈${msg} ÷ ${payload}⌉ = ${n}`;
+			o('total').textContent = `${msg} + ${n}×${head} = ${total} byte`;
+			const parts: number[] = [];
+			for (let i = 0; i < n; i++) parts.push(Math.min(payload, msg - i * payload));
+			o('bar').innerHTML = n > 40
+				? ''
+				: parts.map((p, i) => `<span style="flex:${p}"><b>${i + 1}</b>${p}</span>`).join('');
+			o('msg').textContent = n > 40
+				? `${n} قطعة، كتير لنرسمهن.`
+				: `آخر قطعة فيها ${parts[n - 1]} byte بس، لأنه الرسالة خلصت. ومنقرّب عدد القطع لفوق دايماً (ما في نص قطعة).`;
+		}
+		root.addEventListener('input', update);
+		update();
+	});
+</script>
+
+<style>
+	.seg-bar { display: flex; gap: 3px; direction: ltr; }
+	.seg-bar :global(span) {
+		display: flex; flex-direction: column; align-items: center; justify-content: center;
+		background: #2a7ea3; color: #fff; border-radius: 0.3rem; padding: 0.3rem 0.2rem; font-size: 0.72rem; min-width: 2rem;
+		border-left: 6px solid #2f8f5b;
+	}
+</style>

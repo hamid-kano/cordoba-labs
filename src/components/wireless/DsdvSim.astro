@@ -1,0 +1,85 @@
+---
+// محاكي DSDV: جداول التوجيه خطوة بخطوة (نفس مثال المحاضرة: A و B و C ثم D)
+---
+
+<div class="not-content wl-box" data-dsdv>
+	<h4>جرّب: جداول التوجيه بـ DSDV</h4>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-prev>⮕ رجوع</button>
+		<button type="button" class="wl-btn primary" data-next>الخطوة التالية ⬅</button>
+		<span data-count></span>
+	</div>
+	<div class="dv-line" data-line></div>
+	<p class="wl-msg" data-msg></p>
+	<div class="dv-tables" data-tables></div>
+</div>
+
+<script>
+	type Row = [dest: string, next: string, hops: string, seq: string];
+	type Tables = Record<string, Row[]>;
+	const base: Tables = {
+		A: [['A', 'A', '0', 'A-100'], ['B', 'B', '1', 'B-250'], ['C', 'B', '2', 'C-400']],
+		B: [['A', 'A', '1', 'A-100'], ['B', 'B', '0', 'B-250'], ['C', 'C', '1', 'C-400']],
+		C: [['A', 'B', '2', 'A-100'], ['B', 'B', '1', 'B-250'], ['C', 'C', '0', 'C-400']],
+	};
+	const clone = (t: Tables): Tables => JSON.parse(JSON.stringify(t));
+	const set = (t: Tables, node: string, dest: string, row: Row) => {
+		const i = t[node].findIndex((r) => r[0] === dest);
+		if (i >= 0) t[node][i] = row; else t[node].push(row);
+	};
+
+	const steps: { t: Tables; changed: string[]; old?: Record<string, Row>; msg: string; nodes: string[]; broken?: boolean }[] = [];
+	let t = clone(base);
+	steps.push({ t: clone(t), changed: [], nodes: ['A', 'B', 'C'], msg: 'كل عقدة عندها جدول: لكل هدف، مين العقدة التالية، وكم قفزة، والرقم التسلسلي.' });
+	['A', 'B', 'C'].forEach((n) => set(t, n, 'B', [...t[n].find((r) => r[0] === 'B')!.slice(0, 3), 'B-252'] as Row));
+	steps.push({ t: clone(t), changed: ['A:B', 'B:B', 'C:B'], nodes: ['A', 'B', 'C'], msg: 'B بتعلن عن جدولها (Full Dump)، وبتزيد رقمها التسلسلي 2: من 250 لـ 252. وجيرانها بيحدّثوا السطر تبعها.' });
+	set(t, 'C', 'D', ['D', 'D', '1', 'D-200']);
+	steps.push({ t: clone(t), changed: ['C:D'], nodes: ['A', 'B', 'C', 'D'], msg: 'عقدة جديدة D انضمت جنب C، وبعتت رقمها D-200. فـ C ضافت سطر جديد: D على بعد قفزة وحدة.' });
+	set(t, 'C', 'C', ['C', 'C', '0', 'C-402']);
+	set(t, 'B', 'B', ['B', 'B', '0', 'B-254']);
+	set(t, 'B', 'C', ['C', 'C', '1', 'C-402']);
+	set(t, 'B', 'D', ['D', 'C', '2', 'D-200']);
+	steps.push({ t: clone(t), changed: ['C:C', 'B:B', 'B:C', 'B:D'], nodes: ['A', 'B', 'C', 'D'], msg: 'C زادت رقمها لـ 402 وبعتت للجيران. B تعلّمت إنه D على بعد قفزتين (عن طريق C)، وزادت رقمها هي كمان لـ 254.' });
+	set(t, 'A', 'B', ['B', 'B', '1', 'B-254']);
+	set(t, 'A', 'C', ['C', 'B', '2', 'C-402']);
+	set(t, 'A', 'D', ['D', 'B', '3', 'D-200']);
+	steps.push({ t: clone(t), changed: ['A:B', 'A:C', 'A:D'], nodes: ['A', 'B', 'C', 'D'], msg: 'B بتبعت لـ A، فـ A بتعرف إنه D على بعد 3 قفزات (عن طريق B). هيك كل الشبكة صارت بتعرف D.' });
+	const old = { A: t.A.find((r) => r[0] === 'D')!, B: t.B.find((r) => r[0] === 'D')!, C: t.C.find((r) => r[0] === 'D')! };
+	set(t, 'C', 'D', ['D', 'D', '∞', 'D-201']);
+	set(t, 'B', 'D', ['D', 'C', '∞', 'D-201']);
+	set(t, 'A', 'D', ['D', 'B', '∞', 'D-201']);
+	steps.push({ t: clone(t), changed: ['A:D', 'B:D', 'C:D'], old: { 'A:D': old.A, 'B:D': old.B, 'C:D': old.C }, nodes: ['A', 'B', 'C', 'D'], broken: true,
+		msg: 'الوصلة بين C و D انقطعت! C بتزيد رقم D بـ 1 بس (201، رقم فردي = في مشكلة)، وبتحط عدد القفزات ∞. والخبر بيوصل لـ B و A. ورقم 201 أكبر من 200، فالكل بيصدّقه.' });
+
+	document.querySelectorAll<HTMLElement>('[data-dsdv]').forEach((root) => {
+		let i = 0;
+		const o = (k: string) => root.querySelector<HTMLElement>(`[data-${k}]`)!;
+		function render() {
+			const s = steps[i];
+			o('line').innerHTML = s.nodes.map((n, k) => `${k ? `<span class="dv-link ${s.broken && n === 'D' ? 'broken' : ''}">${s.broken && n === 'D' ? '✘' : ''}</span>` : ''}<span class="dv-node">${n}</span>`).join('');
+			o('msg').textContent = s.msg;
+			o('count').textContent = `${i + 1} / ${steps.length}`;
+			o('tables').innerHTML = ['A', 'B', 'C'].map((n) => `<div><strong>جدول ${n}</strong><table class="wl-table"><thead><tr><th>الهدف</th><th>التالية</th><th>القفزات</th><th>الرقم</th></tr></thead><tbody>${s.t[n]
+				.map((r) => {
+					const key = `${n}:${r[0]}`;
+					const oldRow = s.old?.[key];
+					return (oldRow ? `<tr class="old">${oldRow.map((c) => `<td class="wl-mono">${c}</td>`).join('')}</tr>` : '') +
+						`<tr class="${s.changed.includes(key) ? 'hl' : ''}">${r.map((c) => `<td class="wl-mono">${c}</td>`).join('')}</tr>`;
+				})
+				.join('')}</tbody></table></div>`).join('');
+			root.querySelector<HTMLButtonElement>('[data-prev]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-next]')!.disabled = i === steps.length - 1;
+		}
+		root.querySelector('[data-next]')!.addEventListener('click', () => { if (i < steps.length - 1) { i++; render(); } });
+		root.querySelector('[data-prev]')!.addEventListener('click', () => { if (i > 0) { i--; render(); } });
+		render();
+	});
+</script>
+
+<style>
+	.dv-line { display: flex; align-items: center; direction: ltr; justify-content: center; }
+	.dv-line :global(.dv-node) { width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: #e0a030; color: #fff; }
+	.dv-line :global(.dv-link) { width: 3rem; height: 4px; background: var(--sl-color-gray-3); display: grid; place-items: center; color: #e5534b; font-weight: 800; }
+	.dv-line :global(.dv-link.broken) { background: repeating-linear-gradient(90deg, #e5534b 0 6px, transparent 6px 10px); }
+	.dv-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 0.75rem; }
+</style>

@@ -1,0 +1,126 @@
+---
+// محاكي Hub مقابل Switch: مين بيستلم الرسالة؟
+const pcs = [
+	{ id: 1, x: 90, y: 60, mac: 'AA' },
+	{ id: 2, x: 550, y: 60, mac: 'BB' },
+	{ id: 3, x: 90, y: 250, mac: 'CC' },
+	{ id: 4, x: 550, y: 250, mac: 'DD' },
+];
+const cx = 320, cy = 155;
+---
+
+<div class="not-content wl-box hs-sim" data-hs>
+	<h4>جرّب: مين بيستلم الرسالة؟</h4>
+	<div class="wl-row">
+		<span>الجهاز بالنص:</span>
+		<button type="button" class="wl-btn" data-mode="hub" aria-pressed="true">Hub</button>
+		<button type="button" class="wl-btn" data-mode="switch" aria-pressed="false">Switch</button>
+	</div>
+	<div class="wl-row">
+		<label class="wl-row">من <select class="wl-select" data-from>{pcs.map((p) => <option value={p.id}>{`PC${p.id}`}</option>)}</select></label>
+		<label class="wl-row">لـ <select class="wl-select" data-to>{pcs.map((p) => <option value={p.id} selected={p.id === 4}>{`PC${p.id}`}</option>)}</select></label>
+		<button type="button" class="wl-btn primary" data-send>ابعت الرسالة</button>
+	</div>
+
+	<figure class="wl-fig" style="margin:0">
+		<svg viewBox="0 0 640 310" role="img" aria-label="أربع حواسيب موصولة بجهاز بالنص">
+			{pcs.map((p) => <line x1={cx} y1={cy} x2={p.x} y2={p.y} class="d-line hs-link" data-link={p.id} />)}
+			<rect x={cx - 60} y={cy - 26} width="120" height="52" rx="10" class="d-box" />
+			<text x={cx} y={cy + 6} class="d-t d-b d-ltr" data-center>Hub</text>
+			{
+				pcs.map((p) => (
+					<g data-pc={p.id}>
+						<rect x={p.x - 48} y={p.y - 28} width="96" height="56" rx="8" class="d-box2 hs-pc" />
+						<text x={p.x} y={p.y - 4} class="d-t d-b d-ltr">{`PC${p.id}`}</text>
+						<text x={p.x} y={p.y + 16} class="d-s d-ltr">{`MAC: ${p.mac}`}</text>
+						<text x={p.x} y={p.y + (p.y < cy ? -38 : 46)} class="d-t hs-status" data-status={p.id} />
+					</g>
+				))
+			}
+		</svg>
+	</figure>
+	<p class="wl-msg" data-msg>اختار مين بيبعت ولمين، واكبس «ابعت الرسالة».</p>
+
+	<div data-table hidden>
+		<strong>جدول العناوين جوّا السويتش:</strong>
+		<table class="wl-table" style="max-width:16rem">
+			<thead><tr><th>العنوان (MAC)</th><th>المنفذ</th></tr></thead>
+			<tbody>{pcs.map((p) => <tr><td class="wl-mono">{p.mac}</td><td>{p.id}</td></tr>)}</tbody>
+		</table>
+	</div>
+</div>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-hs]').forEach((root) => {
+		let mode: 'hub' | 'switch' = 'hub';
+		let timer = 0;
+		const $ = <T extends Element>(s: string) => root.querySelector<T>(s)!;
+		const links = (id: number) => root.querySelector(`[data-link="${id}"]`)!;
+		const status = (id: number) => root.querySelector(`[data-status="${id}"]`)!;
+		const msg = $<HTMLElement>('[data-msg]');
+
+		function reset() {
+			clearTimeout(timer);
+			for (let i = 1; i <= 4; i++) {
+				links(i).classList.remove('send', 'recv', 'drop');
+				status(i).textContent = '';
+				status(i).classList.remove('wl-good', 'wl-bad');
+			}
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+			b.addEventListener('click', () => {
+				mode = b.dataset.mode as 'hub' | 'switch';
+				root.querySelectorAll('[data-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				$('[data-center]').textContent = mode === 'hub' ? 'Hub' : 'Switch';
+				$<HTMLElement>('[data-table]').hidden = mode !== 'switch';
+				reset();
+				msg.textContent = mode === 'hub'
+					? 'الـ Hub ما بيعرف مين وين، فبيبعت كل رسالة للكل.'
+					: 'الـ Switch عنده جدول بيعرف فيه كل جهاز على أي منفذ.';
+			})
+		);
+
+		$('[data-send]').addEventListener('click', () => {
+			const from = +$<HTMLSelectElement>('[data-from]').value;
+			const to = +$<HTMLSelectElement>('[data-to]').value;
+			reset();
+			if (from === to) {
+				msg.textContent = 'اختار جهازين مختلفين.';
+				return;
+			}
+			links(from).classList.add('send');
+			status(from).textContent = 'بعت ✉';
+			msg.textContent = `PC${from} بعت الرسالة للجهاز يلي بالنص...`;
+			timer = window.setTimeout(() => {
+				let wasted = 0;
+				for (let i = 1; i <= 4; i++) {
+					if (i === from) continue;
+					if (i === to) {
+						links(i).classList.add('recv');
+						status(i).textContent = '✔ إلي';
+						status(i).classList.add('wl-good');
+					} else if (mode === 'hub') {
+						links(i).classList.add('drop');
+						status(i).textContent = '✘ مش إلي';
+						status(i).classList.add('wl-bad');
+						wasted++;
+					}
+				}
+				msg.textContent = mode === 'hub'
+					? `الـ Hub بعتها لكل الأجهزة. ${wasted} أجهزة وصلتهن رسالة مش إلهن ورموها. هيك الشبكة بتزدحم، وأي حدا بيقدر يتجسس.`
+					: `الـ Switch شاف بالجدول إنه PC${to} على المنفذ ${to}، فبعتها إله بس. ما حدا تاني شافها.`;
+			}, 700);
+		});
+	});
+</script>
+
+<style>
+	.hs-link { transition: stroke 0.2s, stroke-width 0.2s; }
+	.hs-link.send { stroke: #e0a030; stroke-width: 5; }
+	.hs-link.recv { stroke: #2fb36b; stroke-width: 5; }
+	.hs-link.drop { stroke: #e5534b; stroke-width: 4; stroke-dasharray: 8 5; }
+	.hs-status { font-size: 15px; font-weight: 700; }
+	.hs-status.wl-good { fill: #2fb36b; }
+	.hs-status.wl-bad { fill: #e5534b; }
+</style>

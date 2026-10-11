@@ -1,0 +1,59 @@
+---
+// نموذج OSI (7 طبقات) مقابل TCP/IP (4 طبقات) ووحدة البيانات بكل طبقة
+const osi = [
+	{ n: 7, en: 'Application', ar: 'التطبيقات', pdu: 'Data', c: '#7c5cc4' },
+	{ n: 6, en: 'Presentation', ar: 'التقديم', pdu: 'Data', c: '#8e6bd6' },
+	{ n: 5, en: 'Session', ar: 'الجلسة', pdu: 'Data', c: '#a07ce0' },
+	{ n: 4, en: 'Transport', ar: 'النقل', pdu: 'Segment', c: '#2f8f5b' },
+	{ n: 3, en: 'Network', ar: 'الشبكة', pdu: 'Packet', c: '#2a7ea3' },
+	{ n: 2, en: 'Data Link', ar: 'ربط البيانات', pdu: 'Frame', c: '#b7791f' },
+	{ n: 1, en: 'Physical', ar: 'الفيزيائية', pdu: 'Bits', c: '#b5473f' },
+];
+const tcpip = [
+	{ from: 0, to: 2, en: 'Application', ar: 'التطبيق', c: '#8e6bd6' },
+	{ from: 3, to: 3, en: 'Transport', ar: 'النقل', c: '#2f8f5b' },
+	{ from: 4, to: 4, en: 'Internet', ar: 'الإنترنت', c: '#2a7ea3' },
+	{ from: 5, to: 6, en: 'Network Access', ar: 'واجهة الشبكة', c: '#b7791f' },
+];
+const top = 20, h = 40, gap = 6;
+const y = (i: number) => top + i * (h + gap);
+---
+
+<figure class="wl-fig">
+	<svg viewBox="0 0 660 360" role="img" aria-label="طبقات OSI السبع مقابل طبقات TCP/IP الأربع">
+		<text x="100" y="14" class="d-s d-b">وحدة البيانات</text>
+		<text x="320" y="14" class="d-s d-b">OSI</text>
+		<text x="555" y="14" class="d-s d-b">TCP/IP</text>
+		{
+			osi.map((l, i) => (
+				<g>
+					<text x="100" y={y(i) + 26} class="d-t d-ltr">{l.pdu}</text>
+					<rect x="200" y={y(i)} width="240" height={h} rx="6" fill={l.c} />
+					<text x="215" y={y(i) + 26} class="osi-n d-ltr">{l.n}</text>
+					<text x="320" y={y(i) + 18} class="osi-en d-ltr">{l.en}</text>
+					<text x="320" y={y(i) + 34} class="osi-ar">{l.ar}</text>
+				</g>
+			))
+		}
+		{
+			tcpip.map((t) => {
+				const y1 = y(t.from), y2 = y(t.to) + h;
+				return (
+					<g>
+						<rect x="470" y={y1} width="170" height={y2 - y1} rx="6" fill={t.c} />
+						<text x="555" y={(y1 + y2) / 2 - 2} class="osi-en d-ltr">{t.en}</text>
+						<text x="555" y={(y1 + y2) / 2 + 16} class="osi-ar">{t.ar}</text>
+					</g>
+				);
+			})
+		}
+		<text x="330" y="354" class="d-s">⬇ المرسل بينزل من 7 لـ 1، والمستقبل بيطلع من 1 لـ 7 ⬆</text>
+	</svg>
+	<figcaption>كل طبقة إلها شغلة. ووحدة البيانات بتغيّر اسمها: قطعة (Segment) بطبقة النقل، ورزمة (Packet) بطبقة الشبكة، وإطار (Frame) بطبقة ربط البيانات، وبتات (Bits) بالطبقة الفيزيائية.</figcaption>
+</figure>
+
+<style>
+	.osi-n { fill: #fff; font-size: 18px; font-weight: 800; text-anchor: middle; }
+	.osi-en { fill: #fff; font-size: 14px; font-weight: 700; text-anchor: middle; }
+	.osi-ar { fill: #fff; font-size: 13px; text-anchor: middle; opacity: 0.95; }
+</style>

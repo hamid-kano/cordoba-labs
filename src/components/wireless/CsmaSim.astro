@@ -1,0 +1,85 @@
+---
+// محاكي CSMA/CA: جهازين بدهن يحكوا بنفس الوقت. مين بيحكي أول؟
+---
+
+<div class="not-content wl-box" data-csma>
+	<h4>جرّب: جهازين بدهن يبعتوا بنفس اللحظة</h4>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-go>ابدأ</button>
+		<button type="button" class="wl-btn" data-step disabled>الخطوة التالية ⬅</button>
+	</div>
+	<div class="cs-lanes" data-lanes>
+		<div class="cs-lane"><b>📱 A</b><div class="cs-slots" data-slots="A"></div></div>
+		<div class="cs-lane"><b>💻 B</b><div class="cs-slots" data-slots="B"></div></div>
+	</div>
+	<ol class="cs-log" data-log></ol>
+</div>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-csma]').forEach((root) => {
+		const log = root.querySelector<HTMLElement>('[data-log]')!;
+		const stepBtn = root.querySelector<HTMLButtonElement>('[data-step]')!;
+		const slots = (k: string) => root.querySelector<HTMLElement>(`[data-slots="${k}"]`)!;
+		let queue: (() => void)[] = [];
+		let cw = 8;
+
+		const say = (html: string, cls = '') => {
+			const li = document.createElement('li');
+			li.innerHTML = html;
+			if (cls) li.className = cls;
+			log.appendChild(li);
+		};
+		const showCount = (a: number, b: number) => {
+			const draw = (n: number) => Array.from({ length: n }, () => '<i></i>').join('') || '<em>0</em>';
+			slots('A').innerHTML = draw(a);
+			slots('B').innerHTML = draw(b);
+		};
+
+		function round() {
+			const a = 1 + Math.floor(Math.random() * cw);
+			const b = 1 + Math.floor(Math.random() * cw);
+			queue.push(() => { showCount(a, b); say(`كل جهاز اختار رقم عشوائي بين 1 و ${cw} (وقت انتظار): A اختار <b>${a}</b>، و B اختار <b>${b}</b>.`); });
+			if (a === b) {
+				queue.push(() => { showCount(0, 0); say(`الاتنين خلص عدّهن بنفس اللحظة، فبعتوا سوا ← <b>تصادم!</b> الرسالتين خربوا.`, 'bad'); });
+				queue.push(() => { cw = Math.min(cw * 2, 64); say(`ما وصلهن إشعار استلام، فكبّروا مجال الأرقام لـ ${cw} وعادوا المحاولة.`); });
+				round();
+				return;
+			}
+			const [w, l, wn, ln] = a < b ? ['A', 'B', a, b] : ['B', 'A', b, a];
+			queue.push(() => { showCount(w === 'A' ? 0 : ln - wn, w === 'B' ? 0 : ln - wn); say(`${w} خلص عدّه أول (بعد ${wn})، فبيحكي هو. و ${l} سمع إنه القناة صارت مشغولة، فوقّف عدّه عند ${ln - wn}.`); });
+			queue.push(() => say(`${w} ← RTS: «بدي ابعت، خلّوا القناة إلي».`));
+			queue.push(() => say(`المستقبل ← CTS: «تفضّل، والكل يستنى».`));
+			queue.push(() => say(`${w} ← DATA: بعت البيانات.`));
+			queue.push(() => say(`المستقبل ← ACK: «وصلت سليمة ✔».`, 'good'));
+			queue.push(() => { showCount(w === 'A' ? 0 : ln - wn, w === 'B' ? 0 : ln - wn); say(`هلق ${l} بيكمّل العد من ${ln - wn}، ولما يخلص بيبعت هو. هيك ما في تصادم.`, 'good'); });
+		}
+
+		root.querySelector('[data-go]')!.addEventListener('click', () => {
+			log.innerHTML = '';
+			queue = [];
+			cw = 8;
+			showCount(0, 0);
+			say('القناة مشغولة بجهاز تالت. A و B عم <b>يسمعوا</b> وبيستنوا لحتى تفضى (Carrier Sense).');
+			queue.push(() => say('القناة فضيت. الاتنين استنوا فترة قصيرة ثابتة (IFS).'));
+			round();
+			stepBtn.disabled = false;
+		});
+		stepBtn.addEventListener('click', () => {
+			const f = queue.shift();
+			if (f) f();
+			stepBtn.disabled = queue.length === 0;
+		});
+	});
+</script>
+
+<style>
+	.cs-lanes { display: flex; flex-direction: column; gap: 0.4rem; }
+	.cs-lane { display: flex; align-items: center; gap: 0.6rem; }
+	.cs-lane b { min-width: 3rem; }
+	.cs-slots { display: flex; gap: 3px; direction: ltr; min-height: 1.4rem; align-items: center; }
+	.cs-slots :global(i) { width: 1.2rem; height: 1.2rem; border-radius: 0.25rem; background: #3a9ec2; display: inline-block; }
+	.cs-slots :global(em) { font-style: normal; color: var(--sl-color-gray-3); }
+	.cs-log { margin: 0; padding-inline-start: 1.25rem; display: flex; flex-direction: column; gap: 0.3rem; }
+	.cs-log :global(li.bad) { color: #e5534b; }
+	.cs-log :global(li.good) { color: #2fb36b; }
+</style>

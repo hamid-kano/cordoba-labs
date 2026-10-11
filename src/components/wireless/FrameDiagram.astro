@@ -1,0 +1,58 @@
+---
+// شكل إطار 802.11 وحقوله، وتفاصيل حقل التحكم بالإطار
+const fields = [
+	{ n: 'Frame Ctrl', b: '2', w: 1.3, c: '#7c5cc4' },
+	{ n: 'Duration', b: '2', w: 1, c: '#8e6bd6' },
+	{ n: 'Address 1', b: '6', w: 1.2, c: '#2a7ea3' },
+	{ n: 'Address 2', b: '6', w: 1.2, c: '#2a7ea3' },
+	{ n: 'Address 3', b: '6', w: 1.2, c: '#2a7ea3' },
+	{ n: 'Seq', b: '2', w: 0.8, c: '#8e6bd6' },
+	{ n: 'Address 4', b: '6', w: 1.2, c: '#2a7ea3' },
+	{ n: 'Data', b: '0–2312', w: 2, c: '#6b7280' },
+	{ n: 'CRC', b: '4', w: 0.8, c: '#b5473f' },
+];
+const bits = [
+	{ n: 'Version', b: 2 }, { n: 'Type', b: 2 }, { n: 'Subtype', b: 4 }, { n: 'To DS', b: 1 }, { n: 'From DS', b: 1 },
+	{ n: 'More Frag', b: 1 }, { n: 'Retry', b: 1 }, { n: 'Pwr', b: 1 }, { n: 'More Data', b: 1 }, { n: 'WEP', b: 1 }, { n: 'Order', b: 1 },
+];
+const totalW = fields.reduce((s, f) => s + f.w, 0);
+const X0 = 10, W = 640;
+let acc = X0;
+const fx = fields.map((f) => { const x = acc; acc += (W * f.w) / totalW; return { ...f, x, ww: (W * f.w) / totalW }; });
+let acc2 = X0;
+const bx = bits.map((b) => { const ww = (W * b.b) / 16; const x = acc2; acc2 += ww; return { ...b, x, ww }; });
+---
+
+<figure class="wl-fig">
+	<svg viewBox="0 0 660 230" role="img" aria-label="حقول إطار 802.11 وحجم كل حقل بالبايت، وتحتها بتات حقل التحكم">
+		{
+			fx.map((f) => (
+				<g>
+					<rect x={f.x} y="20" width={f.ww - 3} height="56" rx="4" fill={f.c} />
+					<text x={f.x + f.ww / 2} y="44" class="fr-n d-ltr">{f.n}</text>
+					<text x={f.x + f.ww / 2} y="64" class="fr-b d-ltr">{`${f.b} B`}</text>
+				</g>
+			))
+		}
+		<line x1={fx[0].x} y1="78" x2={X0} y2="130" class="d-line d-dash" />
+		<line x1={fx[0].x + fx[0].ww - 3} y1="78" x2={X0 + W - 3} y2="130" class="d-line d-dash" />
+		{
+			bx.map((b) => (
+				<g>
+					<rect x={b.x} y="130" width={b.ww - 2} height="50" rx="3" class={b.n === 'Type' || b.n === 'Subtype' ? 'fr-hl' : 'd-box2'} />
+					{b.n.split(' ').map((w, k, arr) => <text x={b.x + b.ww / 2} y={(arr.length > 1 ? 146 : 152) + k * 12} class="fr-bn d-ltr">{w}</text>)}
+					<text x={b.x + b.ww / 2} y="173" class="d-s d-ltr">{`${b.b} bit`}</text>
+				</g>
+			))
+		}
+		<text x="330" y="212" class="d-s">حقل التحكم بالإطار من جوّا: 16 بت</text>
+	</svg>
+	<figcaption>الإطار فيه رأس (الحقول قبل Data)، وبعدين البيانات، وبالآخر CRC لاكتشاف الأخطاء. والحقل <strong>Type</strong> جوّا حقل التحكم بيقول نوع الإطار.</figcaption>
+</figure>
+
+<style>
+	.fr-n { direction: ltr; fill: #fff; font-size: 11.5px; font-weight: 700; text-anchor: middle; font-family: sans-serif; }
+	.fr-b { direction: ltr; fill: #fff; font-size: 12px; text-anchor: middle; font-family: sans-serif; opacity: 0.9; }
+	.fr-bn { direction: ltr; fill: var(--sl-color-white); font-size: 10px; font-weight: 700; text-anchor: middle; font-family: sans-serif; }
+	.fr-hl { fill: var(--sl-color-accent-low); stroke: var(--sl-color-accent); stroke-width: 2; }
+</style>

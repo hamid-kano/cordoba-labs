@@ -1,0 +1,41 @@
+---
+// المخطط الصندوقي لنظام الاتصالات، والضجيج بيدخل على القناة
+const boxes = [
+	{ ar: 'المصدر', en: 'Source' },
+	{ ar: 'المرسل', en: 'Transmitter' },
+	{ ar: 'القناة', en: 'Channel' },
+	{ ar: 'المستقبل', en: 'Receiver' },
+	{ ar: 'الهدف', en: 'Destination' },
+];
+const w = 104, gap = 26, x0 = 10, y = 40, h = 64;
+const X = (i: number) => x0 + i * (w + gap);
+---
+
+<figure class="wl-fig">
+	<svg viewBox="0 0 660 200" role="img" aria-label="المصدر ثم المرسل ثم القناة ثم المستقبل ثم الهدف، والضجيج بيدخل على القناة">
+		<defs>
+			<marker id="cs-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+				<path d="M0 0 L10 5 L0 10 z" class="d-arrow" />
+			</marker>
+		</defs>
+		{
+			boxes.map((b, i) => (
+				<g>
+					<rect x={X(i)} y={y} width={w} height={h} rx="8" class={i === 2 ? 'd-box' : 'd-box2'} />
+					<text x={X(i) + w / 2} y={y + 28} class="d-t d-b">{b.ar}</text>
+					<text x={X(i) + w / 2} y={y + 48} class="d-s d-ltr">{b.en}</text>
+					{i < boxes.length - 1 && <line x1={X(i) + w} y1={y + h / 2} x2={X(i + 1) - 2} y2={y + h / 2} class="d-line" marker-end="url(#cs-ar)" />}
+				</g>
+			))
+		}
+		<rect x={X(2) + 10} y="146" width={w - 20} height="40" rx="8" class="cs-noise" />
+		<text x={X(2) + w / 2} y="171" class="d-t d-b cs-noise-t">الضجيج</text>
+		<line x1={X(2) + w / 2} y1="146" x2={X(2) + w / 2} y2={y + h + 2} class="d-line d-red" marker-end="url(#cs-ar)" />
+	</svg>
+	<figcaption>الرسالة بتمشي من المصدر للهدف. وبالطريق، وخصوصاً بالقناة (الهوا)، بيدخل عليها <strong>ضجيج</strong> بيخربطها. كل ما كانت الإشارة أقوى من الضجيج، كل ما كانت أوضح.</figcaption>
+</figure>
+
+<style>
+	.cs-noise { fill: #e5534b; opacity: 0.18; stroke: #e5534b; stroke-width: 2; }
+	.cs-noise-t { fill: #e5534b; }
+</style>

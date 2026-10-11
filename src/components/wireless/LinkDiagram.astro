@@ -7,11 +7,11 @@
 		<!-- المرسل -->
 		<rect x="10" y="80" width="90" height="56" rx="8" class="box" />
 		<text x="55" y="104" class="t">المرسل</text>
-		<text x="55" y="124" class="m">Pt</text>
+		<text x="55" y="124" class="m d-ltr">Pt</text>
 		<!-- هوائي الإرسال -->
 		<line x1="100" y1="108" x2="130" y2="108" class="wire" />
 		<path d="M130 108 V70 M118 60 L130 70 L142 60" class="ant" />
-		<text x="130" y="152" class="g">+Gt</text>
+		<text x="130" y="152" class="g d-ltr">+Gt</text>
 		<!-- الموجات -->
 		<path d="M160 70 a40 40 0 0 1 0 76" class="wave w1" />
 		<path d="M200 60 a55 55 0 0 1 0 96" class="wave w2" />
@@ -19,16 +19,16 @@
 		<path d="M295 44 a80 80 0 0 1 0 128" class="wave w4" />
 		<!-- المسافة -->
 		<line x1="140" y1="190" x2="500" y2="190" class="dim" marker-start="url(#wl-ar)" marker-end="url(#wl-ar)" />
-		<text x="320" y="182" class="m">d</text>
-		<text x="320" y="30" class="l">−L (فقد المسار)</text>
+		<text x="320" y="182" class="m d-ltr">d</text>
+		<text x="320" y="30" class="l">فقد المسار L</text>
 		<!-- هوائي الاستقبال -->
 		<path d="M510 108 V70 M498 60 L510 70 L522 60" class="ant" />
 		<line x1="510" y1="108" x2="540" y2="108" class="wire" />
-		<text x="510" y="152" class="g">+Gr</text>
+		<text x="510" y="152" class="g d-ltr">+Gr</text>
 		<!-- المستقبل -->
 		<rect x="540" y="80" width="90" height="56" rx="8" class="box" />
 		<text x="585" y="104" class="t">المستقبل</text>
-		<text x="585" y="124" class="m">Pr</text>
+		<text x="585" y="124" class="m d-ltr">Pr</text>
 		<defs>
 			<marker id="wl-ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
 				<path d="M0 0 L10 5 L0 10 z" class="arrow" />
@@ -50,7 +50,7 @@
 	.arrow { fill: var(--sl-color-gray-3); }
 	text { text-anchor: middle; font-family: var(--sl-font); fill: var(--sl-color-white); }
 	.t { font-size: 17px; font-weight: 600; }
-	.m { font-size: 18px; font-weight: 700; font-family: sans-serif; }
-	.g { font-size: 17px; font-weight: 700; fill: #2fb36b; font-family: sans-serif; }
+	.m { font-size: 18px; font-weight: 700; font-family: sans-serif; direction: ltr; }
+	.g { font-size: 17px; font-weight: 700; fill: #2fb36b; font-family: sans-serif; direction: ltr; }
 	.l { font-size: 17px; font-weight: 700; fill: #e5534b; }
 </style>

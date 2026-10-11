@@ -1,0 +1,189 @@
+---
+// أدوات الديسيبل: محوّل واحدات، وسلسلة ربح وخسارة، وحاسبة SNR
+interface Props { tool: 'convert' | 'chain' | 'snr'; }
+const { tool } = Astro.props;
+---
+
+{
+	tool === 'convert' && (
+		<div class="not-content wl-box" data-db-convert>
+			<h4>محوّل الاستطاعة</h4>
+			<div class="wl-row">
+				<input class="wl-input" type="number" step="any" value="2" data-in="v" style="width:9rem" />
+				<select class="wl-select" data-in="u">
+					<option value="w" selected>W</option>
+					<option value="mw">mW</option>
+					<option value="dbm">dBm</option>
+					<option value="dbw">dBW</option>
+				</select>
+			</div>
+			<div class="wl-grid">
+				<div class="wl-out"><span>بالواط</span><strong data-o="w">–</strong></div>
+				<div class="wl-out"><span>بالميلي واط</span><strong data-o="mw">–</strong></div>
+				<div class="wl-out"><span>dBm</span><strong data-o="dbm">–</strong></div>
+				<div class="wl-out"><span>dBW</span><strong data-o="dbw">–</strong></div>
+			</div>
+			<p class="wl-msg" data-o="msg"></p>
+		</div>
+	)
+}
+
+{
+	tool === 'chain' && (
+		<div class="not-content wl-box" data-db-chain>
+			<h4>سلسلة ربح وخسارة</h4>
+			<div class="wl-row">
+				<label class="wl-row">استطاعة الدخل <input class="wl-input" type="number" step="any" value="33" data-start style="width:6rem" /> dBm</label>
+				<button type="button" class="wl-btn" data-preset>مثال العملي</button>
+			</div>
+			<div data-stages class="ch-stages"></div>
+			<div class="wl-row">
+				<button type="button" class="wl-btn" data-add="1">+ ربح (مضخم)</button>
+				<button type="button" class="wl-btn" data-add="-1">− خسارة (كابل، مرشح...)</button>
+			</div>
+			<div class="ch-bars" data-bars></div>
+			<p class="wl-msg" data-msg></p>
+		</div>
+	)
+}
+
+{
+	tool === 'snr' && (
+		<div class="not-content wl-box" data-db-snr>
+			<h4>حاسبة الضجيج</h4>
+			<div class="wl-grid">
+				<label class="wl-label">نسبة الإشارة للضجيج على الدخل (dB)<input class="wl-input" type="number" step="any" value="40" data-in="sin" /></label>
+				<label class="wl-label">رقم الضجيج F للمستقبل (dB)<input class="wl-input" type="number" step="any" value="20" data-in="f" /></label>
+			</div>
+			<div class="wl-grid">
+				<div class="wl-out"><span>نسبة الإشارة للضجيج على الخرج</span><strong data-o="sout">–</strong></div>
+				<div class="wl-out"><span>يعني الإشارة أقوى من الضجيج بـ</span><strong data-o="ratio">–</strong></div>
+			</div>
+			<p class="wl-msg" data-o="msg"></p>
+		</div>
+	)
+}
+
+<script>
+	const fmt = (x: number, d = 2) => (Number.isFinite(x) ? x.toLocaleString('en-US', { maximumFractionDigits: d }) : '–');
+
+	// محوّل الواحدات
+	document.querySelectorAll<HTMLElement>('[data-db-convert]').forEach((root) => {
+		const v = root.querySelector<HTMLInputElement>('[data-in="v"]')!;
+		const u = root.querySelector<HTMLSelectElement>('[data-in="u"]')!;
+		const o = (k: string) => root.querySelector<HTMLElement>(`[data-o="${k}"]`)!;
+		function update() {
+			const x = parseFloat(v.value);
+			let mw = NaN;
+			if (u.value === 'w') mw = x * 1000;
+			else if (u.value === 'mw') mw = x;
+			else if (u.value === 'dbm') mw = 10 ** (x / 10);
+			else mw = 10 ** ((x + 30) / 10);
+			const ok = mw > 0 && Number.isFinite(mw);
+			const dbm = 10 * Math.log10(mw);
+			o('w').textContent = ok ? `${fmt(mw / 1000, 6)} W` : '–';
+			o('mw').textContent = ok ? `${fmt(mw, 4)} mW` : '–';
+			o('dbm').textContent = ok ? `${fmt(dbm)} dBm` : '–';
+			o('dbw').textContent = ok ? `${fmt(dbm - 30)} dBW` : '–';
+			o('msg').textContent = !ok
+				? 'الاستطاعة بالواط لازم تكون أكبر من صفر.'
+				: u.value === 'w' || u.value === 'mw'
+					? `منحوّل للـ mW ومنحسب 10 × log(${fmt(mw, 4)}) = ${fmt(dbm)} dBm. وللـ dBW منطرح 30.`
+					: `منرجع للـ mW بالعكس: 10^(${fmt(dbm)} ÷ 10) = ${fmt(mw, 4)} mW.`;
+		}
+		root.addEventListener('input', update);
+		root.addEventListener('change', update);
+		update();
+	});
+
+	// سلسلة الربح والخسارة
+	document.querySelectorAll<HTMLElement>('[data-db-chain]').forEach((root) => {
+		type Stage = { sign: 1 | -1; v: number };
+		const PRESET: Stage[] = [{ sign: 1, v: 12 }, { sign: -1, v: 16 }, { sign: -1, v: 6 }, { sign: 1, v: 8 }];
+		let stages: Stage[] = PRESET.map((s) => ({ ...s }));
+		const startIn = root.querySelector<HTMLInputElement>('[data-start]')!;
+		const box = root.querySelector<HTMLElement>('[data-stages]')!;
+		const bars = root.querySelector<HTMLElement>('[data-bars]')!;
+		const msg = root.querySelector<HTMLElement>('[data-msg]')!;
+
+		function renderStages() {
+			box.innerHTML = stages
+				.map((s, i) => `<div class="wl-row ch-stage ${s.sign > 0 ? 'up' : 'down'}">
+					<span>${i + 1}. ${s.sign > 0 ? 'ربح' : 'خسارة'}</span>
+					<input class="wl-input" type="number" min="0" step="any" value="${s.v}" data-i="${i}" style="width:5.5rem" /> dB
+					<button type="button" class="wl-btn" data-del="${i}" aria-label="احذف">✕</button></div>`)
+				.join('');
+		}
+		function update() {
+			const start = parseFloat(startIn.value) || 0;
+			let level = start;
+			const pts = [{ label: 'الدخل', level }];
+			stages.forEach((s, i) => {
+				level += s.sign * (s.v || 0);
+				pts.push({ label: `${i + 1}`, level });
+			});
+			const total = level - start;
+			const max = Math.max(...pts.map((p) => Math.abs(p.level)), 1);
+			bars.innerHTML = pts
+				.map((p, i) => `<div class="ch-bar"><span class="v">${fmt(p.level, 1)}</span><i class="${i === 0 ? 'start' : i === pts.length - 1 ? 'end' : ''}" style="height:${Math.max((Math.abs(p.level) / max) * 100, 3)}%"></i><span class="l">${p.label}</span></div>`)
+				.join('');
+			const parts = stages.map((s) => `${s.sign > 0 ? '+' : '−'} ${fmt(s.v || 0)}`).join(' ');
+			msg.innerHTML = `المجموع: <bdi dir="ltr">${parts || '0'} = ${total >= 0 ? '+' : ''}${fmt(total)} dB</bdi>، فالخرج: <bdi dir="ltr">${fmt(start)} ${total >= 0 ? '+' : '−'} ${fmt(Math.abs(total))} = ${fmt(level)} dBm</bdi> (يعني <bdi dir="ltr">${fmt(10 ** (level / 10), 1)} mW</bdi>).`;
+		}
+		box.addEventListener('input', (e) => {
+			const t = e.target as HTMLInputElement;
+			if (t.dataset.i) { stages[+t.dataset.i].v = parseFloat(t.value) || 0; update(); }
+		});
+		box.addEventListener('click', (e) => {
+			const t = (e.target as HTMLElement).closest<HTMLElement>('[data-del]');
+			if (t) { stages.splice(+t.dataset.del!, 1); renderStages(); update(); }
+		});
+		root.querySelectorAll<HTMLButtonElement>('[data-add]').forEach((b) =>
+			b.addEventListener('click', () => { stages.push({ sign: +b.dataset.add! as 1 | -1, v: 3 }); renderStages(); update(); })
+		);
+		root.querySelector('[data-preset]')!.addEventListener('click', () => {
+			startIn.value = '33';
+			stages = PRESET.map((s) => ({ ...s }));
+			renderStages();
+			update();
+		});
+		startIn.addEventListener('input', update);
+		renderStages();
+		update();
+	});
+
+	// حاسبة الضجيج
+	document.querySelectorAll<HTMLElement>('[data-db-snr]').forEach((root) => {
+		const v = (k: string) => parseFloat(root.querySelector<HTMLInputElement>(`[data-in="${k}"]`)!.value);
+		const o = (k: string) => root.querySelector<HTMLElement>(`[data-o="${k}"]`)!;
+		function update() {
+			const sout = v('sin') - v('f');
+			o('sout').textContent = Number.isFinite(sout) ? `${fmt(sout)} dB` : '–';
+			o('ratio').textContent = Number.isFinite(sout) ? `${fmt(10 ** (sout / 10), 1)} مرة` : '–';
+			o('msg').textContent = !Number.isFinite(sout)
+				? ''
+				: sout >= 20
+					? 'الإشارة واضحة.'
+					: sout >= 10
+						? 'الإشارة مقبولة، بس الضجيج صار ملحوظ.'
+						: 'الإشارة ضعيفة كتير قدام الضجيج، وصعب نميّزها.';
+		}
+		root.addEventListener('input', update);
+		update();
+	});
+</script>
+
+<style>
+	.ch-stages { display: flex; flex-direction: column; gap: 0.35rem; }
+	.ch-stages :global(.ch-stage) { padding: 0.25rem 0.5rem; border-radius: 0.4rem; border-inline-start: 4px solid; }
+	.ch-stages :global(.ch-stage.up) { border-color: #2fb36b; }
+	.ch-stages :global(.ch-stage.down) { border-color: #e5534b; }
+	.ch-stages :global(.ch-stage span) { min-width: 4.5rem; }
+	.ch-bars { display: flex; align-items: flex-end; gap: 0.5rem; height: 160px; direction: ltr; padding-top: 1.2rem; }
+	.ch-bars :global(.ch-bar) { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; max-width: 5rem; }
+	.ch-bars :global(.ch-bar i) { display: block; width: 100%; background: #3a9ec2; border-radius: 0.3rem 0.3rem 0 0; }
+	.ch-bars :global(.ch-bar i.start) { background: var(--sl-color-gray-4); }
+	.ch-bars :global(.ch-bar i.end) { background: var(--sl-color-accent); }
+	.ch-bars :global(.ch-bar .v) { font-weight: 700; font-size: 0.75rem; }
+	.ch-bars :global(.ch-bar .l) { font-size: 0.75rem; color: var(--sl-color-gray-3); }
+</style>

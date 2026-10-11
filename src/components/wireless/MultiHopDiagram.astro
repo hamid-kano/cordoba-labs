@@ -1,0 +1,47 @@
+---
+// مدى كل عقدة بشبكة Ad-hoc، والرسالة بتوصل بالقفز (نفس شكل المحاضرة)
+const nodes = [
+	{ n: 'N1', x: 110, y: 150, r: 85, c: '#3a9ec2' },
+	{ n: 'N2', x: 250, y: 150, r: 80, c: '#c05bb5' },
+	{ n: 'N4', x: 215, y: 245, r: 55, c: '#7c5cc4' },
+	{ n: 'N3', x: 390, y: 150, r: 80, c: '#2fb36b' },
+	{ n: 'N5', x: 470, y: 60, r: 90, c: '#e0a030' },
+];
+const P = (n: string) => nodes.find((x) => x.n === n)!;
+const hops = [['N1', 'N2'], ['N2', 'N3'], ['N3', 'N5']];
+---
+
+<figure class="wl-fig">
+	<svg viewBox="0 0 660 310" role="img" aria-label="كل عقدة إلها دائرة مدى، و N1 بتوصل لـ N5 بالقفز عن طريق N2 و N3">
+		<defs>
+			<marker id="mh-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+				<path d="M0 0 L10 5 L0 10 z" class="d-fred" />
+			</marker>
+		</defs>
+		{nodes.map((d) => <circle cx={d.x} cy={d.y} r={d.r} fill={d.c} fill-opacity="0.13" stroke={d.c} stroke-width="2" stroke-dasharray="6 4" />)}
+		{
+			hops.map(([a, b]) => {
+				const A = P(a), B = P(b);
+				const dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy);
+				return <line x1={A.x + (dx / L) * 22} y1={A.y + (dy / L) * 22} x2={B.x - (dx / L) * 24} y2={B.y - (dy / L) * 24} class="d-line d-red" stroke-width="3" marker-end="url(#mh-ar)" />;
+			})
+		}
+		{
+			nodes.map((d) => (
+				<g>
+					<circle cx={d.x} cy={d.y} r="20" fill={d.c} />
+					<text x={d.x} y={d.y + 5} class="mh-n d-ltr">{d.n}</text>
+				</g>
+			))
+		}
+		<text x="580" y="200" class="d-t d-b">N1 ما بتوصل</text>
+		<text x="580" y="220" class="d-t d-b">لـ N5 مباشرة،</text>
+		<text x="580" y="240" class="d-t d-b">فبتقفز:</text>
+		<text x="580" y="265" class="d-s d-b d-ltr">N1 → N2 → N3 → N5</text>
+	</svg>
+	<figcaption>كل دائرة هي مدى عقدة: العقدة بتحكي بس مع يلي جوّا دائرتها. لحتى توصل الرسالة لعقدة بعيدة، العقد يلي بالنص بتلعب دور <strong>موجّه</strong> وبتمرّرها. وإذا N4 طلعت من الشبكة، ما بتأثر، لأنه في طريق تاني.</figcaption>
+</figure>
+
+<style>
+	.mh-n { fill: #fff; font-size: 13px; font-weight: 800; text-anchor: middle; }
+</style>

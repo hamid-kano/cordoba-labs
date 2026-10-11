@@ -1,0 +1,71 @@
+---
+// أنماط تشغيل الشبكة اللاسلكية: Ad-hoc (IBSS) و BSS و ESS
+interface Props { show?: ('adhoc' | 'bss' | 'ess')[]; }
+const { show = ['adhoc', 'bss', 'ess'] } = Astro.props;
+const panels = show.length;
+const pw = 660 / panels;
+const dev = (x: number, y: number, label = '💻') => ({ x, y, label });
+---
+
+<figure class="wl-fig">
+	<svg viewBox={`0 0 660 290`} role="img" aria-label="أنماط تشغيل الشبكة اللاسلكية">
+		{
+			show.map((k, i) => {
+				const ox = i * pw, cx = ox + pw / 2;
+				if (k === 'adhoc') {
+					const ds = [dev(cx, 70), dev(cx - 70, 170), dev(cx + 70, 170)];
+					return (
+						<g>
+							<circle cx={cx} cy="135" r="100" class="md-cell" />
+							{ds.map((a, j) => ds.slice(j + 1).map((b) => <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} class="d-line d-blue" />))}
+							{ds.map((d) => <text x={d.x} y={d.y + 8} class="md-ico">{d.label}</text>)}
+							<text x={cx} y="258" class="d-t d-b d-ltr">Ad-hoc / IBSS</text><text x={cx} y="280" class="d-s">بدون نقطة وصول</text>
+						</g>
+					);
+				}
+				if (k === 'bss') {
+					const ds = [dev(cx - 70, 90), dev(cx + 70, 90), dev(cx - 60, 190), dev(cx + 60, 190)];
+					return (
+						<g>
+							<circle cx={cx} cy="140" r="100" class="md-cell" />
+							{ds.map((d) => <line x1={cx} y1="140" x2={d.x} y2={d.y} class="d-line d-green" />)}
+							<rect x={cx - 22} y="124" width="44" height="32" rx="6" class="d-box" />
+							<text x={cx} y="146" class="d-t d-b d-ltr">AP</text>
+							{ds.map((d) => <text x={d.x} y={d.y + 8} class="md-ico">{d.label}</text>)}
+							<text x={cx} y="258" class="d-t d-b d-ltr">BSS</text><text x={cx} y="280" class="d-s">نقطة وصول وحدة</text>
+						</g>
+					);
+				}
+				const a1 = cx - pw * 0.24, a2 = cx + pw * 0.24, rr = Math.min(pw * 0.24, 75);
+				return (
+					<g>
+						<circle cx={a1} cy="150" r={rr} class="md-cell" />
+						<circle cx={a2} cy="150" r={rr} class="md-cell" />
+						<line x1={a1} y1="50" x2={a2} y2="50" class="d-line" stroke-width="4" />
+						<text x={cx} y="40" class="d-s">كابل (نظام التوزيع)</text>
+						<line x1={a1} y1="50" x2={a1} y2="134" class="d-line" />
+						<line x1={a2} y1="50" x2={a2} y2="134" class="d-line" />
+						<rect x={a1 - 22} y="134" width="44" height="32" rx="6" class="d-box" />
+						<text x={a1} y="156" class="d-t d-b d-ltr">AP1</text>
+						<rect x={a2 - 22} y="134" width="44" height="32" rx="6" class="d-box" />
+						<text x={a2} y="156" class="d-t d-b d-ltr">AP2</text>
+						<text x={a1 - 30} y="200" class="md-ico">📱</text>
+						<path d={`M ${a1 - 10} 205 Q ${cx} 235 ${a2 + 20} 205`} class="d-line d-orange d-dash" />
+						<text x={a2 + 30} y="200" class="md-ico">📱</text>
+						<text x={cx} y="258" class="d-t d-b d-ltr">ESS</text><text x={cx} y="280" class="d-s">كذا نقطة وصول</text>
+					</g>
+				);
+			})
+		}
+	</svg>
+	<figcaption>
+		{show.includes('adhoc') && <span><strong>Ad-hoc:</strong> الأجهزة بتحكي مع بعض مباشرة بدون نقطة وصول. </span>}
+		{show.includes('bss') && <span><strong>BSS:</strong> كل الأجهزة بتحكي عن طريق نقطة وصول وحدة. </span>}
+		{show.includes('ess') && <span><strong>ESS:</strong> كذا نقطة وصول موصولين ببعض، والموبايل بيتنقّل بيناتهن بدون ما ينقطع (التجوال، Roaming).</span>}
+	</figcaption>
+</figure>
+
+<style>
+	.md-cell { fill: var(--sl-color-accent-low); opacity: 0.6; stroke: var(--sl-color-accent); stroke-dasharray: 5 4; }
+	.md-ico { font-size: 26px; text-anchor: middle; }
+</style>

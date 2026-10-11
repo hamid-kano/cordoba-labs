@@ -1,0 +1,98 @@
+---
+// محاكي التغليف: الرسالة بتنزل طبقة طبقة، وكل طبقة بتضيف رأسها
+---
+
+<div class="not-content wl-box enc-sim" data-enc>
+	<h4>جرّب: الرسالة وهي نازلة بالطبقات</h4>
+	<div class="wl-grid">
+		<label class="wl-label">حجم الرسالة (byte)<input class="wl-input" type="number" min="1" value="1000" data-in="data" /></label>
+		<label class="wl-label">رأس طبقة النقل (byte)<input class="wl-input" type="number" min="0" value="20" data-in="h4" /></label>
+		<label class="wl-label">رأس طبقة الشبكة (byte)<input class="wl-input" type="number" min="0" value="20" data-in="h3" /></label>
+		<label class="wl-label">رأس طبقة ربط البيانات (byte)<input class="wl-input" type="number" min="0" value="18" data-in="h2" /></label>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-next>⬇ انزل طبقة</button>
+		<button type="button" class="wl-btn" data-reset>من البداية</button>
+	</div>
+	<div class="enc-stack" data-stack></div>
+	<p class="wl-msg" data-msg></p>
+</div>
+
+<script>
+	type Layer = { name: string; pdu: string; head?: { key: string; label: string; cls: string }; note: string };
+	const LAYERS: Layer[] = [
+		{ name: 'التطبيقات', pdu: 'Data', note: 'هون كتبت الرسالة (متل إيميل).' },
+		{ name: 'النقل', pdu: 'Segment (قطعة)', head: { key: 'h4', label: 'H4', cls: 'h4' }, note: 'طبقة النقل ضافت رأس فيه رقم المنفذ (Port) لتعرف لأي برنامج رايحة.' },
+		{ name: 'الشبكة', pdu: 'Packet (رزمة)', head: { key: 'h3', label: 'H3', cls: 'h3' }, note: 'طبقة الشبكة ضافت رأس فيه عنوان IP للمرسل والمستقبل.' },
+		{ name: 'ربط البيانات', pdu: 'Frame (إطار)', head: { key: 'h2', label: 'H2', cls: 'h2' }, note: 'طبقة ربط البيانات ضافت رأس فيه عنوان MAC.' },
+		{ name: 'الفيزيائية', pdu: 'Bits (بتات)', note: 'الطبقة الفيزيائية حوّلت كل شي لأصفار وواحدات، وبعتتها كإشارة (كهربائية أو ضوئية أو موجة راديو).' },
+	];
+
+	document.querySelectorAll<HTMLElement>('[data-enc]').forEach((root) => {
+		let step = 0;
+		const val = (k: string) => Math.max(0, parseInt(root.querySelector<HTMLInputElement>(`[data-in="${k}"]`)!.value) || 0);
+		const stack = root.querySelector<HTMLElement>('[data-stack]')!;
+		const msg = root.querySelector<HTMLElement>('[data-msg]')!;
+		const next = root.querySelector<HTMLButtonElement>('[data-next]')!;
+
+		function render() {
+			const data = val('data');
+			let size = data;
+			const heads: { label: string; cls: string; size: number }[] = [];
+			stack.innerHTML = '';
+			LAYERS.slice(0, step + 1).forEach((L, i) => {
+				if (L.head) {
+					const hs = val(L.head.key);
+					heads.unshift({ label: L.head.label, cls: L.head.cls, size: hs });
+					size += hs;
+				}
+				const row = document.createElement('div');
+				row.className = 'enc-row' + (i === step ? ' current' : '');
+				const blocks = i === 4
+					? `<span class="blk bits">0101101001011010…</span>`
+					: heads.map((h) => `<span class="blk ${h.cls}" style="flex:${Math.max(h.size, 1)}">${h.label} ${h.size}</span>`).join('') +
+						`<span class="blk data" style="flex:${Math.max(data, 1)}">DATA ${data}</span>`;
+				row.innerHTML = `<div class="enc-lbl"><strong>${7 - [0, 3, 4, 5, 6][i]}. ${L.name}</strong><span>${L.pdu}</span></div>
+					<div class="enc-blocks">${blocks}</div>
+					<div class="enc-size">${i === 4 ? '' : `${size} byte`}</div>`;
+				stack.appendChild(row);
+			});
+			const L = LAYERS[step];
+			msg.textContent = step === 3
+				? `${L.note} الحجم الكلي صار ${size} byte = ${data} + ${heads.map((h) => h.size).reverse().join(' + ')}.`
+				: L.note;
+			next.disabled = step === LAYERS.length - 1;
+		}
+
+		next.addEventListener('click', () => { if (step < LAYERS.length - 1) { step++; render(); } });
+		root.querySelector('[data-reset]')!.addEventListener('click', () => { step = 0; render(); });
+		root.addEventListener('input', render);
+		render();
+	});
+</script>
+
+<style>
+	.enc-stack { display: flex; flex-direction: column; gap: 0.4rem; }
+	.enc-stack :global(.enc-row) {
+		display: grid; grid-template-columns: 8.5rem 1fr 5rem; gap: 0.5rem; align-items: center;
+		padding: 0.35rem; border-radius: 0.5rem; opacity: 0.6;
+	}
+	.enc-stack :global(.enc-row.current) { opacity: 1; background: var(--sl-color-accent-low); }
+	.enc-stack :global(.enc-lbl) { display: flex; flex-direction: column; line-height: 1.3; }
+	.enc-stack :global(.enc-lbl span) { color: var(--sl-color-gray-3); font-size: var(--sl-text-xs); direction: ltr; text-align: right; }
+	.enc-stack :global(.enc-blocks) { display: flex; direction: ltr; gap: 2px; min-width: 0; }
+	.enc-stack :global(.blk) {
+		padding: 0.3rem 0.4rem; border-radius: 0.3rem; color: #fff; font-size: 0.72rem; font-weight: 700;
+		white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 3.2rem; text-align: center;
+	}
+	.enc-stack :global(.blk.data) { background: #6b7280; }
+	.enc-stack :global(.blk.h4) { background: #2f8f5b; }
+	.enc-stack :global(.blk.h3) { background: #2a7ea3; }
+	.enc-stack :global(.blk.h2) { background: #b7791f; }
+	.enc-stack :global(.blk.bits) { background: #374151; flex: 1; font-family: var(--sl-font-system-mono); }
+	.enc-stack :global(.enc-size) { direction: ltr; font-weight: 700; text-align: left; }
+	@media (max-width: 40rem) {
+		.enc-stack :global(.enc-row) { grid-template-columns: 1fr; }
+		.enc-stack :global(.enc-size) { text-align: right; }
+	}
+</style>

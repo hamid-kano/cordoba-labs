@@ -113,3 +113,66 @@ code,
 .expressive-code .ec-line .code > span {
 	unicode-bidi: plaintext;
 }
+
+/* ===== أدوات تفاعلية ورسومات (الشبكات اللاسلكية) =====
+   الأدوات بتاخد class="not-content wl-box" لحتى ما تتأثر بتنسيقات النص */
+.wl-box {
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.75rem;
+	padding: 1rem;
+	margin-block: 1.5rem;
+	background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+	font-size: var(--sl-text-sm);
+}
+.wl-box > * + * { margin-top: 0.75rem; }
+.wl-box h4 { margin: 0; font-size: var(--sl-text-base); color: var(--sl-color-white); }
+.wl-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.wl-btn, .wl-input, .wl-select {
+	font: inherit;
+	border: 1px solid var(--sl-color-gray-4);
+	border-radius: 0.4rem;
+	padding: 0.35rem 0.65rem;
+	background: var(--sl-color-black);
+	color: var(--sl-color-white);
+}
+.wl-btn { cursor: pointer; border-color: var(--sl-color-accent); }
+.wl-btn:hover { background: var(--sl-color-accent-low); }
+.wl-btn[aria-pressed='true'], .wl-btn.primary { background: var(--sl-color-accent); color: var(--sl-color-black); }
+.wl-btn:disabled { opacity: 0.45; cursor: default; }
+.wl-input { direction: ltr; min-width: 0; }
+.wl-label { display: flex; flex-direction: column; gap: 0.25rem; }
+.wl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.6rem; }
+.wl-out {
+	display: flex; flex-direction: column; gap: 0.15rem;
+	padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: var(--sl-color-accent-low);
+}
+.wl-out strong { direction: ltr; unicode-bidi: isolate; font-size: var(--sl-text-lg); color: var(--sl-color-white); }
+.wl-msg { font-weight: 600; min-height: 1.4em; }
+.wl-good { color: #2fb36b; }
+.wl-bad { color: #e5534b; }
+.wl-mono { font-family: var(--sl-font-system-mono); direction: ltr; unicode-bidi: isolate; letter-spacing: 0.05em; }
+.wl-table { border-collapse: collapse; width: 100%; }
+.wl-table th, .wl-table td { border: 1px solid var(--sl-color-gray-5); padding: 0.3rem 0.5rem; text-align: center; }
+.wl-table th { background: var(--sl-color-gray-6); }
+.wl-table .hl td { background: var(--sl-color-accent-low); }
+.wl-table .old td { text-decoration: line-through; opacity: 0.55; }
+
+/* رسومات SVG: بتتبع الوضع الليلي والنهاري */
+.wl-fig { margin-block: 1.5rem; }
+.wl-fig svg { width: 100%; height: auto; display: block; direction: ltr; font-family: var(--sl-font); }
+.wl-fig figcaption { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-top: 0.4rem; }
+.d-box { fill: var(--sl-color-accent-low); stroke: var(--sl-color-accent); stroke-width: 2; }
+.d-box2 { fill: var(--sl-color-gray-6); stroke: var(--sl-color-gray-4); stroke-width: 1.5; }
+.d-line { stroke: var(--sl-color-gray-3); stroke-width: 2; fill: none; }
+.d-blue { stroke: #3a9ec2; } .d-red { stroke: #e5534b; } .d-green { stroke: #2fb36b; } .d-orange { stroke: #e0a030; }
+.d-fblue { fill: #3a9ec2; } .d-fred { fill: #e5534b; } .d-fgreen { fill: #2fb36b; } .d-forange { fill: #e0a030; } .d-fgray { fill: var(--sl-color-gray-4); }
+.d-dash { stroke-dasharray: 6 4; }
+.d-t { fill: var(--sl-color-white); font-size: 15px; text-anchor: middle; }
+.d-s { fill: var(--sl-color-gray-3); font-size: 12px; text-anchor: middle; }
+.d-b { font-weight: 700; }
+.d-start { text-anchor: start; } .d-end { text-anchor: end; }
+/* نص الرسومات عربي افتراضياً (من اليمين). بالـ RTL: anchor end = الطرف اليساري */
+.wl-fig svg text { direction: rtl; }
+.wl-fig svg text.d-ltr { font-family: sans-serif; direction: ltr; }
+.d-arrow { fill: var(--sl-color-gray-3); }
+.wl-table .wl-mono { letter-spacing: 0; font-size: 0.8rem; }

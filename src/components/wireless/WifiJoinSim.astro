@@ -1,0 +1,145 @@
+---
+// محاكي إعداد راوتر واي فاي واتصال موبايل فيه
+---
+
+<div class="not-content wl-box wj" data-wj>
+	<div class="wj-cols">
+		<section class="wj-panel">
+			<h4>📶 إعدادات الراوتر</h4>
+			<label class="wl-label">اسم الشبكة (SSID)<input class="wl-input" value="Cordoba-Lab" data-r="ssid" maxlength="32" /></label>
+			<label class="wl-label">الحماية
+				<select class="wl-select" data-r="sec">
+					<option value="open">مفتوحة (بدون كلمة سر)</option>
+					<option value="wep">WEP (قديمة)</option>
+					<option value="wpa2" selected>WPA2</option>
+					<option value="wpa3">WPA3 (الأحدث)</option>
+				</select>
+			</label>
+			<label class="wl-label" data-pwrow>كلمة السر<input class="wl-input" value="cordoba2026" data-r="pw" /></label>
+			<label class="wl-label">الحزمة
+				<select class="wl-select" data-r="band">
+					<option value="2.4" selected>2.4 GHz (أبعد، أبطأ)</option>
+					<option value="5">5 GHz (أسرع، أقرب)</option>
+				</select>
+			</label>
+			<p class="wl-msg" data-r="rating"></p>
+		</section>
+
+		<section class="wj-panel wj-phone">
+			<h4>📱 الموبايل</h4>
+			<label class="wl-label">الشبكات يلي حواليه
+				<select class="wl-select" data-p="ssid"></select>
+			</label>
+			<label class="wl-label">كلمة السر يلي كتبها المستخدم<input class="wl-input" value="cordoba2026" data-p="pw" /></label>
+			<button type="button" class="wl-btn primary" data-connect>اتصل</button>
+		</section>
+	</div>
+	<ol class="wj-steps" data-steps></ol>
+	<p class="wl-msg" data-result></p>
+</div>
+
+<script>
+	const STEPS = [
+		{ k: 'beacon', t: 'Beacon: الراوتر عم يعلن عن حاله كل شوي: «أنا شبكة اسمي …»' },
+		{ k: 'probe', t: 'Probe Request و Response: الموبايل سأل «مين حواليي؟» والراوتر ردّ' },
+		{ k: 'auth', t: 'Authentication: الموبايل عرّف عن حاله للراوتر' },
+		{ k: 'assoc', t: 'Association: الموبايل طلب ينضم للشبكة، والراوتر وافق' },
+		{ k: 'key', t: 'التحقق من كلمة السر وتجهيز مفتاح التشفير' },
+		{ k: 'ip', t: 'DHCP: الراوتر أعطى الموبايل عنوان IP' },
+	];
+	const OTHERS = ['Home-WiFi', 'Cafe_Free', 'TP-LINK_5G'];
+
+	document.querySelectorAll<HTMLElement>('[data-wj]').forEach((root) => {
+		const r = (k: string) => root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-r="${k}"]`)!;
+		const p = (k: string) => root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-p="${k}"]`)!;
+		const stepsEl = root.querySelector<HTMLElement>('[data-steps]')!;
+		const result = root.querySelector<HTMLElement>('[data-result]')!;
+		const pwRow = root.querySelector<HTMLElement>('[data-pwrow]')!;
+		let timers: number[] = [];
+
+		function rating() {
+			const sec = r('sec').value, pw = r('pw').value;
+			pwRow.hidden = sec === 'open';
+			const el = r('rating') as unknown as HTMLElement;
+			const msgs: Record<string, [string, string]> = {
+				open: ['wl-bad', '✘ خطر: أي حدا بيقدر يتصل، وكل شي بينبعت بدون تشفير.'],
+				wep: ['wl-bad', '✘ ضعيفة: WEP بتنكسر بدقايق. ما تستخدمها.'],
+				wpa2: ['wl-good', '✔ منيحة: WPA2 بتشفّر كل شي.'],
+				wpa3: ['wl-good', '✔ ممتازة: WPA3 هي الأقوى.'],
+			};
+			let [cls, text] = msgs[sec];
+			if ((sec === 'wpa2' || sec === 'wpa3') && pw.length < 8) {
+				cls = 'wl-bad';
+				text = '✘ كلمة السر لازم تكون 8 أحرف أو أكتر.';
+			} else if ((sec === 'wpa2' || sec === 'wpa3') && /^\d+$/.test(pw)) {
+				text += ' بس كلمة السر أرقام بس، سهلة تنحزر. خلط حروف وأرقام.';
+			}
+			el.className = `wl-msg ${cls}`;
+			el.textContent = text;
+		}
+
+		function scanList() {
+			const sel = p('ssid') as HTMLSelectElement;
+			const prev = sel.value;
+			const mine = r('ssid').value || '(بدون اسم)';
+			const lock = r('sec').value === 'open' ? '' : ' 🔒';
+			sel.innerHTML = [mine, ...OTHERS].map((s, i) => `<option value="${i === 0 ? '__mine' : s}">${s}${i === 0 ? lock : ' 🔒'}</option>`).join('');
+			sel.value = prev && [...sel.options].some((o) => o.value === prev) ? prev : '__mine';
+		}
+
+		function connect() {
+			timers.forEach(clearTimeout);
+			timers = [];
+			stepsEl.innerHTML = '';
+			result.textContent = '';
+			result.className = 'wl-msg';
+			const sec = r('sec').value;
+			const target = p('ssid').value;
+			if (target !== '__mine') {
+				result.className = 'wl-msg wl-bad';
+				result.textContent = 'هي شبكة جيران، وما منعرف كلمة سرها. اختار شبكتنا.';
+				return;
+			}
+			if ((sec === 'wpa2' || sec === 'wpa3') && r('pw').value.length < 8) {
+				result.className = 'wl-msg wl-bad';
+				result.textContent = 'صلّح كلمة سر الراوتر أول (8 أحرف أو أكتر).';
+				return;
+			}
+			const pwOk = sec === 'open' || p('pw').value === r('pw').value;
+			const list = STEPS.filter((s) => !(s.k === 'key' && sec === 'open'));
+			list.forEach((s, i) => {
+				timers.push(window.setTimeout(() => {
+					const li = document.createElement('li');
+					const fail = s.k === 'key' && !pwOk;
+					li.className = fail ? 'fail' : 'ok';
+					li.textContent = (fail ? '✘ ' : '✔ ') + s.t.replace('…', r('ssid').value || '(بدون اسم)') + (fail ? ' (كلمة السر غلط!)' : '');
+					stepsEl.appendChild(li);
+					if (fail) {
+						result.className = 'wl-msg wl-bad';
+						result.textContent = 'الاتصال فشل: كلمة السر يلي كتبها المستخدم مش متل يلي بالراوتر.';
+						timers.forEach(clearTimeout);
+					} else if (i === list.length - 1) {
+						result.className = 'wl-msg wl-good';
+						result.textContent = sec === 'open'
+							? 'اتصل ✔ بس الشبكة مفتوحة: أي حدا جنبك بيقدر يشوف شو عم تبعت.'
+							: `اتصل ✔ وكل شي بينبعت مشفّر بـ ${sec.toUpperCase()}.`;
+					}
+				}, 500 * (i + 1)));
+			});
+		}
+
+		root.addEventListener('input', () => { rating(); scanList(); });
+		root.addEventListener('change', () => { rating(); scanList(); });
+		root.querySelector('[data-connect]')!.addEventListener('click', connect);
+		rating();
+		scanList();
+	});
+</script>
+
+<style>
+	.wj-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; }
+	.wj-panel { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--sl-color-gray-5); border-radius: 0.6rem; background: var(--sl-color-black); }
+	.wj-steps { margin: 0; padding-inline-start: 1.25rem; display: flex; flex-direction: column; gap: 0.3rem; }
+	.wj-steps :global(li.ok) { color: var(--sl-color-white); }
+	.wj-steps :global(li.fail) { color: #e5534b; font-weight: 700; }
+</style>

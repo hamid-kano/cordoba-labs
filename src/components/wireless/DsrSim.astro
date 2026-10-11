@@ -1,0 +1,126 @@
+---
+// محاكي DSR خطوة بخطوة (نفس مثال المحاضرة: من N1 لـ N8)
+---
+
+<div class="not-content wl-box" data-dsr>
+	<h4>جرّب: N1 بدها تبعت لـ N8 (بروتوكول DSR)</h4>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-prev>⮕ رجوع</button>
+		<button type="button" class="wl-btn primary" data-next>الخطوة التالية ⬅</button>
+		<span data-count></span>
+	</div>
+	<figure class="wl-fig" style="margin:0">
+		<svg viewBox="0 0 660 400" role="img" aria-label="شبكة من 8 عقد، ورسائل طلب المسار عم تنتشر من N1" data-svg></svg>
+	</figure>
+	<p class="wl-msg" data-msg></p>
+	<div data-cache></div>
+</div>
+
+<script>
+	type Arrow = { f: string; t: string; label?: string; kind: 'req' | 'drop' | 'rep' | 'err' };
+	type Step = { arrows: Arrow[]; seen: string[]; msg: string; path?: string[]; broken?: boolean; cache?: { route: string; ok: boolean | null }[] };
+
+	const N: Record<string, [number, number]> = {
+		N1: [70, 210], N2: [210, 90], N3: [210, 330], N4: [430, 60],
+		N5: [370, 220], N6: [520, 270], N7: [400, 350], N8: [600, 140],
+	};
+	const E: [string, string][] = [
+		['N1', 'N2'], ['N1', 'N3'], ['N2', 'N4'], ['N2', 'N5'], ['N4', 'N5'], ['N4', 'N8'],
+		['N5', 'N6'], ['N3', 'N7'], ['N7', 'N6'], ['N6', 'N8'],
+	];
+	const R1 = ['N1', 'N2', 'N4', 'N8'], R2 = ['N1', 'N3', 'N7', 'N6', 'N8'];
+
+	const STEPS: Step[] = [
+		{ arrows: [], seen: ['N1'], msg: 'N1 بدها تبعت لـ N8، بس N8 بعيدة (مش جارتها)، و N1 ما بتعرف الطريق.' },
+		{ arrows: [{ f: 'N1', t: 'N2', label: '(N1)', kind: 'req' }, { f: 'N1', t: 'N3', label: '(N1)', kind: 'req' }], seen: ['N1', 'N2', 'N3'],
+			msg: 'N1 بتبعت «طلب مسار» (Route Request) لجيرانها: N2 و N3. وجوّا الطلب: المرسل N1، ورقم الطلب 100، والهدف N8.' },
+		{ arrows: [{ f: 'N2', t: 'N4', label: '(N1,N2)', kind: 'req' }, { f: 'N2', t: 'N5', label: '(N1,N2)', kind: 'req' }, { f: 'N3', t: 'N7', label: '(N1,N3)', kind: 'req' }],
+			seen: ['N1', 'N2', 'N3', 'N4', 'N5', 'N7'], msg: 'كل عقدة بتضيف اسمها للطلب وبتبعته لجيرانها. لاحظ كيف القائمة عم تطول.' },
+		{ arrows: [
+			{ f: 'N4', t: 'N8', label: '(N1,N2,N4)', kind: 'req' }, { f: 'N7', t: 'N6', label: '(N1,N3,N7)', kind: 'req' },
+			{ f: 'N5', t: 'N4', label: '✘', kind: 'drop' }, { f: 'N5', t: 'N6', label: '✘', kind: 'drop' }],
+			seen: ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8'],
+			msg: 'الطلب وصل لـ N8 من طريق N4 ← أول مسار! وطلبات N5 انرمت (✘)، لأنه N4 و N6 كانوا استلموا نفس الطلب من قبل.' },
+		{ arrows: [{ f: 'N6', t: 'N8', label: '(N1,N3,N7,N6)', kind: 'req' }], seen: ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8'],
+			msg: 'ووصل كمان من طريق N6 ← المسار التاني.' },
+		{ arrows: [{ f: 'N8', t: 'N4', kind: 'rep' }, { f: 'N4', t: 'N2', kind: 'rep' }, { f: 'N2', t: 'N1', kind: 'rep' }, { f: 'N8', t: 'N6', kind: 'rep' }, { f: 'N6', t: 'N7', kind: 'rep' }, { f: 'N7', t: 'N3', kind: 'rep' }, { f: 'N3', t: 'N1', kind: 'rep' }],
+			seen: [], path: R1, cache: [{ route: R1.join(' → '), ok: true }, { route: R2.join(' → '), ok: false }],
+			msg: 'N8 بترد بـ «جواب المسار» (Route Reply) على كل طلب، وفيه المسار كامل. N1 بتحفظ المسارين، وبتختار الأقصر (3 قفزات).' },
+		{ arrows: [{ f: 'N4', t: 'N2', label: 'Route Error', kind: 'err' }, { f: 'N2', t: 'N1', label: 'Route Error', kind: 'err' }], seen: [], broken: true, path: [],
+			cache: [{ route: R1.join(' → '), ok: false }, { route: R2.join(' → '), ok: null }],
+			msg: 'الوصلة بين N4 و N8 انقطعت! N4 بتبعت «خطأ مسار» (Route Error) لـ N1، فـ N1 بتمسح المسار الأول.' },
+		{ arrows: [], seen: [], broken: true, path: R2, cache: [{ route: R2.join(' → '), ok: true }],
+			msg: 'N1 بتستخدم المسار التاني يلي كان محفوظ عندها، بدون ما تعيد البحث. هي «صيانة المسار».' },
+	];
+
+	document.querySelectorAll<HTMLElement>('[data-dsr]').forEach((root) => {
+		let i = 0;
+		const svg = root.querySelector<SVGSVGElement>('[data-svg]')!;
+		const msg = root.querySelector<HTMLElement>('[data-msg]')!;
+		const cache = root.querySelector<HTMLElement>('[data-cache]')!;
+		const count = root.querySelector<HTMLElement>('[data-count]')!;
+		const id = Math.random().toString(36).slice(2, 7);
+
+		function render() {
+			const s = STEPS[i];
+			const onPath = (a: string, b: string) => {
+				const p = s.path ?? [];
+				for (let k = 0; k < p.length - 1; k++) if ((p[k] === a && p[k + 1] === b) || (p[k] === b && p[k + 1] === a)) return true;
+				return false;
+			};
+			let h = `<defs>${['req', 'drop', 'rep', 'err'].map((k) => `<marker id="ds-${k}-${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ds-m-${k}"/></marker>`).join('')}</defs>`;
+			for (const [a, b] of E) {
+				const [x1, y1] = N[a], [x2, y2] = N[b];
+				const broken = s.broken && ((a === 'N4' && b === 'N8') || (a === 'N8' && b === 'N4'));
+				h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="ds-edge ${onPath(a, b) ? 'path' : ''} ${broken ? 'broken' : ''}"/>`;
+				if (broken) h += `<text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 + 8}" class="ds-x">✘</text>`;
+			}
+			for (const a of s.arrows) {
+				const [x1, y1] = N[a.f], [x2, y2] = N[a.t];
+				const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+				const off = a.kind === 'rep' || a.kind === 'err' ? 10 : -10;
+				const sx = x1 + ux * 30 - uy * off, sy = y1 + uy * 30 + ux * off, ex = x2 - ux * 32 - uy * off, ey = y2 - uy * 32 + ux * off;
+				h += `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" class="ds-a ds-${a.kind}" marker-end="url(#ds-${a.kind}-${id})"/>`;
+				if (a.label) h += `<text x="${(sx + ex) / 2 - uy * 16}" y="${(sy + ey) / 2 + ux * 16 + 4}" class="ds-l ds-l-${a.kind}">${a.label}</text>`;
+			}
+			for (const [n, [x, y]] of Object.entries(N)) {
+				const cls = n === 'N1' || n === 'N8' ? 'end' : s.seen.includes(n) ? 'seen' : '';
+				h += `<circle cx="${x}" cy="${y}" r="26" class="ds-node ${cls} ${(s.path ?? []).includes(n) ? 'onpath' : ''}"/><text x="${x}" y="${y + 6}" class="ds-n">${n}</text>`;
+			}
+			svg.innerHTML = h;
+			msg.textContent = s.msg;
+			count.textContent = `${i + 1} / ${STEPS.length}`;
+			cache.innerHTML = s.cache
+				? `<strong>ذاكرة N1 (المسارات المحفوظة):</strong><table class="wl-table" style="margin-top:0.3rem"><tbody>${s.cache.map((c) => `<tr class="${c.ok === true ? 'hl' : c.ok === false && s.broken ? 'old' : ''}"><td class="wl-mono">${c.route}</td><td>${c.ok === true ? '✔ المستخدم' : c.ok === false && s.broken ? 'انمسح' : 'احتياط'}</td></tr>`).join('')}</tbody></table>`
+				: '';
+			root.querySelector<HTMLButtonElement>('[data-prev]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-next]')!.disabled = i === STEPS.length - 1;
+		}
+		root.querySelector('[data-next]')!.addEventListener('click', () => { if (i < STEPS.length - 1) { i++; render(); } });
+		root.querySelector('[data-prev]')!.addEventListener('click', () => { if (i > 0) { i--; render(); } });
+		render();
+	});
+</script>
+
+<style>
+	[data-dsr] :global(.ds-edge) { stroke: var(--sl-color-gray-4); stroke-width: 2; }
+	[data-dsr] :global(.ds-edge.path) { stroke: #2fb36b; stroke-width: 6; }
+	[data-dsr] :global(.ds-edge.broken) { stroke: #e5534b; stroke-dasharray: 6 5; }
+	[data-dsr] :global(.ds-x) { fill: #e5534b; font-size: 22px; font-weight: 800; text-anchor: middle; }
+	[data-dsr] :global(.ds-node) { fill: var(--sl-color-gray-6); stroke: var(--sl-color-gray-3); stroke-width: 2; }
+	[data-dsr] :global(.ds-node.seen) { fill: #e0a030; stroke: #b7791f; }
+	[data-dsr] :global(.ds-node.end) { fill: #3a9ec2; stroke: #2a7ea3; }
+	[data-dsr] :global(.ds-node.onpath) { stroke: #2fb36b; stroke-width: 4; }
+	[data-dsr] :global(.ds-n) { fill: var(--sl-color-white); font-size: 15px; font-weight: 800; text-anchor: middle; direction: ltr; font-family: sans-serif; }
+	[data-dsr] :global(.ds-node.seen + .ds-n), [data-dsr] :global(.ds-node.end + .ds-n) { fill: #fff; }
+	[data-dsr] :global(.ds-a) { stroke-width: 2.5; }
+	[data-dsr] :global(.ds-req) { stroke: #e0a030; }
+	[data-dsr] :global(.ds-drop) { stroke: #e5534b; stroke-dasharray: 4 4; }
+	[data-dsr] :global(.ds-rep) { stroke: #2fb36b; }
+	[data-dsr] :global(.ds-err) { stroke: #e5534b; }
+	[data-dsr] :global(.ds-m-req) { fill: #e0a030; }
+	[data-dsr] :global(.ds-m-drop), [data-dsr] :global(.ds-m-err) { fill: #e5534b; }
+	[data-dsr] :global(.ds-m-rep) { fill: #2fb36b; }
+	[data-dsr] :global(.ds-l) { font-size: 12px; font-weight: 700; text-anchor: middle; direction: ltr; font-family: sans-serif; fill: var(--sl-color-white); paint-order: stroke; stroke: var(--sl-color-gray-7, var(--sl-color-gray-6)); stroke-width: 4px; }
+	[data-dsr] :global(.ds-l-drop), [data-dsr] :global(.ds-l-err) { fill: #e5534b; }
+</style>
