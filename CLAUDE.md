@@ -51,8 +51,9 @@ public/files/<course>/      ملفات التحميل (.m، .c ...)
 
 ## Git والنشر
 
-- المستودع المحلي فيه commit أول على فرع `main`. **لسا ما انرفع على GitHub**: ما في `gh` ولا حساب مربوط على الجهاز.
-- لما يرفعه المستخدم: `git remote add origin https://github.com/USERNAME/cordoba-labs.git` بعدين `git push -u origin main`، وبعدها **Settings ← Pages ← Source = GitHub Actions**.
+- المستودع: https://github.com/hamid-kano/cordoba-labs (الفرع `main`). الموقع رح يكون على https://hamid-kano.github.io/cordoba-labs/
+- ما في `gh` على الجهاز، فإعدادات GitHub بيعملها المستخدم من المتصفح.
+- لازم يكون **Settings ← Pages ← Source = GitHub Actions** مفعّل، وإلا `configure-pages` بيفشل بخطأ `Get Pages site failed ... Not Found`.
 
 ## التطوير
 
