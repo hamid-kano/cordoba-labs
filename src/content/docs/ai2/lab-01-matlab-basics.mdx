@@ -1,0 +1,151 @@
+---
+title: "الجلسة 1: أساسيات MATLAB لأنظمة التحكم"
+description: المصفوفات، الرسم، الملفات النصية، الدوال، وتمثيل الأنظمة بتوابع التحويل في MATLAB.
+sidebar:
+  label: "1. أساسيات MATLAB"
+  order: 1
+---
+
+import { Aside, Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/components';
+
+<div class="lab-meta">
+	<span><strong>المدة:</strong> ساعتان</span>
+	<span><strong>المستوى:</strong> مبتدئ</span>
+	<span><strong>الأدوات:</strong> MATLAB، Control System Toolbox</span>
+	<span><strong>الملفات:</strong> <a href="../../files/ai2/lab01_basics.m" download>lab01_basics.m</a></span>
+</div>
+
+## أهداف الجلسة
+
+- التعامل مع واجهة MATLAB: نافذة الأوامر، ومساحة العمل، والملفات النصية (Scripts).
+- إنشاء المصفوفات والمتجهات والعمليات عليها.
+- رسم الإشارات باستخدام `plot`.
+- تعريف نظام بتابع تحويل `tf` ورسم استجابته للقفزة `step`.
+
+## المتطلبات
+
+- MATLAB مثبت مع **Control System Toolbox**.
+- معرفة أساسية بتابع التحويل من مادة نظم التحكم.
+
+## ملخص نظري
+
+**تابع التحويل** هو النسبة بين تحويل لابلاس للخرج وتحويل لابلاس للدخل، بشروط ابتدائية صفرية:
+
+$$
+G(s) = \frac{Y(s)}{U(s)}
+$$
+
+مثلاً، محرك DC (متحكَّم بالموضع) فيك تقرّبه بالنموذج:
+
+$$
+G(s) = \frac{1}{s\,(0.5s + 1)}
+$$
+
+رح نستخدم هاد النظام بالجلسات الثلاث الأولى.
+
+## خطوات العملي
+
+### 1. المصفوفات والمتجهات
+
+```matlab
+A = [1 2 3; 4 5 6; 7 8 10];   % مصفوفة 3x3
+b = [1; 2; 3];                % متجه عمودي
+x = A \ b                     % حل جملة المعادلات A*x = b
+
+t = 0:0.01:5;                 % متجه زمن من 0 لـ 5 بخطوة 0.01
+size(t)                       % أبعاد المتجه
+```
+
+<Aside type="caution" title="انتبه للفرق">
+`A*B` ضرب مصفوفات، أما `A.*B` فضرب عنصر بعنصر. نفس الشي بالنسبة لـ `.^` و `./`.
+</Aside>
+
+### 2. الرسم
+
+```matlab
+t = 0:0.01:5;
+y1 = exp(-t) .* sin(2*pi*t);
+y2 = exp(-0.5*t);
+
+figure;
+plot(t, y1, 'LineWidth', 1.5); hold on;
+plot(t, y2, '--', 'LineWidth', 1.5);
+grid on;
+xlabel('Time (s)'); ylabel('Amplitude');
+legend('e^{-t} sin(2\pi t)', 'e^{-0.5t}');
+title('My first plot');
+```
+
+### 3. الملفات النصية والدوال
+
+<Steps>
+
+1. أنشئ مجلد للمادة، واعمله **Current Folder** بـ MATLAB.
+
+2. أنشئ ملف دالة اسمه `saturate.m`. **لازم اسم الملف يكون نفس اسم الدالة:**
+
+   ```matlab
+   function y = saturate(x, lo, hi)
+   %SATURATE يحدّ القيمة x ضمن المجال [lo, hi]
+       y = min(max(x, lo), hi);
+   end
+   ```
+
+3. جرّبها من نافذة الأوامر:
+
+   ```matlab
+   saturate([-3 0.5 7], -1, 1)   % النتيجة: -1  0.5000  1
+   ```
+
+</Steps>
+
+<FileTree>
+- AI2-Lab/
+  - lab01_basics.m
+  - saturate.m
+</FileTree>
+
+### 4. تمثيل نظام وتحليل استجابته
+
+```matlab
+s = tf('s');
+G = 1 / (s*(0.5*s + 1))     % النظام المفتوح
+
+T = feedback(G, 1)          % الحلقة المغلقة بتغذية راجعة واحدية
+step(T); grid on;
+title('Closed-loop step response');
+
+info = stepinfo(T)          % زمن الصعود، التجاوز الأعظمي، زمن الاستقرار...
+```
+
+## النتيجة المتوقعة
+
+- منحني استجابة يوصل للقيمة 1 مع تجاوز تقريبي **4.3%** (لأن ζ ≈ 0.707).
+- `stepinfo` بيرجع قيم من الشكل `Overshoot ≈ 4.3` و `SettlingTime` حوالي 4 ثواني.
+
+## أخطاء شائعة
+
+| الخطأ | السبب والحل |
+| --- | --- |
+| `Undefined function 'tf'` | الـ Control System Toolbox مو مثبت. تأكد بالأمر `ver`. |
+| `Matrix dimensions must agree` | استخدمت `*` بدل `.*` بين متجهين. |
+| `Undefined function 'saturate'` | الملف مو موجود بالـ Current Folder، أو اسمه مختلف عن اسم الدالة. |
+
+## الوظيفة
+
+1. ارسم استجابة الحلقة المغلقة لما يكون الربح `K = 0.5, 1, 4` (يعني `feedback(K*G, 1)`) على نفس الشكل.
+2. اعمل جدول فيه التجاوز وزمن الاستقرار لكل قيمة، واشرح شو تأثير زيادة الربح.
+
+## أسئلة المراجعة
+
+<details class="answer">
+<summary>شو الفرق بين <code>A\b</code> و <code>inv(A)*b</code>؟</summary>
+
+الاتنين بيحلوا نفس الجملة، بس `A\b` أسرع وأدق عددياً لأنه ما بيحسب المقلوب صراحةً.
+</details>
+
+<details class="answer">
+<summary>ليش النظام <code>G(s)</code> بيعطي خطأ مستقر صفري لدخل قفزة بالحلقة المغلقة؟</summary>
+
+لأنه بيحتوي مكامل (القطب `s = 0`)، يعني نظام من النوع 1، ونظام النوع 1 خطؤه المستقر صفري لدخل القفزة.
+</details>

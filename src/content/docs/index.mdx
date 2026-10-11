@@ -1,0 +1,53 @@
+---
+title: المختبر العملي
+description: المحتوى العملي لمواد الشبكات اللاسلكية والذكاء الصنعي 2 ونظم التشغيل 1 – جامعة قرطبة
+template: splash
+hero:
+  tagline: كل الجلسات العملية بمكان واحد، مع الخطوات والأكواد والملفات والتمارين. بيشتغل من الموبايل ومن الكمبيوتر.
+  actions:
+    - text: ابدأ بالذكاء الصنعي 2
+      link: ai2/
+      icon: right-arrow
+    - text: آخر الإعلانات
+      link: announcements/
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { announcements, courseNames } from '../../data/announcements';
+
+## المواد
+
+<CardGrid>
+	<Card title="الذكاء الصنعي 2" icon="rocket">
+		MATLAB و Simulink وتصميم المتحكمات العائمة (Fuzzy Controllers).
+		[خطة المادة ←](ai2/)
+	</Card>
+	<Card title="الشبكات اللاسلكية" icon="laptop">
+		إعداد شبكات WLAN، والتشفير، وتحليل الحزم.
+		[خطة المادة ←](wireless/)
+	</Card>
+	<Card title="نظم التشغيل 1" icon="seti:shell">
+		Linux، والعمليات، والخيوط، والتزامن بلغة C.
+		[خطة المادة ←](os1/)
+	</Card>
+</CardGrid>
+
+## آخر الإعلانات
+
+{announcements.slice(0, 3).map((a) => (
+	<LinkCard
+		title={a.title}
+		description={`${a.date}${a.course ? ' · ' + courseNames[a.course] : ''}${a.body ? ' — ' + a.body : ''}`}
+		href={a.link ? `${a.link}/` : 'announcements/'}
+	/>
+))}
+
+## كيف تستفيد من الموقع
+
+<CardGrid>
+	<Card title="ابحث" icon="magnifier">اضغط على مربع البحث أو <kbd>Ctrl</kbd> + <kbd>K</kbd> للبحث بكل المحتوى.</Card>
+	<Card title="حضّر قبل الجلسة" icon="open-book">اقرأ قسم «المتطلبات» وثبّت البرامج قبل ما تجي.</Card>
+	<Card title="انسخ الكود" icon="document">كل كود فيه زر نسخ، وكل جلسة فيها ملفات جاهزة للتحميل.</Card>
+	<Card title="راجع نفسك" icon="approve-check">بنهاية كل جلسة في أسئلة مراجعة، والجواب مخفي لحتى تجرب لحالك.</Card>
+</CardGrid>

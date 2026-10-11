@@ -1,0 +1,33 @@
+---
+title: نظم التشغيل 1 – خطة العملي
+description: خطة الجلسات العملية لمادة نظم التشغيل 1.
+sidebar:
+  label: خطة المادة
+  order: 0
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+## أهداف العملي
+
+- استخدام سطر أوامر Linux بثقة.
+- إنشاء العمليات وإدارتها باستخدام `fork` و `exec` و `wait`.
+- البرمجة بالخيوط (pthreads) وحل مشاكل التزامن.
+
+## البرامج المطلوبة
+
+| البرنامج | ملاحظة |
+| --- | --- |
+| Ubuntu 22.04 / 24.04 | على جهاز افتراضي أو WSL على ويندوز |
+| `gcc` و `make` | `sudo apt install build-essential` |
+
+## الجلسات
+
+| # | الجلسة | الحالة |
+| --- | --- | --- |
+| 1 | [العمليات في Linux: fork و exec و wait](lab-01-processes/) | <Badge text="متاحة" variant="success" /> |
+| 2 | الخيوط بـ pthreads | <Badge text="قريباً" variant="caution" /> |
+| 3 | التزامن: Mutex و Semaphores | <Badge text="قريباً" variant="caution" /> |
+| 4 | الاتصال بين العمليات: Pipes | <Badge text="قريباً" variant="caution" /> |
+
+<Aside type="note">هاد هيكل مبدئي، رح يتعبّى بمحتوى المادة.</Aside>

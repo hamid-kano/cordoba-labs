@@ -1,0 +1,160 @@
+---
+title: "الجلسة 2: مدخل إلى Simulink ومتحكم PID"
+description: بناء نموذج حلقة تحكم مغلقة في Simulink، وضبط متحكم PID، وتصدير النتائج إلى MATLAB.
+sidebar:
+  label: "2. Simulink و PID"
+  order: 2
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+<div class="lab-meta">
+	<span><strong>المدة:</strong> ساعتان</span>
+	<span><strong>المستوى:</strong> مبتدئ</span>
+	<span><strong>الأدوات:</strong> MATLAB، Simulink، Control System Toolbox</span>
+	<span><strong>الملفات:</strong> <a href="../../files/ai2/lab02_pid.m" download>lab02_pid.m</a></span>
+</div>
+
+## أهداف الجلسة
+
+- التعرف على بيئة Simulink ومكتبة البلوكات (Library Browser).
+- بناء حلقة تحكم مغلقة للنظام $G(s) = \dfrac{1}{s(0.5s+1)}$.
+- ضبط متحكم PID يدوياً وبالأداة `pidtune`.
+- إرسال نتائج المحاكاة إلى MATLAB ورسمها.
+
+## المتطلبات
+
+- إنهاء [الجلسة 1](../lab-01-matlab-basics/).
+- Simulink و Control System Toolbox.
+
+## ملخص نظري
+
+خرج متحكم PID هو مجموع ثلاث حدود، كل حد بيعالج جانب من الخطأ $e(t) = r(t) - y(t)$:
+
+$$
+u(t) = K_p\, e(t) + K_i \int_0^t e(\tau)\, d\tau + K_d\, \frac{de(t)}{dt}
+$$
+
+| الحد | تأثيره |
+| --- | --- |
+| $K_p$ | بيسرّع الاستجابة، بس كتر منه بيزيد التجاوز |
+| $K_i$ | بيلغي الخطأ المستقر، بس بيبطّئ وبيزيد التذبذب |
+| $K_d$ | بيخفف التجاوز وبيحسن التخميد، بس حساس للضجيج |
+
+## خطوات العملي
+
+### 1. بناء النموذج
+
+<Steps>
+
+1. اكتب `simulink` بنافذة الأوامر واختار **Blank Model**، واحفظه باسم `lab02_pid.slx`.
+
+2. افتح **Library Browser** وضيف البلوكات التالية:
+
+   | البلوك | المكتبة | الإعداد |
+   | --- | --- | --- |
+   | Step | Sources | `Step time = 0`، `Final value = 1` |
+   | Sum | Math Operations | `List of signs = \|+-` |
+   | PID Controller | Continuous | حالياً `P = 1, I = 0, D = 0` |
+   | Saturation | Discontinuities | `Upper = 5`، `Lower = -5` (حدود المشغّل) |
+   | Transfer Fcn | Continuous | `Numerator = [1]`، `Denominator = [0.5 1 0]` |
+   | Scope | Sinks | |
+   | To Workspace | Sinks | `Variable name = y`، `Save format = Timeseries` |
+
+3. صل البلوكات بالترتيب: Step ← Sum ← PID ← Saturation ← Transfer Fcn ← Scope.
+
+4. اسحب خط من خرج الـ Transfer Fcn للمدخل السالب بالـ Sum، هاي هي **التغذية الراجعة**. وصل نفس الخرج كمان لبلوك To Workspace.
+
+5. من **Modeling ← Model Settings** خلي `Stop time = 10`، واضغط **Run**.
+
+</Steps>
+
+<Aside type="tip" title="نصيحة">
+لتضيف بلوك بسرعة، اضغط ضغطتين على مكان فاضي بالنموذج واكتب اسم البلوك.
+</Aside>
+
+### 2. الضبط اليدوي
+
+جرّب القيم التالية بالترتيب، ولاحظ الـ Scope بعد كل تغيير:
+
+| التجربة | P | I | D | شو بتلاحظ؟ |
+| --- | --- | --- | --- | --- |
+| أ | 1 | 0 | 0 | |
+| ب | 5 | 0 | 0 | |
+| ج | 5 | 0 | 1 | |
+| د | 5 | 0.5 | 1 | |
+
+### 3. الضبط التلقائي بـ `pidtune`
+
+```matlab
+s = tf('s');
+G = 1 / (s*(0.5*s + 1));
+
+C = pidtune(G, 'PID')          % بيرجع Kp, Ki, Kd مقترحة
+T = feedback(C*G, 1);
+stepinfo(T)
+```
+
+انسخ القيم المقترحة لبلوك PID بالنموذج وشغّل المحاكاة من جديد.
+
+<Aside type="note">
+فيك كمان تضغط **Tune...** جوا إعدادات بلوك PID لتفتح الأداة **PID Tuner** التفاعلية.
+</Aside>
+
+### 4. تشغيل المحاكاة من ملف نصي
+
+<Tabs>
+<TabItem label="من الملف النصي">
+
+```matlab
+out = sim('lab02_pid');               % تشغيل النموذج
+plot(out.y.Time, out.y.Data, 'LineWidth', 1.5);
+grid on; xlabel('Time (s)'); ylabel('y(t)');
+title('Closed-loop response with PID');
+```
+
+</TabItem>
+<TabItem label="تغيير المعاملات من الملف النصي">
+
+```matlab
+% بإعدادات بلوك PID اكتب Kp و Ki و Kd بدل الأرقام،
+% وبعدين بتغيّرهم من هون بدون ما تفتح النموذج:
+Kp = 5; Ki = 0.5; Kd = 1;
+out = sim('lab02_pid');
+```
+
+</TabItem>
+</Tabs>
+
+## النتيجة المتوقعة
+
+- مع `P = 1` فقط: استجابة متل الجلسة 1 بتجاوز تقريبي 4%.
+- مع زيادة `P` لـ 5: الاستجابة أسرع بس التجاوز أكبر بكتير.
+- إضافة `D` بتخفف التجاوز بشكل واضح.
+
+## أخطاء شائعة
+
+| الخطأ | السبب والحل |
+| --- | --- |
+| `Algebraic loop` | في حلقة بدون أي تأخير أو مكامل. تأكد إن التغذية الراجعة طالعة من خرج الـ Transfer Fcn. |
+| `out.y` مو موجود | تأكد إن اسم المتغير ببلوك To Workspace هو `y`، وإن `Save format = Timeseries`. |
+| الاستجابة بتطلع لا نهاية | إشارة الـ Sum غلط (`++` بدل `+-`)، فصارت التغذية الراجعة موجبة. |
+
+## الوظيفة
+
+1. ضيف **ضجيج** للقياس (بلوك Band-Limited White Noise بالتغذية الراجعة) ولاحظ تأثيره على الحد التفاضلي.
+2. قارن بين قيم `pidtune` وأفضل قيم وصلتلها يدوياً بجدول: التجاوز، زمن الصعود، زمن الاستقرار.
+
+## أسئلة المراجعة
+
+<details class="answer">
+<summary>ليش حطينا بلوك Saturation قبل النظام؟</summary>
+
+لأن أي مشغّل حقيقي (محرك، صمام...) إلو حدود فيزيائية. بدونه، المحاكاة ممكن تعطي إشارات تحكم مستحيلة عملياً.
+</details>
+
+<details class="answer">
+<summary>النظام فيه مكامل، فهل منحتاج الحد التكاملي <code>I</code> لنلغي الخطأ المستقر لدخل قفزة؟</summary>
+
+لا. النظام من النوع 1 فخطؤه المستقر صفري لدخل القفزة حتى بدون `I`. الحد التكاملي بيفيد إذا في اضطراب ثابت على الدخل.
+</details>

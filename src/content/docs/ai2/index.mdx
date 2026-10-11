@@ -1,0 +1,62 @@
+---
+title: الذكاء الصنعي 2 – خطة العملي
+description: خطة الجلسات العملية لمادة الذكاء الصنعي 2، مع التركيز على MATLAB و Simulink والمتحكمات العائمة.
+sidebar:
+  label: خطة المادة
+  order: 0
+---
+
+import { Aside, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+## أهداف العملي
+
+بنهاية الجلسات العملية بيكون الطالب قادر على:
+
+1. استخدام **MATLAB** لتمثيل الأنظمة الديناميكية ورسم استجابتها.
+2. بناء نموذج نظام تحكم مغلق في **Simulink** ومحاكاته وتحليل نتائجه.
+3. تصميم **متحكم عائم (Fuzzy Logic Controller)** من الصفر: المتغيرات، ودوال الانتماء، والقواعد.
+4. ربط المتحكم العائم بنموذج Simulink ومقارنته مع متحكم PID تقليدي.
+
+## البرامج المطلوبة
+
+| البرنامج | ملاحظة |
+| --- | --- |
+| MATLAB (R2021a أو أحدث) | يفضّل R2023a أو أحدث |
+| Simulink | |
+| Control System Toolbox | للدوال `tf` و `step` و `pidtune` |
+| Fuzzy Logic Toolbox | لتصميم المتحكم العائم |
+
+<Aside type="tip" title="ما عندك MATLAB على جهازك؟">
+فيك تستخدم **MATLAB Online** من المتصفح عن طريق حساب MathWorks، إذا كان عند الجامعة ترخيص Campus-Wide. وبمختبر الكلية النسخة مثبتة على كل الأجهزة.
+</Aside>
+
+## الجلسات
+
+| # | الجلسة | الحالة |
+| --- | --- | --- |
+| 1 | [أساسيات MATLAB لأنظمة التحكم](lab-01-matlab-basics/) | <Badge text="متاحة" variant="success" /> |
+| 2 | [مدخل إلى Simulink ومتحكم PID](lab-02-simulink-pid/) | <Badge text="متاحة" variant="success" /> |
+| 3 | [تصميم متحكم عائم Fuzzy Controller](lab-03-fuzzy-controller/) | <Badge text="متاحة" variant="success" /> |
+| 4 | نظام الاستدلال من نوع Sugeno ومقارنته مع Mamdani | <Badge text="قريباً" variant="caution" /> |
+| 5 | ضبط المتحكم العائم: معاملات التقييس والقواعد | <Badge text="قريباً" variant="caution" /> |
+| 6 | متحكم Fuzzy-PID لنظام فيزيائي (محرك DC / خزان مياه) | <Badge text="قريباً" variant="caution" /> |
+| 7 | ANFIS: توليد نظام عائم من البيانات | <Badge text="قريباً" variant="caution" /> |
+| 8 | مشروع عملي ومناقشة | <Badge text="قريباً" variant="caution" /> |
+
+## التقييم
+
+| البند | العلامة |
+| --- | --- |
+| الحضور والمشاركة | 5 |
+| الوظائف الأسبوعية | 10 |
+| المشروع العملي | 15 |
+| الامتحان العملي | 10 |
+| **المجموع** | **40** |
+
+<Aside type="note">
+توزيع العلامات هون مثال، عدّله حسب نظام الجامعة.
+</Aside>
+
+## ابدأ من هون
+
+<LinkCard title="الجلسة 1: أساسيات MATLAB لأنظمة التحكم" href="lab-01-matlab-basics/" />

@@ -1,0 +1,283 @@
+---
+title: "الجلسة 3: تصميم متحكم عائم Fuzzy Controller"
+description: تصميم متحكم عائم من نوع Mamdani بمدخلين (الخطأ وتغيّره) في MATLAB، وربطه بنموذج Simulink، ومقارنته مع PID.
+sidebar:
+  label: "3. تصميم Fuzzy Controller"
+  order: 3
+  badge:
+    text: جديد
+    variant: tip
+---
+
+import { Aside, Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/components';
+
+<div class="lab-meta">
+	<span><strong>المدة:</strong> 3 ساعات</span>
+	<span><strong>المستوى:</strong> متوسط</span>
+	<span><strong>الأدوات:</strong> MATLAB، Simulink، Fuzzy Logic Toolbox</span>
+	<span><strong>الملفات:</strong> <a href="../../files/ai2/lab03_fuzzy_pd.m" download>lab03_fuzzy_pd.m</a></span>
+</div>
+
+## أهداف الجلسة
+
+- فهم مراحل المتحكم العائم: **التضبيب**، و**الاستدلال**، و**إزالة التضبيب**.
+- تصميم نظام استدلال عائم (FIS) من نوع **Mamdani** بالكود وبالأداة الرسومية.
+- بناء **متحكم Fuzzy-PD** بمدخلين: الخطأ $e$ وتغيّر الخطأ $\dot e$.
+- ربط المتحكم ببلوك **Fuzzy Logic Controller** في Simulink ومقارنته مع PID.
+
+## المتطلبات
+
+- إنهاء [الجلسة 2](../lab-02-simulink-pid/)، لأنه رح نعيد استخدام نفس النظام.
+- **Fuzzy Logic Toolbox** (للتأكد: `ver fuzzy`).
+
+## ملخص نظري
+
+### بنية المتحكم العائم
+
+بدل ما نكتب معادلة للمتحكم، منكتب **خبرة الإنسان** على شكل قواعد لغوية، مثل:
+
+> إذا كان الخطأ **موجب كبير** والخطأ **عم يزيد**، فخلّي إشارة التحكم **موجبة كبيرة**.
+
+المتحكم بيمر بأربع مراحل:
+
+| المرحلة | شو بتعمل |
+| --- | --- |
+| 1. التقييس (Scaling) | بتحوّل $e$ و $\dot e$ للمجال المعياري $[-1, 1]$ عن طريق الربحين $K_e$ و $K_d$ |
+| 2. التضبيب (Fuzzification) | بتحسب درجة انتماء كل قيمة لكل مجموعة: N و Z و P |
+| 3. الاستدلال (Inference) | بتطبّق القواعد (`AND = min`) وبتجمّع النتائج (`max`) |
+| 4. إزالة التضبيب (Defuzzification) | بتحوّل النتيجة العائمة لرقم واحد (طريقة مركز الثقل Centroid)، وبعدين بتضربه بـ $K_u$ |
+
+### متحكم Fuzzy-PD
+
+المتحكم العائم اللي مدخلاته $e$ و $\dot e$ بيتصرف متل متحكم PD غير خطي:
+
+$$
+u = K_u \cdot \text{FIS}\big(K_e\, e,\; K_d\, \dot e\big)
+$$
+
+### جدول القواعد
+
+لكل مدخل 3 مجموعات (N سالب، Z صفر، P موجب)، وللخرج 5 مجموعات (NB، NS، Z، PS، PB). يعني عنا $3 \times 3 = 9$ قواعد:
+
+| $e$ \ $\dot e$ | **N** | **Z** | **P** |
+| --- | --- | --- | --- |
+| **N** | NB | NS | Z |
+| **Z** | NS | Z | PS |
+| **P** | Z | PS | PB |
+
+<Aside type="tip" title="كيف تقرأ الجدول؟">
+الخطأ $e = r - y$. إذا كان موجب، يعني الخرج **أقل** من المطلوب، فلازم نزيد $u$. وإذا كان $\dot e$ كمان موجب، يعني الوضع عم يسوء، فمنزيد $u$ أكتر (PB). أما إذا كان الخطأ موجب بس عم يقل ($\dot e$ سالب)، فالنظام أصلاً عم يرجع لحاله، فمنخلي $u$ صفر (Z) لنتجنب التجاوز.
+</Aside>
+
+## خطوات العملي
+
+### 1. بناء نظام الاستدلال العائم (FIS)
+
+<Tabs>
+<TabItem label="بالكود (مُوصى به)">
+
+```matlab
+fis = mamfis('Name', 'fuzzyPD');
+
+% ---------- المدخل الأول: الخطأ e ----------
+fis = addInput(fis, [-1 1], 'Name', 'e');
+fis = addMF(fis, 'e', 'trimf', [-2 -1 0], 'Name', 'N');
+fis = addMF(fis, 'e', 'trimf', [-1  0 1], 'Name', 'Z');
+fis = addMF(fis, 'e', 'trimf', [ 0  1 2], 'Name', 'P');
+
+% ---------- المدخل الثاني: تغيّر الخطأ de ----------
+fis = addInput(fis, [-1 1], 'Name', 'de');
+fis = addMF(fis, 'de', 'trimf', [-2 -1 0], 'Name', 'N');
+fis = addMF(fis, 'de', 'trimf', [-1  0 1], 'Name', 'Z');
+fis = addMF(fis, 'de', 'trimf', [ 0  1 2], 'Name', 'P');
+
+% ---------- الخرج: إشارة التحكم u ----------
+fis = addOutput(fis, [-1 1], 'Name', 'u');
+fis = addMF(fis, 'u', 'trimf', [-1.5 -1   -0.5], 'Name', 'NB');
+fis = addMF(fis, 'u', 'trimf', [-1   -0.5  0  ], 'Name', 'NS');
+fis = addMF(fis, 'u', 'trimf', [-0.5  0    0.5], 'Name', 'Z');
+fis = addMF(fis, 'u', 'trimf', [ 0    0.5  1  ], 'Name', 'PS');
+fis = addMF(fis, 'u', 'trimf', [ 0.5  1    1.5], 'Name', 'PB');
+
+% ---------- القواعد التسع ----------
+rules = [
+    "If e is N and de is N then u is NB"
+    "If e is N and de is Z then u is NS"
+    "If e is N and de is P then u is Z"
+    "If e is Z and de is N then u is NS"
+    "If e is Z and de is Z then u is Z"
+    "If e is Z and de is P then u is PS"
+    "If e is P and de is N then u is Z"
+    "If e is P and de is Z then u is PS"
+    "If e is P and de is P then u is PB"
+];
+fis = addRule(fis, rules);
+
+writeFIS(fis, 'fuzzyPD');   % حفظ بملف fuzzyPD.fis
+```
+
+</TabItem>
+<TabItem label="بالأداة الرسومية">
+
+<Steps>
+
+1. افتح الأداة:
+   - من **R2023a** وأحدث: `fuzzyLogicDesigner`
+   - بالنسخ الأقدم: `fuzzy`
+
+2. اختار نظام **Mamdani** جديد، وضيف مدخل تاني. سمي المدخلات `e` و `de` والخرج `u`.
+
+3. لكل متغير، خلي المجال `[-1 1]` وعرّف دوال الانتماء المثلثية (`trimf`) بنفس القيم الموجودة بتبويب الكود.
+
+4. من **Rules** ضيف القواعد التسع حسب جدول القواعد.
+
+5. صدّر النظام لمساحة العمل باسم `fis`، واحفظه كملف `fuzzyPD.fis`.
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+### 2. فحص التصميم
+
+```matlab
+figure; subplot(3,1,1); plotmf(fis, 'input', 1);  title('e');
+        subplot(3,1,2); plotmf(fis, 'input', 2);  title('de');
+        subplot(3,1,3); plotmf(fis, 'output', 1); title('u');
+
+showrule(fis)                  % عرض القواعد كنص
+figure; gensurf(fis);          % سطح التحكم u = f(e, de)
+
+evalfis(fis, [0.5 -0.2])       % تجربة قيمة واحدة
+```
+
+<Aside type="note" title="سطح التحكم">
+لازم يطلع السطح **ناعم ومتزايد** باتجاه الزاوية $(e, \dot e) = (1, 1)$. أي "حفرة" أو قفزة فيه معناها في قاعدة غلط.
+</Aside>
+
+### 3. محاكاة سريعة بالكود (بدون Simulink)
+
+قبل ما ننتقل لـ Simulink، منجرب المتحكم مع النظام $G(s) = \dfrac{1}{s(0.5s+1)}$ بحلقة بسيطة (طريقة أويلر):
+
+```matlab
+Ke = 1; Kd = 0.3; Ku = 4;          % معاملات التقييس
+dt = 0.01; t = 0:dt:10; r = 1;
+y = 0; yd = 0; e_prev = r - y;
+Y = zeros(size(t)); U = Y;
+
+for k = 1:numel(t)
+    e  = r - y;
+    de = (e - e_prev) / dt;  e_prev = e;
+    in = min(max([Ke*e, Kd*de], -1), 1);   % تقييد ضمن [-1, 1]
+    u  = Ku * evalfis(fis, in);
+
+    ydd = 2 * (u - yd);                    % 0.5*y'' + y' = u
+    yd  = yd + ydd*dt;
+    y   = y  + yd*dt;
+    Y(k) = y; U(k) = u;
+end
+
+subplot(2,1,1); plot(t, Y, 'LineWidth', 1.5); grid on; ylabel('y'); title('Fuzzy-PD');
+subplot(2,1,2); plot(t, U, 'LineWidth', 1.5); grid on; ylabel('u'); xlabel('Time (s)');
+```
+
+### 4. الربط مع Simulink
+
+<Steps>
+
+1. افتح نموذج الجلسة 2 واحفظ نسخة منه باسم `lab03_fuzzy.slx`. احذف بلوك PID.
+
+2. ضيف البلوكات التالية:
+
+   | البلوك | المكتبة | الإعداد |
+   | --- | --- | --- |
+   | Gain ×3 | Math Operations | `Ke`، `Kd`، `Ku` |
+   | Derivative | Continuous | |
+   | Saturation ×2 | Discontinuities | `[-1, 1]` لكل مدخل |
+   | Mux | Signal Routing | `Number of inputs = 2` |
+   | Fuzzy Logic Controller | Fuzzy Logic Toolbox | `FIS name = fis` |
+
+3. صل الإشارات بهالشكل:
+
+   ```text
+   e ──► Gain(Ke) ──► Saturation ──────────────► Mux(1) ┐
+   e ──► Derivative ──► Gain(Kd) ──► Saturation ► Mux(2) ┴► Fuzzy Logic Controller ─► Gain(Ku) ─► Saturation(±5) ─► G(s)
+   ```
+
+4. عرّف المتغيرات بمساحة العمل قبل التشغيل:
+
+   ```matlab
+   Ke = 1; Kd = 0.3; Ku = 4;
+   % لازم يكون المتغير fis موجود (من الخطوة 1)، أو حمّله:
+   fis = readfis('fuzzyPD');
+   ```
+
+5. شغّل المحاكاة وقارن الـ Scope مع نتيجة الخطوة 3.
+
+</Steps>
+
+<FileTree>
+- AI2-Lab/
+  - lab02_pid.slx
+  - lab03_fuzzy.slx
+  - lab03_fuzzy_pd.m
+  - fuzzyPD.fis
+</FileTree>
+
+<Aside type="caution" title="ترتيب المدخلات مهم">
+أول مدخل للـ Mux لازم يكون **الخطأ** والتاني **تغيّره**، بنفس ترتيب تعريف المدخلات بالـ FIS. إذا عكستهم، المتحكم بيشتغل غلط بدون أي رسالة خطأ.
+</Aside>
+
+### 5. المقارنة مع PID
+
+```matlab
+s = tf('s'); G = 1/(s*(0.5*s+1));
+C = pidtune(G, 'PD');
+[ypid, tpid] = step(feedback(C*G, 1), t);
+
+figure; plot(t, Y, tpid, ypid, '--', 'LineWidth', 1.5); grid on;
+legend('Fuzzy-PD', 'PD (pidtune)'); xlabel('Time (s)'); ylabel('y');
+```
+
+## النتيجة المتوقعة
+
+- بالقيم المقترحة ($K_e = 1, K_d = 0.3, K_u = 4$): الخرج بيوصل لـ 1 بتجاوز **أقل من 1%** وزمن استقرار حوالي **2 ثانية**، وبدون خطأ مستقر لأن النظام فيه مكامل.
+- سطح التحكم بيطلع متل "سلّم مائل" متناظر حول المركز.
+- زيادة $K_u$ بتسرّع الاستجابة، وزيادة $K_d$ بتخفف التجاوز، متل PD بالضبط بس بشكل غير خطي.
+
+## أخطاء شائعة
+
+| الخطأ | السبب والحل |
+| --- | --- |
+| `Warning: Input 1 expects a value in range [-1 1]` | المدخل طالع من المجال. ضيف Saturation أو صغّر $K_e$. |
+| `Undefined function 'mamfis'` | نسختك أقدم من R2018b. استخدم `newfis` بدلاً منها. |
+| بلوك Fuzzy بيعطي `Unrecognized variable fis` | لازم تعرّف `fis` بمساحة العمل **قبل** ما تشغّل النموذج. |
+| الخرج بيتذبذب بشكل مستمر | $K_u$ كبير كتير أو $K_d$ صغير كتير. ابدأ من القيم المقترحة. |
+| `evalfis` بيعطي خطأ بترتيب المدخلات | من R2018b صار الترتيب `evalfis(fis, input)`، والنسخ الأقدم بتستخدم `evalfis(input, fis)`. |
+
+## الوظيفة
+
+1. **غيّر عدد المجموعات** لكل مدخل من 3 لـ 5 (NB، NS، Z، PS، PB)، واكتب جدول قواعد $5 \times 5$. قارن الاستجابة.
+2. جرّب دوال انتماء **غاوصية** (`gaussmf`) بدل المثلثية. شو تأثيرها على نعومة سطح التحكم؟
+3. ضيف اضطراب ثابت على دخل النظام (Step بقيمة 0.2 عند `t = 5`). هل بيقدر Fuzzy-PD يلغي الخطأ؟ اقترح حل (تلميح: Fuzzy-PI).
+4. سلّم ملف `.m` و `.slx` وتقرير صفحة وحدة فيه المنحنيات وجدول المقارنة.
+
+## أسئلة المراجعة
+
+<details class="answer">
+<summary>ليش منستخدم معاملات التقييس <code>Ke</code> و <code>Kd</code> و <code>Ku</code> بدل ما نعدّل دوال الانتماء مباشرة؟</summary>
+
+لأنها بتخلي تصميم الـ FIS معياري ومستقل عن النظام. منصمم القواعد مرة وحدة على المجال $[-1, 1]$، وبعدين منضبط المتحكم لأي نظام بتغيير تلات أرقام بس، متل ضبط PID.
+</details>
+
+<details class="answer">
+<summary>شو الفرق بين Mamdani و Sugeno؟</summary>
+
+بـ **Mamdani** الخرج مجموعة عائمة وبيحتاج إزالة تضبيب (مركز الثقل)، فهو أوضح للفهم البشري. بـ **Sugeno** خرج كل قاعدة رقم أو تابع خطي، فهو أسرع حسابياً ومناسب أكتر للتطبيق بالزمن الحقيقي. هاد موضوع الجلسة 4.
+</details>
+
+<details class="answer">
+<summary>شو بيصير إذا نسينا قاعدة <code>If e is Z and de is Z then u is Z</code>؟</summary>
+
+حول نقطة التوازن ما بتنطلق ولا قاعدة بقوة كاملة، فبيصير سطح التحكم فيه "فجوة" بالمركز، وممكن يتذبذب الخرج حول القيمة المطلوبة أو يطلع خرج المتحكم غير معرّف (بيرجع منتصف المجال مع تحذير).
+</details>

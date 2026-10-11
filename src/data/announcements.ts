@@ -1,0 +1,29 @@
+// أضف الإعلان الجديد في أول القائمة. أول إعلان بيظهر بالشريط أعلى كل الصفحات.
+export interface Announcement {
+	date: string; // YYYY-MM-DD
+	course?: 'ai2' | 'wireless' | 'os1';
+	title: string;
+	body?: string;
+	link?: string; // رابط داخلي بدون / بالبداية، مثل: ai2/lab-03-fuzzy-controller
+}
+
+export const announcements: Announcement[] = [
+	{
+		date: '2026-10-11',
+		course: 'ai2',
+		title: 'نُشرت جلسة تصميم المتحكم العائم (Fuzzy Controller)',
+		body: 'يرجى تجهيز MATLAB مع Fuzzy Logic Toolbox و Simulink قبل الجلسة.',
+		link: 'ai2/lab-03-fuzzy-controller',
+	},
+	{
+		date: '2026-10-08',
+		title: 'بداية الجلسات العملية للفصل الأول',
+		body: 'تبدأ الجلسات العملية للمواد الثلاث في الأسبوع القادم حسب البرنامج المعتمد.',
+	},
+];
+
+export const courseNames = {
+	ai2: 'الذكاء الصنعي 2',
+	wireless: 'الشبكات اللاسلكية',
+	os1: 'نظم التشغيل 1',
+} as const;

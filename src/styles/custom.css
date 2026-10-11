@@ -1,0 +1,54 @@
+:root {
+	--sl-font: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, system-ui, sans-serif;
+	--sl-font-system-mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+	--banner-bg: #1f6f8b;
+}
+
+/* الوضع الليلي (الافتراضي في Starlight) */
+:root {
+	--sl-color-accent-low: #0e2d38;
+	--sl-color-accent: #3a9ec2;
+	--sl-color-accent-high: #b9e3f2;
+}
+
+/* الوضع النهاري */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #d3edf6;
+	--sl-color-accent: #1f6f8b;
+	--sl-color-accent-high: #0f3a49;
+}
+
+/* الكود دائماً من اليسار لليمين */
+pre,
+code,
+.expressive-code {
+	direction: ltr;
+	text-align: left;
+}
+
+/* بطاقة معلومات الجلسة أعلى كل درس */
+.lab-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1.25rem;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.5rem;
+	background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+	font-size: var(--sl-text-sm);
+}
+.lab-meta strong { color: var(--sl-color-white); }
+
+/* أسئلة المراجعة: الجواب مخفي */
+.sl-markdown-content details.answer {
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.5rem;
+	padding: 0.5rem 1rem;
+}
+.sl-markdown-content details.answer summary { cursor: pointer; font-weight: 500; }
+
+/* جداول عريضة قابلة للتمرير على الموبايل */
+.sl-markdown-content table { display: block; overflow-x: auto; }
+
+/* المعادلات من اليسار لليمين */
+.katex-display, .katex { direction: ltr; }
