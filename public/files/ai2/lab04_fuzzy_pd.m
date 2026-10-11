@@ -1,4 +1,4 @@
-%% الجلسة 3: تصميم متحكم Fuzzy-PD ومقارنته مع PD
+%% الجلسة 4: تصميم متحكم Fuzzy-PD ومقارنته مع PD
 %  النظام: G(s) = 1 / (s (0.5 s + 1))
 %  يحتاج: Fuzzy Logic Toolbox (R2018b أو أحدث) و Control System Toolbox
 clc; clear; close all;

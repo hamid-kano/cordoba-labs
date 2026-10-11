@@ -12,8 +12,8 @@ npm run dev      # http://localhost:4321
 
 ## إضافة جلسة جديدة
 
-1. انسخ ملف جلسة موجود، مثلاً `src/content/docs/ai2/lab-03-fuzzy-controller.mdx`، وسمّيه
-   `lab-04-sugeno.mdx`.
+1. انسخ ملف جلسة موجود، مثلاً `src/content/docs/ai2/lab-04-fuzzy-pd-controller.mdx`، وسمّيه
+   `lab-05-tuning.mdx`.
 2. عدّل `title` و `description` و `sidebar.order` بأول الملف، واكتب المحتوى.
 3. حط الملفات اللي بدك ياها للتحميل بـ `public/files/ai2/`، واربطها هيك:
    `<a href="../../files/ai2/اسم_الملف.m" download>اسم_الملف.m</a>`

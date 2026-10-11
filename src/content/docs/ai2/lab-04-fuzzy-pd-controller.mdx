@@ -1,12 +1,9 @@
 ---
-title: "الجلسة 3: تصميم متحكم عائم Fuzzy Controller"
+title: "الجلسة 4: تصميم متحكم Fuzzy-PD وربطه بـ Simulink"
 description: تصميم متحكم عائم من نوع Mamdani بمدخلين (الخطأ وتغيّره) في MATLAB، وربطه بنموذج Simulink، ومقارنته مع PID.
 sidebar:
-  label: "3. تصميم Fuzzy Controller"
-  order: 3
-  badge:
-    text: جديد
-    variant: tip
+  label: "4. متحكم Fuzzy-PD"
+  order: 4
 ---
 
 import { Aside, Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/components';
@@ -15,7 +12,7 @@ import { Aside, Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/compon
 	<span><strong>المدة:</strong> 3 ساعات</span>
 	<span><strong>المستوى:</strong> متوسط</span>
 	<span><strong>الأدوات:</strong> MATLAB، Simulink، Fuzzy Logic Toolbox</span>
-	<span><strong>الملفات:</strong> <a href="../../files/ai2/lab03_fuzzy_pd.m" download>lab03_fuzzy_pd.m</a></span>
+	<span><strong>الملفات:</strong> <a href="../../files/ai2/lab04_fuzzy_pd.m" download>lab04_fuzzy_pd.m</a></span>
 </div>
 
 ## أهداف الجلسة
@@ -28,6 +25,7 @@ import { Aside, Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/compon
 ## المتطلبات
 
 - إنهاء [الجلسة 2](../lab-02-simulink-pid/)، لأنه رح نعيد استخدام نفس النظام.
+- إنهاء [الجلسة 3](../lab-03-fuzzy-basics/)، لأنه رح نبني على دوال الانتماء والاستدلال Mamdani يلي شفناهم فيها.
 - **Fuzzy Logic Toolbox** (للتأكد: `ver fuzzy`).
 
 ## ملخص نظري
@@ -38,7 +36,7 @@ import { Aside, Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/compon
 
 > إذا كان الخطأ **موجب كبير** والخطأ **عم يزيد**، فخلّي إشارة التحكم **موجبة كبيرة**.
 
-المتحكم بيمر بأربع مراحل:
+المتحكم بيمر بأربع مراحل. التضبيب والاستدلال وإزالة التضبيب حسبناهم بإيدنا بالجلسة 3، والجديد هون هو مرحلة التقييس:
 
 | المرحلة | شو بتعمل |
 | --- | --- |
@@ -185,7 +183,7 @@ subplot(2,1,2); plot(t, U, 'LineWidth', 1.5); grid on; ylabel('u'); xlabel('Time
 
 <Steps>
 
-1. افتح نموذج الجلسة 2 واحفظ نسخة منه باسم `lab03_fuzzy.slx`. احذف بلوك PID.
+1. افتح نموذج الجلسة 2 واحفظ نسخة منه باسم `lab04_fuzzy.slx`. احذف بلوك PID.
 
 2. ضيف البلوكات التالية:
 
@@ -219,8 +217,8 @@ subplot(2,1,2); plot(t, U, 'LineWidth', 1.5); grid on; ylabel('u'); xlabel('Time
 <FileTree>
 - AI2-Lab/
   - lab02_pid.slx
-  - lab03_fuzzy.slx
-  - lab03_fuzzy_pd.m
+  - lab04_fuzzy.slx
+  - lab04_fuzzy_pd.m
   - fuzzyPD.fis
 </FileTree>
 
@@ -257,7 +255,7 @@ legend('Fuzzy-PD', 'PD (pidtune)'); xlabel('Time (s)'); ylabel('y');
 
 ## الوظيفة
 
-1. **غيّر عدد المجموعات** لكل مدخل من 3 لـ 5 (NB، NS، Z، PS، PB)، واكتب جدول قواعد $5 \times 5$. قارن الاستجابة.
+1. (تحضير للجلسة 5) **غيّر عدد المجموعات** لكل مدخل من 3 لـ 5 (NB، NS، Z، PS، PB)، واكتب جدول قواعد $5 \times 5$. قارن الاستجابة.
 2. جرّب دوال انتماء **غاوصية** (`gaussmf`) بدل المثلثية. شو تأثيرها على نعومة سطح التحكم؟
 3. ضيف اضطراب ثابت على دخل النظام (Step بقيمة 0.2 عند `t = 5`). هل بيقدر Fuzzy-PD يلغي الخطأ؟ اقترح حل (تلميح: Fuzzy-PI).
 4. سلّم ملف `.m` و `.slx` وتقرير صفحة وحدة فيه المنحنيات وجدول المقارنة.
@@ -273,7 +271,7 @@ legend('Fuzzy-PD', 'PD (pidtune)'); xlabel('Time (s)'); ylabel('y');
 <details class="answer">
 <summary>شو الفرق بين Mamdani و Sugeno؟</summary>
 
-بـ **Mamdani** الخرج مجموعة عائمة وبيحتاج إزالة تضبيب (مركز الثقل)، فهو أوضح للفهم البشري. بـ **Sugeno** خرج كل قاعدة رقم أو تابع خطي، فهو أسرع حسابياً ومناسب أكتر للتطبيق بالزمن الحقيقي. هاد موضوع الجلسة 4.
+بـ **Mamdani** الخرج مجموعة عائمة وبيحتاج إزالة تضبيب (مركز الثقل)، فهو أوضح للفهم البشري. بـ **Sugeno** خرج كل قاعدة رقم أو تابع خطي، فهو أسرع حسابياً ومناسب أكتر للتطبيق بالزمن الحقيقي. هاد موضوع الجلسة 6.
 </details>
 
 <details class="answer">
