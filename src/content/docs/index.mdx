@@ -4,6 +4,10 @@ description: المحتوى العملي لمواد الشبكات اللاسل�
 template: splash
 hero:
   tagline: كل الجلسات العملية بمكان واحد، مع الخطوات والأكواد والملفات والتمارين. بيشتغل من الموبايل ومن الكمبيوتر.
+  image:
+    light: ../../assets/brand/cordoba-logo-hero.png
+    dark: ../../assets/brand/cordoba-logo-hero-dark.png
+    alt: جامعة قرطبة الخاصة – Cordoba Private University
   actions:
     - text: ابدأ بالذكاء الصنعي 2
       link: ai2/
@@ -14,7 +18,9 @@ hero:
 ---
 
 import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
 import { announcements, courseNames } from '../../data/announcements';
+import seal from '../../assets/brand/cordoba-seal.jpg';
 
 ## المواد
 
@@ -51,3 +57,8 @@ import { announcements, courseNames } from '../../data/announcements';
 	<Card title="انسخ الكود" icon="document">كل كود فيه زر نسخ، وكل جلسة فيها ملفات جاهزة للتحميل.</Card>
 	<Card title="راجع نفسك" icon="approve-check">بنهاية كل جلسة في أسئلة مراجعة، والجواب مخفي لحتى تجرب لحالك.</Card>
 </CardGrid>
+
+<div class="cpu-seal">
+	<Image src={seal} alt="شعار جامعة قرطبة الخاصة" width={240} />
+	<span>المحتوى العملي لطلاب جامعة قرطبة الخاصة</span>
+</div>

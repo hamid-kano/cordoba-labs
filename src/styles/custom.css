@@ -1,21 +1,43 @@
 :root {
 	--sl-font: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, system-ui, sans-serif;
 	--sl-font-system-mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
-	--banner-bg: #1f6f8b;
+	/* ألوان هوية جامعة قرطبة الخاصة (مأخوذة من اللوغو) */
+	--cpu-green-dark: #006738;
+	--cpu-green: #009344;
+	--cpu-ink: #232020;
+	--banner-bg: var(--cpu-green-dark);
 }
 
-/* الوضع الليلي (الافتراضي في Starlight) */
+/* الوضع الليلي (الافتراضي في Starlight): أخضر أفتح لحتى يبيّن على الخلفية الغامقة */
 :root {
-	--sl-color-accent-low: #0e2d38;
-	--sl-color-accent: #3a9ec2;
-	--sl-color-accent-high: #b9e3f2;
+	--sl-color-accent-low: #0b2e1d;
+	--sl-color-accent: #2fb36b;
+	--sl-color-accent-high: #c5ecd4;
 }
 
-/* الوضع النهاري */
+/* الوضع النهاري: أخضر الجامعة نفسه */
 :root[data-theme='light'] {
-	--sl-color-accent-low: #d3edf6;
-	--sl-color-accent: #1f6f8b;
-	--sl-color-accent-high: #0f3a49;
+	--sl-color-accent-low: #d6efdf;
+	--sl-color-accent: var(--cpu-green-dark);
+	--sl-color-accent-high: #003d21;
+}
+
+/* شعار الجامعة بأسفل الصفحة الرئيسية */
+.cpu-seal {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.75rem;
+	margin-top: 3rem;
+	text-align: center;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+.cpu-seal img {
+	width: 120px;
+	height: auto;
+	border-radius: 50%;
+	background: #fff;
 }
 
 /* الكود دائماً من اليسار لليمين */
@@ -61,3 +83,10 @@ code,
 
 /* المعادلات من اليسار لليمين */
 .katex-display, .katex { direction: ltr; }
+
+/* مربعات «الفكرة ببساطة» (tip) بأخضر الجامعة بدل البنفسجي */
+.starlight-aside--tip {
+	--sl-color-asides-text-accent: var(--sl-color-accent-high);
+	--sl-color-asides-border: var(--sl-color-accent);
+	background-color: var(--sl-color-accent-low);
+}

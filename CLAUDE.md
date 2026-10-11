@@ -25,7 +25,21 @@ src/data/announcements.ts   مصدر الإعلانات (الأحدث أولاً
 src/components/Banner.astro override لشريط الإعلانات، بينسكر وبينحفظ بـ localStorage
 src/styles/custom.css       الألوان، و .lab-meta، و details.answer، والكود/المعادلات LTR
 public/files/<course>/      ملفات التحميل (.m، .c ...)
+src/assets/brand/           هوية جامعة قرطبة الخاصة (شوف تحت)
+public/favicon.png, apple-touch-icon.png, og-image.png   أيقونات وصورة المعاينة، مولّدين من اللوغو
 ```
+
+### الهوية البصرية
+
+- الألوان من اللوغو: أخضر غامق `#006738`، أخضر `#009344`، وأسود الكتابة `#232020` (متغيرات `--cpu-*` بـ `custom.css`). الـ accent بالوضع النهاري هو الأخضر الغامق، وبالليلي `#2fb36b` لحتى يبيّن.
+- `src/assets/brand/`:
+  - `cordoba-logo-horizontal-original.png`: الأصلي يلي بعته المستخدم (شفاف). منه انعمل كل شي.
+  - `cordoba-logo-horizontal(-dark).png`: مقصوص الحواف، ونسخة `-dark` الكتابة فيها بيضا (انعملت بتبديل البكسلات الرمادية، `saturation<0.3`، لأبيض).
+  - `cordoba-logo-hero(-dark).png`: نفسه بمربع شفاف 1000×1000، لأن Starlight بيقص صورة الـ hero لمربع 400×400.
+  - `cordoba-emblem.png`: الرمز لحاله (بدون كتابة) لهيدر الموقع والـ favicon.
+  - `cordoba-logo-cpu-square.jpg`: أيقونة الشاشة الرئيسية للموبايل (`apple-touch-icon.png`).
+  - `cordoba-seal.jpg`: الختم الدائري بأسفل الصفحة الرئيسية.
+- أدوات الصور على الجهاز: ImageMagick (`magick`) و sharp. ما في Python. للتأكد بصرياً: `msedge --headless=new --screenshot` على السيرفر المحلي.
 
 ## قالب الجلسة (التزم فيه بكل جلسة جديدة)
 

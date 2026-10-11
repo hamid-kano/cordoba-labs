@@ -7,6 +7,9 @@ import rehypeKatex from 'rehype-katex';
 // SITE و BASE_PATH بتنضبط تلقائياً من GitHub Actions حسب اسم المستودع
 const site = process.env.SITE || 'http://localhost:4321';
 const base = process.env.BASE_PATH || '/';
+const withBase = (path) => `${base.replace(/\/$/, '')}/${path}`;
+// صورة المعاينة لما ينبعت رابط الموقع على واتساب أو تلغرام (لازم رابط كامل)
+const ogImage = new URL(withBase('og-image.png'), site).href;
 
 export default defineConfig({
 	site,
@@ -20,9 +23,14 @@ export default defineConfig({
 			locales: {
 				root: { label: 'العربية', lang: 'ar', dir: 'rtl' },
 			},
-			logo: { src: './src/assets/logo.svg', replacesTitle: false },
+			logo: { src: './src/assets/brand/cordoba-emblem.png', alt: 'جامعة قرطبة الخاصة', replacesTitle: false },
+			favicon: '/favicon.png',
 			customCss: ['katex/dist/katex.min.css', './src/styles/custom.css'],
 			head: [
+				{ tag: 'link', attrs: { rel: 'apple-touch-icon', href: withBase('apple-touch-icon.png') } },
+				{ tag: 'meta', attrs: { name: 'theme-color', content: '#006738' } },
+				{ tag: 'meta', attrs: { property: 'og:image', content: ogImage } },
+				{ tag: 'meta', attrs: { name: 'twitter:image', content: ogImage } },
 				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
 				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' } },
 				{
