@@ -1,0 +1,66 @@
+---
+// التفاضل = الميل، والتكامل = المساحة، على نفس منحني الخطأ e(t) (صفحة PID والضبابي ببساطة).
+const T = 8;
+const e = (t: number) => Math.exp(-0.6 * t) + 0.15; // خطأ عم يصغر، وبيضل منه شوي
+const X = (t: number) => 40 + t * 32;
+const Y = (v: number) => 180 - v * 130;
+const ts = Array.from({ length: 81 }, (_, i) => (i * T) / 80);
+const curve = ts.map((t, i) => `${i ? 'L' : 'M'}${X(t).toFixed(1)},${Y(e(t)).toFixed(1)}`).join('');
+
+// المماس عند t0
+const t0 = 1.5;
+const slope = -0.6 * Math.exp(-0.6 * t0);
+const tan = (t: number) => e(t0) + slope * (t - t0);
+const tangent = `M${X(0.2).toFixed(1)},${Y(tan(0.2)).toFixed(1)}L${X(3.4).toFixed(1)},${Y(tan(3.4)).toFixed(1)}`;
+
+// المساحة من 0 لـ t1
+const t1 = 6;
+const areaTs = ts.filter((t) => t <= t1);
+const area = `M${X(0)},${Y(0)}` + areaTs.map((t) => `L${X(t).toFixed(1)},${Y(e(t)).toFixed(1)}`).join('') + `L${X(t1)},${Y(0)}Z`;
+const axes = `M40 20 V180 H300`;
+---
+
+<div class="ai-two calc-figs">
+	<figure class="wl-fig">
+		<svg class="d-big" viewBox="0 0 320 230" role="img" aria-label="منحني الخطأ عم ينزل مع الزمن، والخط الأحمر المماس بيبيّن ميله، وهو التفاضل">
+			<defs>
+				<marker id="calc-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+					<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+				</marker>
+			</defs>
+			<path d={axes} class="d-line" marker-start="url(#calc-ar)" marker-end="url(#calc-ar)"></path>
+			<text x="300" y="205" class="d-s d-ltr">t</text>
+			<text x="28" y="26" class="d-s d-ltr">e</text>
+			<path d={curve} class="d-line d-blue calc-curve"></path>
+			<path d={tangent} class="d-line d-red calc-tan"></path>
+			<circle cx={X(t0)} cy={Y(e(t0))} r="6" class="d-fred"></circle>
+			<text x="200" y="60" class="d-t d-b">التفاضل = الميل</text>
+			<text x="200" y="84" class="d-s">قديش عم يتغيّر هلق</text>
+		</svg>
+		<figcaption>
+			<strong>التفاضل:</strong> الخط الأحمر بيبيّن قديش الخطأ عم ينزل <strong>بهاللحظة</strong>. نازل بقوة يعني عم نقرّب بسرعة، فالـ <strong>D</strong> بيفرمل.
+		</figcaption>
+	</figure>
+	<figure class="wl-fig">
+		<svg class="d-big" viewBox="0 0 320 230" role="img" aria-label="نفس منحني الخطأ، والمساحة تحته ملوّنة، وهي التكامل">
+			<path d={area} class="d-fgreen calc-area"></path>
+			<path d={axes} class="d-line" marker-start="url(#calc-ar)" marker-end="url(#calc-ar)"></path>
+			<text x="300" y="205" class="d-s d-ltr">t</text>
+			<text x="28" y="26" class="d-s d-ltr">e</text>
+			<path d={curve} class="d-line d-blue calc-curve"></path>
+			<line x1={X(t1)} y1={Y(0)} x2={X(t1)} y2={Y(e(t1))} class="d-line d-green"></line>
+			<text x="200" y="60" class="d-t d-b">التكامل = المساحة</text>
+			<text x="200" y="84" class="d-s">قديش تجمّع لهلق</text>
+		</svg>
+		<figcaption>
+			<strong>التكامل:</strong> المساحة الخضرا هي كل الخطأ يلي <strong>تجمّع</strong> لهلق. حتى لو ضل خطأ صغير، المساحة بتضل تكبر، فالـ <strong>I</strong> بيزيد الدفعة لحتى يروح.
+		</figcaption>
+	</figure>
+</div>
+
+<style>
+	.calc-figs .wl-fig { margin-block: 0.5rem; }
+	.calc-curve { stroke-width: 3.5; }
+	.calc-tan { stroke-width: 3; }
+	.calc-area { fill-opacity: 0.3; }
+</style>
