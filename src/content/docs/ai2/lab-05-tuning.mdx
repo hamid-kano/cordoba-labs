@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import Term from '../../../components/Term.astro';
 import SessionWords from '../../../components/ai2/SessionWords.astro';
 import FuzzyLab from '../../../components/ai2/FuzzyLab.astro';
 import Concept from '../../../components/Concept.astro';
@@ -57,13 +58,13 @@ import Concept from '../../../components/Concept.astro';
 ### كلمتين جداد
 
 - **3 مجموعات:** كل مدخل إله N و Z و P (متل الجلسة 4)، يعني 9 قواعد.
-- **5 مجموعات:** كل مدخل إله NB و NS و Z و PS و PB، يعني 25 قاعدة. المتحكم بيصير «أدق» بالتمييز بين الخطأ الصغير والكبير.
+- **5 مجموعات:** كل مدخل إله <Term t="NB" en="Negative Big" def="سالب كبير." /> و <Term t="NS" en="Negative Small" def="سالب صغير." /> و Z و <Term t="PS" en="Positive Small" def="موجب صغير." /> و <Term t="PB" en="Positive Big" def="موجب كبير." />، يعني 25 قاعدة. المتحكم بيصير «أدق» بالتمييز بين الخطأ الصغير والكبير.
 
 ما رح تكتب الـ 25 قاعدة بإيدك. الملف `buildFuzzyPD.m` بيبنيهن عنك.
 
 ## جرّب بالمتصفح
 
-هاد **خيار تاني**: إذا ما عندك MATLAB هلق، أو بدك تفهم الفكرة قبل ما تفتحه. الحسابات هون نفسها يلي بيعملها `simFuzzy`، فالأرقام لازم تطلع متل بعض. بس تذكّر: العملي والتقييم على **MATLAB**.
+هاد **خيار تاني**: إذا ما عندك <Term t="MATLAB" en="MATrix LABoratory" def="برنامج حسابات ورسومات ومحاكاة، اسمه يعني مختبر المصفوفات." /> هلق، أو بدك تفهم الفكرة قبل ما تفتحه. الحسابات هون نفسها يلي بيعملها `simFuzzy`، فالأرقام لازم تطلع متل بعض. بس تذكّر: العملي والتقييم على **MATLAB**.
 
 <FuzzyLab mode="s5" />
 

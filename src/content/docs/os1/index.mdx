@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Badge } from '@astrojs/starlight/components';
+import Term from '../../../components/Term.astro';
 
 ## شو رح نتعلم؟
 
@@ -20,12 +21,12 @@ import { Aside, Badge } from '@astrojs/starlight/components';
 
 | # | الجلسة | الفصل | الأسبوع بالنظري | الأداة | الحالة |
 | --- | --- | --- | --- | --- | --- |
-| 1 | [جدولة القرص](lab-01-disk-scheduling/) | 12 | 1 | محاكي FCFS و SSTF و SCAN و C-SCAN و LOOK و C-LOOK | <Badge text="متاحة" variant="success" /> |
-| 2 | [RAID](lab-02-raid/) | 12 | 2 | مختبر RAID: خرّب قرص وشوف شو بيصير | <Badge text="متاحة" variant="success" /> |
+| 1 | [جدولة القرص](lab-01-disk-scheduling/) | 12 | 1 | محاكي <Term t="FCFS" en="First Come, First Served" def="مين أجا أول بيتخدم أول، متل دور الفرن." /> و <Term t="SSTF" en="Shortest Seek Time First" def="الطلب الأقرب لمكان الرأس هلق بيتخدم أول." /> و <Term t="SCAN" en="SCAN / Elevator" def="خوارزمية المصعد: الرأس بيكمّل باتجاهه لآخر القرص، وبعدين بيرجع." /> و <Term t="C-SCAN" en="Circular SCAN" def="متل SCAN بس باتجاه واحد: بيوصل لآخر القرص وبيقفز للبداية بدون ما يخدم." /> و <Term t="LOOK" en="LOOK" def="متل SCAN بس بيرجع عند آخر طلب، بدون ما يوصل لآخر القرص." /> و <Term t="C-LOOK" en="Circular LOOK" def="متل C-SCAN بس بيقفز من آخر طلب لأول طلب، بدون ما يوصل لأطراف القرص." /> | <Badge text="متاحة" variant="success" /> |
+| 2 | [RAID](lab-02-raid/) | 12 | 2 | مختبر <Term t="RAID" en="Redundant Array of Independent Disks" def="مصفوفة أقراص مستقلة فيها تكرار: كذا قرص بيشتغلوا كأنهن قرص واحد، للسرعة أو للحماية." />: خرّب قرص وشوف شو بيصير | <Badge text="متاحة" variant="success" /> |
 | 3 | [أنظمة الملفات](lab-03-file-systems/) | 13 | 3 | محاكي التخزين المتجاور والمرتبط والمفهرس | <Badge text="متاحة" variant="success" /> |
-| 4 | [حماية البيانات والنسخ الاحتياطي](lab-04-backup-recovery/) | 13 | 4 | خطة النسخ، والبصمة SHA-256 | <Badge text="متاحة" variant="success" /> |
-| 5 | [قواعد البيانات والنموذج العلائقي](lab-05-databases/) | 13 | 5 | محرر SQL حقيقي بالمتصفح | <Badge text="متاحة" variant="success" /> |
-| 6 | [تصميم المعالج والأداء](lab-06-processor-design/) | 14 | 7–8 | حاسبة زمن التنفيذ، ومحاكي Pipeline | <Badge text="متاحة" variant="success" /> |
+| 4 | [حماية البيانات والنسخ الاحتياطي](lab-04-backup-recovery/) | 13 | 4 | خطة النسخ، والبصمة <Term t="SHA-256" en="Secure Hash Algorithm 256" def="طريقة لحساب بصمة طولها 256 بت (64 خانة). أي تغيير بالملف بيغيّرها كلها." /> | <Badge text="متاحة" variant="success" /> |
+| 5 | [قواعد البيانات والنموذج العلائقي](lab-05-databases/) | 13 | 5 | محرر <Term t="SQL" en="Structured Query Language" def="لغة الأسئلة المنظمة: اللغة يلي منحكي فيها مع قاعدة البيانات." /> حقيقي بالمتصفح | <Badge text="متاحة" variant="success" /> |
+| 6 | [تصميم المعالج والأداء](lab-06-processor-design/) | 14 | 7–8 | حاسبة زمن التنفيذ، ومحاكي <Term t="Pipeline" en="Instruction Pipelining" def="خط إنتاج للتعليمات: منبلّش بالتعليمة الجاية قبل ما تخلص يلي قبلها، متل الغسالة والنشافة شغّالين سوا." /> | <Badge text="متاحة" variant="success" /> |
 | 7 | [المعالجات المتعددة](lab-07-multiprocessors/) | 15 | 9–10 | موازنة الحمل، وحالة السباق | <Badge text="متاحة" variant="success" /> |
 | 8 | [الأنظمة الموزعة وخدمات الويب والأمن](lab-08-distributed-security/) | 16–19 | 11–15 | طلب حقيقي لخادم، وتشفير قيصر، وقوة كلمة السر | <Badge text="متاحة" variant="success" /> |
 

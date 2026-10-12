@@ -27,14 +27,14 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 
 ## أهداف الجلسة
 
-- تعرف المصطلحات الأساسية: نقطة الوصول، و SSID، و BSS، و ESS.
-- تعرف أنواع الحماية، وليش WPA2 و WPA3 أحسن من WEP والشبكة المفتوحة.
+- تعرف المصطلحات الأساسية: نقطة الوصول، و <Term t="SSID" en="Service Set Identifier" def="اسم شبكة الواي فاي يلي بتشوفه بالقائمة." />، و <Term t="BSS" en="Basic Service Set" def="نقطة وصول وحدة والأجهزة الموصولة فيها." />، و <Term t="ESS" en="Extended Service Set" def="كذا نقطة وصول موصولين ببعض بنفس اسم الشبكة، متل شبكة الجامعة." />.
+- تعرف أنواع الحماية، وليش <Term t="WPA2" en="Wi-Fi Protected Access 2" def="حماية الواي فاي الأكثر انتشاراً، بتشفّر كل شي." /> و <Term t="WPA3" en="Wi-Fi Protected Access 3" def="أحدث وأقوى حماية للواي فاي." /> أحسن من <Term t="WEP" en="Wired Equivalent Privacy" def="حماية قديمة وضعيفة للواي فاي، بتنكسر بدقايق." /> والشبكة المفتوحة.
 - تعرف مراحل اتصال الموبايل بالشبكة.
 - تشوف الشبكات حواليك ومواصفاتها على جهازك.
 
 ## المتطلبات
 
-- [الجلسة 5](../lab-05-path-loss/): الواي فاي بيشتغل على 2.4 و 5 GHz.
+- [الجلسة 5](../lab-05-path-loss/): الواي فاي بيشتغل على 2.4 و 5 <Term t="GHz" en="Gigahertz" def="مليار دورة بالثانية. 2 GHz يعني المعالج بيعمل 2 مليار دورة كل ثانية." />.
 
 ## ملخص نظري
 
@@ -42,7 +42,7 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 
 <Concept term="الواي فاي" en="Wi-Fi">
 
-شبكة محلية **لاسلكية**: بتوصل الأجهزة ببعض بموجات راديو بدل الكابلات. القواعد تبعها كتبتها منظمة المهندسين **IEEE**، فكل الأجهزة من كل الشركات بتفهم على بعض.
+شبكة محلية **لاسلكية**: بتوصل الأجهزة ببعض بموجات راديو بدل الكابلات. القواعد تبعها كتبتها منظمة المهندسين **<Term t="IEEE" en="Institute of Electrical and Electronics Engineers" def="منظمة المهندسين يلي كتبت قواعد الواي فاي (802.11)." />**، فكل الأجهزة من كل الشركات بتفهم على بعض.
 
 **وين موجود؟** بالبيوت، والمقاهي، والجامعة، وحتى بالطابعات والتلفزيونات.
 
@@ -63,7 +63,7 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 
 | المصطلح | يعني ببساطة |
 | --- | --- |
-| **نقطة الوصول (AP)** | الجهاز يلي بيبث الواي فاي (غالباً الراوتر) |
+| **نقطة الوصول (<Term t="AP" en="Access Point" def="نقطة الوصول: الجهاز يلي بيبث الواي فاي، غالباً الراوتر." />)** | الجهاز يلي بيبث الواي فاي (غالباً الراوتر) |
 | **محطة (Station)** | أي جهاز موصول بالشبكة: موبايل، لابتوب، طابعة |
 | **SSID** | **اسم الشبكة** يلي بتشوفه بقائمة الواي فاي |
 | **BSS** | نقطة وصول وحدة والأجهزة يلي حواليها |
@@ -103,7 +103,7 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 | قيمة Type | نوع الإطار | مثال |
 | --- | --- | --- |
 | `00` | إدارة (Management) | Beacon، وطلب الارتباط |
-| `01` | تحكم (Control) | RTS و CTS و ACK |
+| `01` | تحكم (Control) | <Term t="RTS" en="Request To Send" def="طلب إذن بالإرسال." /> و <Term t="CTS" en="Clear To Send" def="إذن بالإرسال: القناة إلك، والباقي بيستنوا." /> و <Term t="ACK" en="Acknowledgement" def="إشعار استلام: رسالة صغيرة بتقول «وصلتني»." /> |
 | `10` | بيانات (Data) | البيانات نفسها |
 
 ## خطوات العملي
@@ -141,7 +141,7 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
    | | | | | |
    | | | | | |
 
-3. لاحظ: هل في شبكة **مفتوحة**؟ وهل في شبكة إلها **أكتر من BSSID** (يعني كذا نقطة وصول بنفس الاسم = ESS)؟
+3. لاحظ: هل في شبكة **مفتوحة**؟ وهل في شبكة إلها **أكتر من <Term t="BSSID" en="Basic Service Set Identifier" def="عنوان MAC تبع نقطة الوصول، بيميّزها عن غيرها حتى لو نفس اسم الشبكة." />** (يعني كذا نقطة وصول بنفس الاسم = ESS)؟
 
 </Steps>
 
@@ -159,7 +159,7 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 <summary>الحل</summary>
 
 1. الرأس = 2 + 2 + 6 + 6 + 6 + 2 + 6 = **30 byte**
-2. أكبر إطار = 30 (رأس) + 2312 (بيانات) + 4 (CRC) = **2346 byte**
+2. أكبر إطار = 30 (رأس) + 2312 (بيانات) + 4 (<Term t="CRC" en="Cyclic Redundancy Check" def="رقم بآخر الإطار لكشف إذا صار خطأ بالبيانات بالطريق." />) = **2346 byte**
 </details>
 
 #### مسألة 2: شو نوع الإطار؟
@@ -181,7 +181,7 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 <details class="answer">
 <summary>الحل</summary>
 
-**Beacon** ثم **Probe** ثم **المصادقة** ثم **الارتباط**. وبعدها التحقق من كلمة السر، وأخذ عنوان IP.
+**Beacon** ثم **Probe** ثم **المصادقة** ثم **الارتباط**. وبعدها التحقق من كلمة السر، وأخذ عنوان <Term t="IP" en="Internet Protocol" def="بروتوكول الإنترنت: بيعطي كل جهاز عنوان، وبيوصّل الرسالة للجهاز الصح." />.
 </details>
 
 ## النتيجة المتوقعة
@@ -196,7 +196,7 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 | --- | --- |
 | `netsh` بيقول ما في واجهة لاسلكية | الجهاز مش فيه واي فاي، أو الواي فاي مطفي. شغّله وجرب. |
 | بيطلع شبكة وحدة بس | زيد `mode=bssid` بآخر الأمر، أو حدّث القائمة من إعدادات الواي فاي. |
-| خلطت بين SSID و BSSID | SSID **اسم الشبكة**. BSSID **عنوان MAC** لنقطة الوصول. شبكة وحدة ممكن يكون إلها كذا BSSID. |
+| خلطت بين SSID و BSSID | SSID **اسم الشبكة**. BSSID **عنوان <Term t="MAC" en="Media Access Control" def="عنوان ثابت محفور بكرت الشبكة من المصنع، متل رقم الهوية." />** لنقطة الوصول. شبكة وحدة ممكن يكون إلها كذا BSSID. |
 | فكّرت إنه إخفاء اسم الشبكة بيحميها | لأ، الاسم المخفي بيبيّن بسهولة ببرامج بسيطة. الحماية الحقيقية هي WPA2 أو WPA3 بكلمة سر قوية. |
 
 ## الوظيفة

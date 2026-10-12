@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import Term from '../../../components/Term.astro';
 import FuzzyLab from '../../../components/ai2/FuzzyLab.astro';
 import Concept from '../../../components/Concept.astro';
 
@@ -18,7 +19,7 @@ import Concept from '../../../components/Concept.astro';
 </div>
 
 <Aside type="tip" title="الفكرة ببساطة">
-خلال الجلسات صممنا متحكم ضبابي لنظام واحد. بالمشروع رح تاخد **نفس المتحكم**، وتجربه على **نظام جديد**، وتضبط الأزرار لحتى يشتغل منيح، وتقارنه مع PID. يعني كل يلي تعلمته، بس لحالك.
+خلال الجلسات صممنا متحكم ضبابي لنظام واحد. بالمشروع رح تاخد **نفس المتحكم**، وتجربه على **نظام جديد**، وتضبط الأزرار لحتى يشتغل منيح، وتقارنه مع <Term t="PID" en="Proportional-Integral-Derivative" def="متحكم من 3 أجزاء: P بيشوف الخطأ هلق، و I بيجمعه مع الوقت، و D بيشوف قديش عم يتغيّر." />. يعني كل يلي تعلمته، بس لحالك.
 </Aside>
 
 ## أهداف الجلسة
@@ -100,7 +101,7 @@ import Concept from '../../../components/Concept.astro';
 
 ## جرّب بالمتصفح
 
-هاد **خيار تاني**: إذا ما عندك MATLAB هلق، أو بدك تفهم الفكرة قبل ما تفتحه. الحسابات هون نفسها يلي بيعملها `simFuzzy`، فالأرقام لازم تطلع متل بعض. بس تذكّر: العملي والتقييم على **MATLAB**.
+هاد **خيار تاني**: إذا ما عندك <Term t="MATLAB" en="MATrix LABoratory" def="برنامج حسابات ورسومات ومحاكاة، اسمه يعني مختبر المصفوفات." /> هلق، أو بدك تفهم الفكرة قبل ما تفتحه. الحسابات هون نفسها يلي بيعملها `simFuzzy`، فالأرقام لازم تطلع متل بعض. بس تذكّر: العملي والتقييم على **MATLAB**.
 
 <FuzzyLab mode="proj" />
 

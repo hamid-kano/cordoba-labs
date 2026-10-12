@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import Term from '../../../components/Term.astro';
 import Concept from '../../../components/Concept.astro';
 import DsrSim from '../../../components/wireless/DsrSim.astro';
 import DsdvSim from '../../../components/wireless/DsdvSim.astro';
@@ -28,7 +29,7 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 
 - تفرّق بين الشبكات ذات البنية التحتية وشبكات Ad-hoc.
 - تفهم كيف الرسالة بتوصل بالقفز من جهاز لجهاز.
-- تتبّع بروتوكول **DSR** و **DSDV** خطوة بخطوة.
+- تتبّع بروتوكول **<Term t="DSR" en="Dynamic Source Routing" def="توجيه حسب الطلب: الجهاز بيسأل عن الطريق وقت ما بدو يبعت." />** و **<Term t="DSDV" en="Destination-Sequenced Distance Vector" def="توجيه بالجداول: كل جهاز معه جدول طرق محدّث دايماً، وكل طريق إله رقم تسلسلي." />** خطوة بخطوة.
 - تعرف أنواع شبكات Ad-hoc واستخداماتها.
 
 ## المتطلبات
@@ -130,17 +131,17 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 **شو لازم تشوف:** الصورة وصلت بدون إنترنت وبدون راوتر. الموبايلين عملوا شبكة صغيرة **مباشرة** بين بعض. هي فكرة Ad-hoc.
 
 <Aside type="caution" title="انتبه">
-**نقطة الاتصال (Hotspot)** مش Ad-hoc! لما تشغّل Hotspot، موبايلك بيصير **نقطة وصول**، يعني صارت شبكة ذات بنية تحتية (BSS).
+**نقطة الاتصال (Hotspot)** مش Ad-hoc! لما تشغّل Hotspot، موبايلك بيصير **نقطة وصول**، يعني صارت شبكة ذات بنية تحتية (<Term t="BSS" en="Basic Service Set" def="نقطة وصول وحدة والأجهزة الموصولة فيها." />).
 </Aside>
 
 ### 4. أنواع شبكات Ad-hoc
 
 | النوع | الاسم | يعني | مثال |
 | --- | --- | --- | --- |
-| **MANET** | Mobile Ad-hoc | أجهزة **متحركة** بتعمل شبكة لحالها | جنود بأرض معركة، فرق إنقاذ |
-| **VANET** | Vehicular Ad-hoc | **سيارات** بتحكي مع بعض ومع أجهزة على الطريق | تحذير من حادث قدامك |
-| **FANET** | Flying Ad-hoc | **طائرات بدون طيار** بتحكي مع بعض | تصوير منطقة كوارث |
-| **WSN** | Wireless Sensor Network | **حساسات** صغيرة بتقيس (حرارة، رطوبة...) وبتبعت لمركز | مراقبة حرائق الغابات |
+| **<Term t="MANET" en="Mobile Ad-hoc Network" def="شبكة Ad-hoc من أجهزة متحركة متل الموبايلات." />** | Mobile Ad-hoc | أجهزة **متحركة** بتعمل شبكة لحالها | جنود بأرض معركة، فرق إنقاذ |
+| **<Term t="VANET" en="Vehicular Ad-hoc Network" def="شبكة Ad-hoc بين السيارات." />** | Vehicular Ad-hoc | **سيارات** بتحكي مع بعض ومع أجهزة على الطريق | تحذير من حادث قدامك |
+| **<Term t="FANET" en="Flying Ad-hoc Network" def="شبكة Ad-hoc بين الطيارات المسيّرة (الدرون)." />** | Flying Ad-hoc | **طائرات بدون طيار** بتحكي مع بعض | تصوير منطقة كوارث |
+| **<Term t="WSN" en="Wireless Sensor Network" def="شبكة حساسات لاسلكية صغيرة، متل حساسات الحرارة بمزرعة." />** | Wireless Sensor Network | **حساسات** صغيرة بتقيس (حرارة، رطوبة...) وبتبعت لمركز | مراقبة حرائق الغابات |
 
 وعقدة الحساس صغيرة كتير، وفيها: **حساس** بيقيس، و**معالج** صغير، و**ذاكرة**، و**مرسل/مستقبل**، و**بطارية**. وأكبر مشكلة فيها **البطارية**: إذا خلصت، العقدة بتموت.
 
@@ -173,7 +174,7 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 
 #### مسألة 3: وصلة باتجاه واحد
 
-N1 بتبعت لـ N5 عن طريق N1 → N2 → N5. بس لما N5 بدها تردّ (ACK)، ما في وصلة من N5 لـ N2 ولا لـ N1. ليش ممكن يصير هيك؟ وشو الحل؟
+N1 بتبعت لـ N5 عن طريق N1 → N2 → N5. بس لما N5 بدها تردّ (<Term t="ACK" en="Acknowledgement" def="إشعار استلام: رسالة صغيرة بتقول «وصلتني»." />)، ما في وصلة من N5 لـ N2 ولا لـ N1. ليش ممكن يصير هيك؟ وشو الحل؟
 
 <details class="answer">
 <summary>الحل</summary>

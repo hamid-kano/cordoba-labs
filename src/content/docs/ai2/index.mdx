@@ -7,15 +7,16 @@ sidebar:
 ---
 
 import { Aside, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components';
+import Term from '../../../components/Term.astro';
 
 ## شو رح نتعلم؟
 
-العملي بيركز على 3 أشياء: **MATLAB**، و**Simulink**، وكيف **نصمم متحكم ضبابي (Fuzzy Controller)**. بآخر الجلسات رح تعرف:
+العملي بيركز على 3 أشياء: **<Term t="MATLAB" en="MATrix LABoratory" def="برنامج حسابات ورسومات ومحاكاة، اسمه يعني مختبر المصفوفات." />**، و**Simulink**، وكيف **نصمم متحكم ضبابي (Fuzzy Controller)**. بآخر الجلسات رح تعرف:
 
 1. تكتب أوامر بسيطة بـ MATLAB وترسم.
 2. تبني حلقة تحكم بـ Simulink بالسحب والتوصيل.
 3. تكتب متحكم ضبابي من **قواعد بالكلام** («إذا ... فـ ...»).
-4. تضبط المتحكم وتقارنه مع PID.
+4. تضبط المتحكم وتقارنه مع <Term t="PID" en="Proportional-Integral-Derivative" def="متحكم من 3 أجزاء: P بيشوف الخطأ هلق، و I بيجمعه مع الوقت، و D بيشوف قديش عم يتغيّر." />.
 
 <Aside type="tip" title="كيف تستخدم صفحات الجلسات">
 - كل جلسة بتبلّش بمربع **«الفكرة ببساطة»**. اقراه أول شي.
