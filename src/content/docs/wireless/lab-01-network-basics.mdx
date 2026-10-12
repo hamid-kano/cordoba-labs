@@ -7,6 +7,8 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import Concept from '../../../components/Concept.astro';
+import Term from '../../../components/Term.astro';
 import HubSwitchSim from '../../../components/wireless/HubSwitchSim.astro';
 import NetSizesDiagram from '../../../components/wireless/NetSizesDiagram.astro';
 import NetArchDiagram from '../../../components/wireless/NetArchDiagram.astro';
@@ -37,7 +39,15 @@ import NetArchDiagram from '../../../components/wireless/NetArchDiagram.astro';
 
 ### شو هي الشبكة؟
 
+<Concept term="الشبكة" en="Network">
+
 مجموعة أجهزة (حواسيب، موبايلات، طابعات...) **موصولة ببعض**، لحتى تتشارك البيانات والبرامج والأجهزة.
+
+**ليش منعملها؟** بدل ما يكون لكل جهاز طابعة، الكل بيطبع على وحدة. وبدل ما تنقل الملفات بفلاشة، بتبعتها بثانية.
+
+**وين موجودة؟** بالبيت (الواي فاي)، والجامعة، والبنوك. والإنترنت نفسه أكبر شبكة بالعالم.
+
+</Concept>
 
 ### مكونات الشبكة
 
@@ -105,7 +115,7 @@ import NetArchDiagram from '../../../components/wireless/NetArchDiagram.astro';
 
    | السطر | شو يعني | قيمته عندك |
    | --- | --- | --- |
-   | `Physical Address` | عنوان كرت الشبكة (MAC) | |
+   | `Physical Address` | عنوان كرت الشبكة <Term t="MAC" def="رقم ثابت محفور بكرت الشبكة من المصنع، وما في كرتين بالعالم إلهن نفس الرقم. متل رقم الهوية." /> | |
    | `IPv4 Address` | عنوان جهازك بالشبكة (IP) | |
    | `Default Gateway` | عنوان الراوتر | |
 

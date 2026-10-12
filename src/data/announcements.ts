@@ -9,6 +9,11 @@ export interface Announcement {
 
 export const announcements: Announcement[] = [
 	{
+		date: '2026-10-12',
+		title: 'بطاقات مفاهيم ومصطلحات بتنكبس بكل الجلسات',
+		body: 'أول ما يمر مفهوم جديد بتلاقي بطاقة بتشرحه ببساطة. والكلمات يلي تحتها خط منقّط اكبسها لتشوف معناها.',
+	},
+	{
 		date: '2026-10-11',
 		course: 'wireless',
 		title: 'اكتملت جلسات الشبكات اللاسلكية الثمانية',

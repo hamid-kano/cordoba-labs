@@ -7,6 +7,8 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import Concept from '../../../components/Concept.astro';
+import Term from '../../../components/Term.astro';
 import PathLossLab from '../../../components/wireless/PathLossLab.astro';
 import LinkDiagram from '../../../components/wireless/LinkDiagram.astro';
 import LinkBudgetChart from '../../../components/wireless/LinkBudgetChart.astro';
@@ -59,11 +61,19 @@ import LinkBudgetChart from '../../../components/wireless/LinkBudgetChart.astro'
 | **Gt** و **Gr** | ربح الهوائيات | الهوائي الموجّه بيركّز الإشارة باتجاه واحد، فبيزيدها |
 | **L** | فقد المسار | قديش الإشارة بتضعف بالطريق |
 | **Pr** | الإشارة الواصلة | قديش وصل للمستقبل |
-| **S** | الحساسية | **أضعف** إشارة بيقدر المستقبل يفهمها |
+| **S** | <Term t="الحساسية" en="Sensitivity" def="أضعف إشارة بيقدر المستقبل يفهمها، متل أضعف صوت بتسمعه أذنك. كل ما كان رقمها أصغر (متل −90 dBm)، المستقبل أحسن." /> | **أضعف** إشارة بيقدر المستقبل يفهمها |
+
+<Concept term="فقد المسار" en="Path Loss">
+
+الإشارة بتضعف كل ما بعدت عن المرسل، متل صوتك: من قريب بينسمع منيح، ومن بعيد بالكاد. والحيطان والشجر بتضعفها أكتر.
+
+**ليش مهم؟** لنعرف وين نحط الراوتر أو البرج، وقديش لازم يكون قوي، لحتى توصل الإشارة لكل الناس.
+
+</Concept>
 
 ### 3 قوانين بس
 
-**1. طول الموجة** (c سرعة الضوء = $3 \times 10^8$ m/s):
+**1. <Term t="طول الموجة" en="Wavelength" def="المسافة بين قمتين ورا بعض بالموجة. كل ما زاد التردد، قصرت الموجة. واي فاي 2.4 GHz طول موجته حوالي 12.5 سم." />** (c سرعة الضوء = $3 \times 10^8$ m/s):
 
 $$
 \lambda = \frac{c}{f}

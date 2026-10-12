@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import Concept from '../../../components/Concept.astro';
 import DbLab from '../../../components/wireless/DbLab.astro';
 import CommSystemDiagram from '../../../components/wireless/CommSystemDiagram.astro';
 import LinkBudgetChart from '../../../components/wireless/LinkBudgetChart.astro';
@@ -36,6 +37,18 @@ import LinkBudgetChart from '../../../components/wireless/LinkBudgetChart.astro'
 ## ملخص نظري
 
 ### الديسيبل = نسبة
+
+<Concept term="الديسيبل" en="Decibel (dB)">
+
+طريقة لنكتب الأرقام الكبيرة كتير والصغيرة كتير بأرقام سهلة. الإشارة يلي بتوصل لموبايلك ممكن تكون 0.000000001 واط! بدل كل هالأصفار منقول **−60 dBm**.
+
+**ليش منستخدمه؟**
+- الأرقام بتصير صغيرة وسهلة.
+- الضرب بيصير **جمع**: بدل ما تضرب الأرباح والخسائر، بتجمعها وبتطرحها.
+
+**وين بينستخدم؟** بالصوت، والواي فاي، والموبايل، والمضخمات.
+
+</Concept>
 
 الديسيبل بيقارن بين رقمين، متل **الخرج على الدخل**:
 
@@ -92,6 +105,12 @@ $$
 | **dBd** | ربح الهوائي مقارنة بهوائي دايبول. و 0 dBd = 2.14 dBi |
 
 ### الضجيج
+
+<Concept term="الضجيج" en="Noise">
+
+أي إشارة عشوائية ما بدنا ياها، بتنخلط مع إشارتنا وبتخربها. متل لما تحكي مع حدا بمكان فيه عجقة: كل ما زادت العجقة، صعب تفهم عليه. مصادره: حرارة القطع الإلكترونية، والأجهزة التانية، والبرق.
+
+</Concept>
 
 <CommSystemDiagram />
 

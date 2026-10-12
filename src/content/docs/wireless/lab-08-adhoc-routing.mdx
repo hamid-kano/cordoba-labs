@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import Concept from '../../../components/Concept.astro';
 import DsrSim from '../../../components/wireless/DsrSim.astro';
 import DsdvSim from '../../../components/wireless/DsdvSim.astro';
 import MultiHopDiagram from '../../../components/wireless/MultiHopDiagram.astro';
@@ -38,6 +39,14 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 
 ### نوعين من الشبكات اللاسلكية
 
+<Concept term="شبكة Ad-hoc" en="Ad-hoc Network">
+
+شبكة **بدون راوتر ولا برج**: الأجهزة بتحكي مع بعض مباشرة، وكل جهاز بيوصّل رسائل غيره. الكلمة لاتينية معناها «لهالغرض»، يعني شبكة بتنعمل بسرعة وقت الحاجة.
+
+**وين بتنستخدم؟** مشاركة ملف بين موبايلين قريبين بدون نت، وفرق الإنقاذ، والجيوش، والسيارات يلي بتحكي مع بعض.
+
+</Concept>
+
 <WlanModesDiagram show={['adhoc', 'bss']} />
 
 | | ذات بنية تحتية | Ad-hoc |
@@ -61,6 +70,12 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 | **التداخل** | جهازين قريبين ممكن يشوّشوا على بعض. |
 
 ### نوعين من بروتوكولات التوجيه
+
+<Concept term="التوجيه" en="Routing">
+
+اختيار الطريق يلي بتمشي فيه الرسالة من جهاز لجهاز، متل ما الخرائط بالموبايل بتختارلك طريق من بيتك للجامعة. بالشبكة العادية الراوتر بيعمل هالشغلة، وبالـ Ad-hoc كل جهاز بيعملها.
+
+</Concept>
 
 | | **DSR** (حسب الطلب) | **DSDV** (بالجداول) |
 | --- | --- | --- |

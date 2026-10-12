@@ -7,6 +7,8 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import Concept from '../../../components/Concept.astro';
+import Term from '../../../components/Term.astro';
 import WifiJoinSim from '../../../components/wireless/WifiJoinSim.astro';
 import JoinSeqDiagram from '../../../components/wireless/JoinSeqDiagram.astro';
 import FrameDiagram from '../../../components/wireless/FrameDiagram.astro';
@@ -38,6 +40,14 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 
 ### معيار الواي فاي: IEEE 802.11
 
+<Concept term="الواي فاي" en="Wi-Fi">
+
+شبكة محلية **لاسلكية**: بتوصل الأجهزة ببعض بموجات راديو بدل الكابلات. القواعد تبعها كتبتها منظمة المهندسين **IEEE**، فكل الأجهزة من كل الشركات بتفهم على بعض.
+
+**وين موجود؟** بالبيوت، والمقاهي، والجامعة، وحتى بالطابعات والتلفزيونات.
+
+</Concept>
+
 الواي فاي اسمه الرسمي **IEEE 802.11**، وإله أجيال كتير:
 
 | الجيل | التردد | أعلى سرعة تقريباً |
@@ -65,6 +75,12 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 
 ### الحماية
 
+<Concept term="التشفير" en="Encryption">
+
+تحويل الرسالة لكلام مش مفهوم، وبس يلي معه **المفتاح** (كلمة السر) بيقدر يرجّعها. ليش مهم بالواي فاي؟ لأنه الإشارة بالهوا، وأي حدا قريب بيقدر يلتقطها.
+
+</Concept>
+
 | النوع | الحالة | ليش |
 | --- | --- | --- |
 | **مفتوحة** | ✘ خطر | أي حدا بيتصل، وما في تشفير |
@@ -76,9 +92,9 @@ import WlanModesDiagram from '../../../components/wireless/WlanModesDiagram.astr
 
 <JoinSeqDiagram />
 
-### شكل الإطار (Frame)
+### شكل الإطار
 
-كل رسالة بالواي فاي بتنبعت جوّا **إطار**، وإله شكل ثابت:
+كل رسالة بالواي فاي بتنبعت جوّا <Term t="إطار" en="Frame" def="متل الظرف: فيه عنوان المرسل والمستقبل، ومعلومات تحكم، والبيانات نفسها بالنص، وبالآخر رقم لكشف الأخطاء." />، وإله شكل ثابت:
 
 <FrameDiagram />
 
