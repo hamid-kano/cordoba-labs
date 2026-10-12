@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import FanLab from '../../../components/ai2/FanLab.astro';
 import Concept from '../../../components/Concept.astro';
 import Term from '../../../components/Term.astro';
 
@@ -88,6 +89,17 @@ import Term from '../../../components/Term.astro';
 <Aside type="note" title="مركز الثقل ببساطة">
 تخيّل الشكل الناتج مقصوص من كرتون. **مركز الثقل** هو النقطة يلي إذا حطيت إصبعك تحتها، الكرتونة بتتوازن. MATLAB بيحسبها عنك.
 </Aside>
+
+## جرّب بالمتصفح
+
+هاد **خيار تاني**: إذا ما عندك MATLAB هلق، أو بدك تفهم الفكرة قبل ما تفتحه. الحسابات هون نفسها يلي بيعملها `lab03_fuzzy_basics.m`، فالأرقام لازم تطلع متل بعض. بس تذكّر: العملي والتقييم على **MATLAB**.
+
+<FanLab />
+
+**شو تجرّب؟**
+- حرّك الحرارة من 0 لـ 40، وراقب كيف القواعد بتقوى وبتضعف.
+- وقّف على **24°**: لازم تطلع السرعة **62.9%**، متل `evalfis(fis, 24)`.
+- شغّل الرطوبة وخليها **45%**: لازم تطلع **63.8%**.
 
 ## خطوات العملي
 

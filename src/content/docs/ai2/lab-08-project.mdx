@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import FuzzyLab from '../../../components/ai2/FuzzyLab.astro';
 import Concept from '../../../components/Concept.astro';
 
 <div class="lab-meta">
@@ -96,6 +97,17 @@ import Concept from '../../../components/Concept.astro';
 <Aside type="note">
 تأكدنا إنه كل مشروع إله حل بالمتحكم الضبابي ضمن حدود المحرك.
 </Aside>
+
+## جرّب بالمتصفح
+
+هاد **خيار تاني**: إذا ما عندك MATLAB هلق، أو بدك تفهم الفكرة قبل ما تفتحه. الحسابات هون نفسها يلي بيعملها `simFuzzy`، فالأرقام لازم تطلع متل بعض. بس تذكّر: العملي والتقييم على **MATLAB**.
+
+<FuzzyLab mode="proj" />
+
+**شو تجرّب؟**
+- اختار مشروعك، وابدأ من أزرار الجلسة 4 (1، 0.3، 4).
+- غيّر زر **واحد** بكل مرة، وثبّت الرسمة لتقارن. الشروط تحت الأرقام بتصير ✔ لما تتحقق.
+- لما تلاقي أرقام بتحقق كل الشروط، طبّقها على MATLAB وتأكد إنه النتيجة نفسها، واكتب بالتقرير **ليش** اخترتها.
 
 ## خطوات العملي
 

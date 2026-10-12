@@ -1,0 +1,324 @@
+---
+// محاكي المتحكم الضبابي بالمتصفح: نفس buildFuzzyPD.m و simFuzzy.m.
+// mode: s4 (أول متحكم)، s5 (الضبط و 3/5 مجموعات والتحدي)، s6 (Sugeno والاضطراب والتكامل)، proj (مشاريع الجلسة 8)
+interface Props {
+	mode?: 's4' | 's5' | 's6' | 'proj';
+}
+const { mode = 's4' } = Astro.props;
+const sets = mode === 's5' || mode === 'proj';
+const types = mode === 's6';
+const ki = mode === 's6' || mode === 'proj';
+---
+
+<div class="not-content wl-box" data-fuzzy-lab data-mode={mode}>
+	<h4>جرّب المتحكم الضبابي بالمتصفح</h4>
+
+	{
+		mode === 'proj' && (
+			<div class="wl-row">
+				<span>المشروع:</span>
+				<button type="button" class="wl-btn" data-plant="arm" aria-pressed="true">1. ذراع روبوت</button>
+				<button type="button" class="wl-btn" data-plant="motor" aria-pressed="false">2. سرعة محرك</button>
+				<button type="button" class="wl-btn" data-plant="oven" aria-pressed="false">3. فرن</button>
+			</div>
+		)
+	}
+	{
+		sets && (
+			<div class="wl-row">
+				<span>عدد المجموعات:</span>
+				<button type="button" class="wl-btn" data-sets="3" aria-pressed="true">3 (9 قواعد)</button>
+				<button type="button" class="wl-btn" data-sets="5" aria-pressed="false">5 (25 قاعدة)</button>
+			</div>
+		)
+	}
+	{
+		types && (
+			<div class="wl-row">
+				<span>النوع:</span>
+				<button type="button" class="wl-btn" data-type="mamdani" aria-pressed="true">Mamdani</button>
+				<button type="button" class="wl-btn" data-type="sugeno" aria-pressed="false">Sugeno</button>
+				<label class="ai-check"><input type="checkbox" data-k="dist" checked /> اضطراب 0.5 عند الثانية 5</label>
+			</div>
+		)
+	}
+
+	<div class="ai-sliders">
+		<label class="ai-slider"><span>Ke: حساسية الخطأ<output data-o="Ke"></output></span><input type="range" min="0.1" max="3" step="0.1" value="1" data-k="Ke" /></label>
+		<label class="ai-slider"><span>Kd: الفرامل<output data-o="Kd"></output></span><input type="range" min="0" max="1.5" step="0.05" value="0.3" data-k="Kd" /></label>
+		<label class="ai-slider"><span>Ku: قوة الدفعة<output data-o="Ku"></output></span><input type="range" min="0.5" max="20" step="0.5" value="4" data-k="Ku" /></label>
+		{ki && <label class="ai-slider"><span>Ki: التكامل<output data-o="Ki"></output></span><input type="range" min="0" max="5" step="0.1" value="0" data-k="Ki" /></label>}
+	</div>
+
+	<figure class="ai-chart">
+		<svg role="img" aria-label="الخرج مع الزمن" data-chart="y"></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-c1"><i></i>الخرج y</span>
+			<span class="ai-ref"><i class="dash"></i>المطلوب</span>
+			<span class="ai-ghost" data-ghost-legend hidden><i class="dash"></i>الرسمة المثبّتة</span>
+			<span class="ai-c4"><i class="dash"></i>اللحظة المختارة</span>
+		</figcaption>
+	</figure>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="إشارة التحكم مع الزمن" data-chart="u"></svg>
+		<figcaption class="ai-legend"><span class="ai-c2"><i></i>الدفعة u (خرج المتحكم بعد Ku)</span></figcaption>
+	</figure>
+
+	<div class="wl-grid ai-metrics" data-metrics></div>
+	<p class="wl-msg" data-r="msg"></p>
+	<div class="ai-bars" data-r="req"></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-pin>📌 ثبّت الرسمة للمقارنة</button>
+		<button type="button" class="wl-btn" data-unpin hidden>شيل الرسمة المثبّتة</button>
+	</div>
+
+	<details class="answer">
+		<summary>شو عم يصير جوّا المتحكم؟ (القواعد وسطح التحكم)</summary>
+		<label class="ai-slider"><span>اختار لحظة<output data-o="tsel"></output></span><input type="range" min="0" max="1000" step="1" value="50" data-k="tsel" /></label>
+		<p data-r="now"></p>
+		<div class="ai-two">
+			<div>
+				<p><strong>جدول القواعد:</strong> كل ما كانت القاعدة أقوى بهاللحظة، بيكون لونها أغمق.</p>
+				<div class="ai-rules" data-r="rules"></div>
+			</div>
+			<figure class="ai-chart">
+				<svg role="img" aria-label="سطح التحكم مع مسار المتحكم" data-chart="surf"></svg>
+				<figcaption>
+					سطح التحكم من فوق: البرتقالي دفعة موجبة، والأزرق دفعة سالبة. الخط الأبيض هو الطريق يلي مشي عليه المتحكم، والنقطة هي اللحظة المختارة.
+				</figcaption>
+			</figure>
+		</div>
+	</details>
+</div>
+
+<script>
+	import { buildFuzzyPD, evalfis, evalfisDetail, simFuzzy, stepinfo, type Fis, type SimResult } from '../../scripts/control';
+	import { drawChart, num, type Series } from '../../scripts/chart';
+
+	const PLANTS = {
+		arm: { num: [1], den: [1, 1, 0], limits: [-5, 5] as [number, number], time: 10, req: { os: 5, ts: 2.5 } },
+		motor: { num: [1], den: [0.2, 1.2, 1], limits: [-5, 5] as [number, number], time: 10, req: { os: 10, ts: 3, final: true } },
+		oven: { num: [1], den: [10, 1], limits: [0, 5] as [number, number], time: 60, req: { os: 5, ts: 10, final: true } },
+	};
+	const cache = new Map<string, Fis>();
+	const getFis = (n: 3 | 5, type: 'mamdani' | 'sugeno') => {
+		const key = `${n}${type}`;
+		if (!cache.has(key)) cache.set(key, buildFuzzyPD(n, type));
+		return cache.get(key)!;
+	};
+	const metric = (label: string, html: string) => `<div class="wl-out"><span>${label}</span><strong>${html}</strong></div>`;
+	const check = (ok: boolean, text: string) => `<div class="${ok ? 'wl-good' : 'wl-bad'}">${ok ? '✔' : '✘'} ${text}</div>`;
+
+	document.querySelectorAll<HTMLElement>('[data-fuzzy-lab]').forEach((root) => {
+		const mode = root.dataset.mode!;
+		const k = (n: string) => root.querySelector<HTMLInputElement>(`[data-k="${n}"]`);
+		const val = (n: string, d = 0) => (k(n) ? +k(n)!.value : d);
+		const r = (n: string) => root.querySelector<HTMLElement>(`[data-r="${n}"]`)!;
+		const svg = (n: string) => root.querySelector<SVGSVGElement>(`[data-chart="${n}"]`)!;
+		const state = { sets: 3 as 3 | 5, type: 'mamdani' as 'mamdani' | 'sugeno', plant: 'arm' as keyof typeof PLANTS };
+		let res: SimResult | null = null;
+		let fis: Fis = getFis(3, 'mamdani');
+		let ghost: Series | null = null;
+		let raf = 0;
+		let T = 10;
+		let ref = 1;
+		let distT = 5;
+		let surfCache = '';
+
+		function simulate() {
+			for (const n of ['Ke', 'Kd', 'Ku', 'Ki']) {
+				const o = root.querySelector(`[data-o="${n}"]`);
+				if (o) o.textContent = k(n)!.value;
+			}
+			fis = getFis(state.sets, state.type);
+			const Ke = val('Ke');
+			const Kd = val('Kd');
+			const Ku = val('Ku');
+			const Ki = val('Ki');
+			const dist = mode === 's6' && k('dist')!.checked;
+			if (mode === 'proj') {
+				const p = PLANTS[state.plant];
+				T = p.time;
+				res = simFuzzy(fis, Ke, Kd, Ku, { num: p.num, den: p.den, limits: p.limits, time: T, ki: Ki });
+			} else {
+				T = dist ? 20 : 10;
+				res = simFuzzy(fis, Ke, Kd, Ku, { ki: Ki, disturbance: dist ? 0.5 : 0, time: T });
+			}
+			const tsel = k('tsel')!;
+			tsel.max = String(res.t.length - 1);
+			if (+tsel.value > res.t.length - 1) tsel.value = String(Math.round((res.t.length - 1) / 10));
+
+			// الأرقام
+			const s = stepinfo(res.t, res.y, ref);
+			const umax = Math.max(...res.u.map(Math.abs));
+			const msg = r('msg');
+			msg.className = 'wl-msg';
+			msg.textContent = '';
+			r('req').innerHTML = '';
+			const m = root.querySelector<HTMLElement>('[data-metrics]')!;
+			if (mode === 's6' && dist) {
+				const pre = res.y.filter((_, i) => res!.t[i] < distT);
+				const post = res.y.filter((_, i) => res!.t[i] >= distT);
+				const osPre = Math.max(0, (Math.max(...pre) - ref) * 100);
+				const yf = res.y[res.y.length - 1];
+				m.innerHTML =
+					metric('التجاوز قبل الاضطراب', num(osPre, 1, '%')) +
+					metric('أعلى قيمة بعد الاضطراب', num(Math.max(...post), 2)) +
+					metric('القيمة النهائية', num(yf, 3));
+				if (Math.abs(yf - ref) < 0.01) {
+					msg.textContent = 'رجع لـ 1 بعد الاضطراب: التكامل شال الخطأ المستقر.';
+					msg.classList.add('wl-good');
+				} else msg.textContent = `في خطأ مستقر: الخرج واقف عند ${yf.toFixed(2)} بدل 1. جرّب تكبّر Ki.`;
+			} else {
+				m.innerHTML =
+					metric('التجاوز', num(s.os, 1, '%')) +
+					metric('زمن الاستقرار', Number.isFinite(s.ts) ? num(s.ts, 2, 's') : 'ما استقر') +
+					metric('القيمة النهائية', num(s.final, 3)) +
+					metric('أكبر دفعة |u|', num(umax, 2));
+				if (mode === 's5') {
+					const ok = s.os < 2 && s.ts < 1.5;
+					msg.textContent = ok ? '🎉 حليت التحدي: تجاوز أقل من 2% واستقرار أسرع من 1.5 ثانية.' : 'التحدي: تجاوز أقل من 2%، واستقرار أسرع من 1.5 ثانية.';
+					if (ok) msg.classList.add('wl-good');
+				}
+				if (mode === 'proj') {
+					const p = PLANTS[state.plant];
+					let html = '';
+					let all = true;
+					if ('final' in p.req) {
+						const ok = Math.abs(s.final - ref) < 0.02;
+						all &&= ok;
+						html += check(ok, `يوصل لـ 1 بالضبط (هلق ${s.final.toFixed(3)})`);
+					}
+					const okOs = s.os < p.req.os;
+					const okTs = s.ts < p.req.ts;
+					all &&= okOs && okTs;
+					html += check(okOs, `التجاوز أقل من ${p.req.os}%`) + check(okTs, `الاستقرار أقل من ${p.req.ts} ثانية`);
+					r('req').innerHTML = html;
+					if (all) {
+						msg.textContent = '🎉 حققت كل الشروط. هلق طبّقها على MATLAB واكتب بالتقرير ليش اخترت هالأرقام.';
+						msg.classList.add('wl-good');
+					}
+				}
+			}
+			drawMain();
+			drawInside();
+		}
+
+		function drawMain() {
+			if (!res) return;
+			const i = +k('tsel')!.value;
+			const tNow = res.t[i];
+			const series: Series[] = [];
+			if (ghost) series.push(ghost);
+			series.push({ x: res.t, y: res.y, cls: 'ai-c1' });
+			const peak = Math.max(...res.y);
+			drawChart(svg('y'), {
+				series, xMin: 0, xMax: T, yMin: 0, yMax: Math.max(1.4, Math.min(3, peak * 1.08)), xLabel: 't (s)', yLabel: 'y',
+				hlines: [{ y: ref, cls: 'ai-ref' }], vlines: [{ x: tNow, cls: 'ai-c4' }], height: 220,
+			});
+			drawChart(svg('u'), { series: [{ x: res.t, y: res.u, cls: 'ai-c2' }], xMin: 0, xMax: T, xLabel: 't (s)', yLabel: 'u', vlines: [{ x: tNow, cls: 'ai-c4' }], hlines: [{ y: 0, cls: 'ai-ref' }], height: 150 });
+		}
+
+		function drawInside() {
+			if (!res) return;
+			const i = +k('tsel')!.value;
+			root.querySelector('[data-o="tsel"]')!.textContent = `t = ${res.t[i].toFixed(2)} s`;
+			const det = evalfisDetail(fis, [res.ein[i], res.dein[i]]);
+			r('now').innerHTML = `بهاللحظة: الخطأ بعد Ke ${num(res.ein[i], 2)}، وتغيّره بعد Kd ${num(res.dein[i], 2)}، وخرج المتحكم ${num(det.value, 2)}، يعني الدفعة ${num(res.u[i], 2)}.`;
+
+			// جدول القواعد: السطور e والأعمدة de
+			const n = state.sets;
+			const inNames = fis.inputs[0].mfs.map((m) => m.name);
+			let g = `<div class="h">e \\ de</div>` + inNames.map((nm) => `<div class="h">${nm}</div>`).join('');
+			for (let a = 0; a < n; a++) {
+				g += `<div class="h">${inNames[a]}</div>`;
+				for (let b = 0; b < n; b++) {
+					const j = a * n + b;
+					const w = det.strengths[j];
+					const out = fis.output.mfs[fis.rules[j][2] - 1].name;
+					const style = w > 0 ? `style="background: color-mix(in srgb, var(--sl-color-accent) ${Math.round(25 + w * 75)}%, var(--sl-color-gray-6))"` : '';
+					g += `<div class="${w > 0.5 ? 'on' : ''}" ${style} title="${w.toFixed(2)}">${out}</div>`;
+				}
+			}
+			const grid = r('rules');
+			grid.style.gridTemplateColumns = `repeat(${n + 1}, minmax(0, 1fr))`;
+			grid.innerHTML = g;
+
+			// سطح التحكم (بينحسب مرة وحدة لكل متحكم)
+			const key = `${state.sets}${state.type}`;
+			const S = 200;
+			const P = 22;
+			const X = (v: number) => P + ((v + 1) / 2) * S;
+			const Y = (v: number) => P + ((1 - v) / 2) * S;
+			if (surfCache !== key) {
+				surfCache = key;
+				const N = 25;
+				const c = S / N;
+				let cells = '';
+				for (let a = 0; a < N; a++)
+					for (let b = 0; b < N; b++) {
+						const e = -1 + (2 * (a + 0.5)) / N;
+						const de = 1 - (2 * (b + 0.5)) / N;
+						const u = evalfis(fis, [e, de]);
+						cells += `<rect x="${(P + a * c).toFixed(1)}" y="${(P + b * c).toFixed(1)}" width="${(c + 0.4).toFixed(1)}" height="${(c + 0.4).toFixed(1)}" fill="${u >= 0 ? '#e0a030' : '#3a9ec2'}" fill-opacity="${Math.min(1, Math.abs(u) * 0.95 + 0.05).toFixed(2)}"/>`;
+					}
+				const labels = `<text class="ai-tick" x="${P + S / 2}" y="${P + S + 16}" text-anchor="middle">e</text><text class="ai-tick" x="${P - 8}" y="${P + S / 2}" text-anchor="middle">de</text>` +
+					[-1, 0, 1].map((v) => `<text class="ai-tick" x="${X(v)}" y="${P - 6}" text-anchor="middle">${v}</text><text class="ai-tick" x="${P + S + 4}" y="${Y(v) + 4}">${v}</text>`).join('');
+				svg('surf').dataset.base = `<g>${cells}</g><rect class="ai-frame" x="${P}" y="${P}" width="${S}" height="${S}"/>${labels}`;
+			}
+			const step = Math.max(1, Math.floor(res.t.length / 400));
+			let d = '';
+			for (let q = 0; q < res.t.length; q += step) d += `${d ? 'L' : 'M'}${X(res.ein[q]).toFixed(1)},${Y(res.dein[q]).toFixed(1)}`;
+			const svgS = svg('surf');
+			svgS.setAttribute('viewBox', `0 0 ${S + 2 * P + 10} ${S + 2 * P + 4}`);
+			svgS.innerHTML = `${svgS.dataset.base}<path d="${d}" fill="none" stroke="#fff" stroke-width="1.8" stroke-opacity="0.9"/><circle class="ai-c4" cx="${X(res.ein[i])}" cy="${Y(res.dein[i])}" r="5"/>`;
+		}
+
+		const schedule = () => {
+			cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(simulate);
+		};
+		root.querySelectorAll<HTMLInputElement>('input:not([data-k="tsel"])').forEach((i) => i.addEventListener('input', schedule));
+		k('tsel')!.addEventListener('input', () => {
+			drawMain();
+			drawInside();
+		});
+		const group = (attr: string, apply: (v: string) => void) =>
+			root.querySelectorAll<HTMLButtonElement>(`[${attr}]`).forEach((b) =>
+				b.addEventListener('click', () => {
+					root.querySelectorAll(`[${attr}]`).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+					apply(b.getAttribute(attr)!);
+					ghost = null;
+					root.querySelector<HTMLElement>('[data-unpin]')!.hidden = true;
+					root.querySelector<HTMLElement>('[data-ghost-legend]')!.hidden = true;
+					schedule();
+				}),
+			);
+		group('data-sets', (v) => (state.sets = +v as 3 | 5));
+		group('data-type', (v) => (state.type = v as 'mamdani' | 'sugeno'));
+		group('data-plant', (v) => (state.plant = v as keyof typeof PLANTS));
+
+		const pin = root.querySelector<HTMLButtonElement>('[data-pin]')!;
+		const unpin = root.querySelector<HTMLButtonElement>('[data-unpin]')!;
+		const legend = root.querySelector<HTMLElement>('[data-ghost-legend]')!;
+		pin.addEventListener('click', () => {
+			if (!res) return;
+			ghost = { x: res.t, y: res.y, cls: 'ai-ghost' };
+			unpin.hidden = legend.hidden = false;
+			drawMain();
+		});
+		unpin.addEventListener('click', () => {
+			ghost = null;
+			unpin.hidden = legend.hidden = true;
+			drawMain();
+		});
+		simulate();
+		let lastW = innerWidth;
+		addEventListener('resize', () => {
+			if (innerWidth !== lastW) {
+				lastW = innerWidth;
+				simulate();
+			}
+		});
+	});
+</script>

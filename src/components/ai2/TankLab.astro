@@ -1,0 +1,87 @@
+---
+// خزان المياه (الجلسة 7) بالمتصفح: نفس lab07_tank.m (PI، و PI مع حماية، والمتحكم الضبابي التزايدي).
+---
+
+<div class="not-content wl-box" data-tank-lab>
+	<h4>جرّب الخزان بالمتصفح</h4>
+	<div class="wl-row">
+		<label class="ai-check"><input type="checkbox" data-show="pi" checked /> PI عادي</label>
+		<label class="ai-check"><input type="checkbox" data-show="aw" /> PI مع حماية من التراكم</label>
+		<label class="ai-check"><input type="checkbox" data-show="fz" checked /> المتحكم الضبابي</label>
+	</div>
+	<div class="ai-sliders">
+		<label class="ai-slider"><span>Kp تبع PI<output data-o="Kp"></output></span><input type="range" min="0.05" max="1.5" step="0.01" value="0.38" data-k="Kp" /></label>
+		<label class="ai-slider"><span>Ki تبع PI<output data-o="Ki"></output></span><input type="range" min="0" max="0.5" step="0.01" value="0.09" data-k="Ki" /></label>
+		<label class="ai-slider"><span>Ku تبع الضبابي<output data-o="Ku"></output></span><input type="range" min="0.05" max="1" step="0.05" value="0.3" data-k="Ku" /></label>
+	</div>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="مستوى المي مع الزمن" data-chart="h"></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-ref"><i class="dash"></i>المطلوب</span>
+			<span class="ai-c4"><i></i>PI</span>
+			<span class="ai-c5"><i></i>PI مع حماية</span>
+			<span class="ai-c3"><i></i>الضبابي</span>
+		</figcaption>
+	</figure>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="تدفق المضخة مع الزمن" data-chart="q"></svg>
+		<figcaption>تدفق المضخة q. الخط المنقّط فوق هو آخر طاقة المضخة (0.5).</figcaption>
+	</figure>
+	<div style="overflow-x:auto">
+		<table class="wl-table">
+			<thead><tr><th>المتحكم</th><th>تجاوز التعبئة</th><th>تجاوز التفريغ</th><th>الانحراف بعد فتح الصمام</th></tr></thead>
+			<tbody data-r="table"></tbody>
+		</table>
+	</div>
+</div>
+
+<script>
+	import { simTank, tankInfo, type TankRun } from '../../scripts/control';
+	import { drawChart, num, type Series } from '../../scripts/chart';
+
+	const NAMES = { pi: 'PI عادي', aw: 'PI مع حماية', fz: 'الضبابي' } as const;
+	const CLS = { pi: 'ai-c4', aw: 'ai-c5', fz: 'ai-c3' } as const;
+
+	document.querySelectorAll<HTMLElement>('[data-tank-lab]').forEach((root) => {
+		const k = (n: string) => +root.querySelector<HTMLInputElement>(`[data-k="${n}"]`)!.value;
+		const show = (n: string) => root.querySelector<HTMLInputElement>(`[data-show="${n}"]`)!.checked;
+		let raf = 0;
+
+		function run() {
+			for (const n of ['Kp', 'Ki', 'Ku']) root.querySelector(`[data-o="${n}"]`)!.textContent = String(k(n));
+			const runs: [keyof typeof NAMES, TankRun][] = [];
+			if (show('pi')) runs.push(['pi', simTank('pi', { Kp: k('Kp'), Ki: k('Ki') })]);
+			if (show('aw')) runs.push(['aw', simTank('pi-aw', { Kp: k('Kp'), Ki: k('Ki') })]);
+			if (show('fz')) runs.push(['fz', simTank('fuzzy', { Ku: k('Ku') })]);
+			const any = runs[0]?.[1] ?? simTank('fuzzy');
+			const hs: Series[] = [{ x: any.t, y: any.r, cls: 'ai-ref' }, ...runs.map(([n, R]) => ({ x: R.t, y: R.h, cls: CLS[n] }))];
+			drawChart(root.querySelector<SVGSVGElement>('[data-chart="h"]')!, {
+				series: hs, xMin: 0, xMax: 300, yMin: 0, yMax: 4, xLabel: 't (s)', yLabel: 'h (m)', height: 220,
+				vlines: [{ x: 220, cls: 'ai-ref', label: 'الصمام' }],
+			});
+			drawChart(root.querySelector<SVGSVGElement>('[data-chart="q"]')!, {
+				series: runs.map(([n, R]) => ({ x: R.t, y: R.q, cls: CLS[n] })), xMin: 0, xMax: 300, yMin: 0, yMax: 0.6, xLabel: 't (s)', yLabel: 'q', height: 160,
+				hlines: [{ y: 0.5, cls: 'ai-ref' }],
+			});
+			root.querySelector('[data-r="table"]')!.innerHTML = runs
+				.map(([n, R]) => {
+					const i = tankInfo(R);
+					return `<tr><td>${NAMES[n]}</td><td>${num(i.osUp, 1, '%')}</td><td>${num(i.osDown, 1, '%')}</td><td>${num(i.dev, 2, 'm')}</td></tr>`;
+				})
+				.join('');
+		}
+		const schedule = () => {
+			cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(run);
+		};
+		root.querySelectorAll('input').forEach((i) => i.addEventListener('input', schedule));
+		run();
+		let lastW = innerWidth;
+		addEventListener('resize', () => {
+			if (innerWidth !== lastW) {
+				lastW = innerWidth;
+				run();
+			}
+		});
+	});
+</script>

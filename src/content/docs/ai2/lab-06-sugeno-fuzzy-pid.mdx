@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import FuzzyLab from '../../../components/ai2/FuzzyLab.astro';
 import Concept from '../../../components/Concept.astro';
 import Term from '../../../components/Term.astro';
 
@@ -70,6 +71,17 @@ import Term from '../../../components/Term.astro';
 </Concept>
 
 منضيف للمتحكم جزء بيجمع الخطأ مع الوقت (**Ki**). طول ما في خطأ، هالجزء بيضل يزيد، لحتى يروح الخطأ تماماً. صار عنا متحكم **Fuzzy-PID**.
+
+## جرّب بالمتصفح
+
+هاد **خيار تاني**: إذا ما عندك MATLAB هلق، أو بدك تفهم الفكرة قبل ما تفتحه. الحسابات هون نفسها يلي بيعملها `simFuzzy`، فالأرقام لازم تطلع متل بعض. بس تذكّر: العملي والتقييم على **MATLAB**.
+
+<FuzzyLab mode="s6" />
+
+**شو تجرّب؟**
+- خلي الاضطراب شغّال و **Ki = 0**: الخرج بيوقف عند حوالي **1.21**.
+- كبّر **Ki** لـ **1**: الخرج بيرجع لـ **1**، والتجاوز قبل الاضطراب حوالي **10.6%**.
+- بدّل لـ **Sugeno**، وافتح «شو عم يصير جوّا المتحكم؟»: السطح صار مستوي متل لوح مائل، والاستجابة قريبة كتير من Mamdani.
 
 ## خطوات العملي
 

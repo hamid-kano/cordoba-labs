@@ -1,0 +1,120 @@
+---
+// مثال المروحة (الجلسة 3) بالمتصفح: نفس fis يلي بـ lab03_fuzzy_basics.m، خطوة بخطوة.
+---
+
+<div class="not-content wl-box" data-fan-lab>
+	<h4>جرّب المروحة الضبابية بالمتصفح</h4>
+	<div class="ai-sliders">
+		<label class="ai-slider"><span>الحرارة<output data-o="temp"></output></span><input type="range" min="0" max="40" step="0.5" value="24" data-k="temp" /></label>
+		<label class="ai-slider" data-hum-wrap hidden><span>الرطوبة<output data-o="hum"></output></span><input type="range" min="0" max="100" step="1" value="45" data-k="hum" /></label>
+	</div>
+	<label class="ai-check"><input type="checkbox" data-k="useHum" /> ضيف الرطوبة كمدخل تاني (زيادة)</label>
+
+	<p><strong>1. التضبيب:</strong> قديش الحرارة من كل مجموعة؟</p>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="دوال انتماء الحرارة" data-chart="in"></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-c1"><i></i>بارد</span><span class="ai-c3"><i></i>معتدل</span><span class="ai-c4"><i></i>حار</span>
+		</figcaption>
+	</figure>
+	<div class="ai-bars" data-r="deg"></div>
+
+	<p><strong>2. القواعد:</strong> كل قاعدة بتاخد قوة شرطها.</p>
+	<div class="ai-bars" data-r="rules"></div>
+
+	<p><strong>3 و 4. القص والجمع، وبعدين مركز الثقل:</strong></p>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="شكل الخرج ومركز ثقله" data-chart="out"></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-ghost"><i class="dash"></i>بطيء، وسط، سريع (قبل القص)</span><span class="ai-c2"><i></i>الشكل الناتج</span><span class="ai-c4"><i></i>مركز الثقل</span>
+		</figcaption>
+	</figure>
+	<div class="wl-out"><span>سرعة المروحة</span><strong data-r="speed"></strong></div>
+</div>
+
+<script>
+	import { evalfisDetail, mf, type Fis } from '../../scripts/control';
+	import { drawChart, num, type Series } from '../../scripts/chart';
+
+	const tempMfs = [
+		{ name: 'بارد', type: 'trapmf', p: [0, 0, 10, 20] },
+		{ name: 'معتدل', type: 'trimf', p: [10, 20, 30] },
+		{ name: 'حار', type: 'trapmf', p: [20, 30, 40, 40] },
+	] as const;
+	const speedMfs = [
+		{ name: 'بطيء', type: 'trimf', p: [0, 0, 50] },
+		{ name: 'وسط', type: 'trimf', p: [25, 50, 75] },
+		{ name: 'سريع', type: 'trimf', p: [50, 100, 100] },
+	] as const;
+	const humMfs = [
+		{ name: 'قليلة', type: 'trapmf', p: [0, 0, 30, 60] },
+		{ name: 'عالية', type: 'trapmf', p: [40, 70, 100, 100] },
+	] as const;
+
+	const fis1: Fis = {
+		type: 'mamdani',
+		inputs: [{ name: 'temp', range: [0, 40], mfs: tempMfs.map((m) => ({ ...m, p: [...m.p] })) }],
+		output: { name: 'speed', range: [0, 100], mfs: speedMfs.map((m) => ({ ...m, p: [...m.p] })) },
+		rules: [[1, 1], [2, 2], [3, 3]],
+	};
+	const fis2: Fis = {
+		...fis1,
+		inputs: [fis1.inputs[0], { name: 'hum', range: [0, 100], mfs: humMfs.map((m) => ({ ...m, p: [...m.p] })) }],
+		rules: [[1, 0, 1], [2, 1, 2], [2, 2, 3], [3, 0, 3]],
+	};
+	const ruleText1 = ['إذا بارد ← بطيء', 'إذا معتدل ← وسط', 'إذا حار ← سريع'];
+	const ruleText2 = ['إذا بارد ← بطيء', 'إذا معتدل والرطوبة قليلة ← وسط', 'إذا معتدل والرطوبة عالية ← سريع', 'إذا حار ← سريع'];
+	const cls = ['ai-c1', 'ai-c3', 'ai-c4'];
+	const range = (a: number, b: number, n: number) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
+	const bar = (label: string, v: number) =>
+		`<div class="ai-bar"><span>${label}</span><b><i style="width:${(v * 100).toFixed(0)}%"></i></b><output>${v.toFixed(2)}</output></div>`;
+
+	document.querySelectorAll<HTMLElement>('[data-fan-lab]').forEach((root) => {
+		const k = (n: string) => root.querySelector<HTMLInputElement>(`[data-k="${n}"]`)!;
+		const r = (n: string) => root.querySelector<HTMLElement>(`[data-r="${n}"]`)!;
+		const svgIn = root.querySelector<SVGSVGElement>('[data-chart="in"]')!;
+		const svgOut = root.querySelector<SVGSVGElement>('[data-chart="out"]')!;
+		const humWrap = root.querySelector<HTMLElement>('[data-hum-wrap]')!;
+
+		function run() {
+			const T = +k('temp').value;
+			const H = +k('hum').value;
+			const useHum = k('useHum').checked;
+			humWrap.hidden = !useHum;
+			root.querySelector('[data-o="temp"]')!.textContent = `${T}°`;
+			root.querySelector('[data-o="hum"]')!.textContent = `${H}%`;
+			const fis = useHum ? fis2 : fis1;
+			const det = evalfisDetail(fis, useHum ? [T, H] : [T]);
+
+			const xs = range(0, 40, 161);
+			drawChart(svgIn, {
+				series: fis1.inputs[0].mfs.map((m, i) => ({ x: xs, y: xs.map((x) => mf(x, m)), cls: cls[i] })),
+				xMin: 0, xMax: 40, yMin: 0, yMax: 1.1, height: 190, xLabel: 'T (°C)', yLabel: 'μ',
+				vlines: [{ x: T, cls: 'ai-ref' }],
+				points: det.degrees[0].map((d, i) => ({ x: T, y: d, cls: cls[i] })).filter((p) => p.y > 0),
+			});
+			let degHtml = det.degrees[0].map((d, i) => bar(tempMfs[i].name, d)).join('');
+			if (useHum) degHtml += det.degrees[1].map((d, i) => bar(`الرطوبة ${humMfs[i].name}`, d)).join('');
+			r('deg').innerHTML = degHtml;
+			r('rules').innerHTML = det.strengths.map((s, i) => bar((useHum ? ruleText2 : ruleText1)[i], s)).join('');
+
+			const sm = det.samples!;
+			const ghosts: Series[] = fis.output.mfs.map((m) => ({ x: sm.x, y: sm.x.map((x) => mf(x, m)), cls: 'ai-ghost' }));
+			drawChart(svgOut, {
+				series: [...ghosts, { x: sm.x, y: sm.agg, cls: 'ai-c2', fill: true }],
+				xMin: 0, xMax: 100, yMin: 0, yMax: 1.1, height: 190, xLabel: 'speed (%)', yLabel: 'μ',
+				vlines: [{ x: det.value, cls: 'ai-c4', label: det.value.toFixed(1) }],
+			});
+			r('speed').innerHTML = num(det.value, 1, '%');
+		}
+		root.querySelectorAll('input').forEach((i) => i.addEventListener('input', run));
+		run();
+		let lastW = innerWidth;
+		addEventListener('resize', () => {
+			if (innerWidth !== lastW) {
+				lastW = innerWidth;
+				run();
+			}
+		});
+	});
+</script>
