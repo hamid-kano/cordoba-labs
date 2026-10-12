@@ -1,0 +1,21 @@
+---
+// بطاقة مفهوم: بتنحط عند أول مرة بيمر فيها مفهوم مهم.
+// <Concept term="Simulink" en="Simulink"> شرح بالـ Markdown </Concept>
+interface Props {
+	term: string;
+	en?: string;
+	icon?: string;
+}
+const { term, en, icon = '💡' } = Astro.props;
+---
+
+<aside class="concept" aria-label={`مفهوم: ${term}`}>
+	<div class="concept-head not-content">
+		<span class="concept-badge">{icon} مفهوم</span>
+		<strong class="concept-term">{term}</strong>
+		{en && en !== term && <span class="concept-en" dir="ltr">{en}</span>}
+	</div>
+	<div class="concept-body">
+		<slot />
+	</div>
+</aside>

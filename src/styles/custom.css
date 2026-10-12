@@ -176,3 +176,44 @@ code,
 .wl-fig svg text.d-ltr { font-family: sans-serif; direction: ltr; }
 .d-arrow { fill: var(--sl-color-gray-3); }
 .wl-table .wl-mono { letter-spacing: 0; font-size: 0.8rem; }
+
+/* ===== بطاقة مفهوم (Concept) ===== */
+.sl-markdown-content .concept {
+	border: 1px solid var(--sl-color-accent);
+	border-inline-start-width: 5px;
+	border-radius: 0.6rem;
+	padding: 0.75rem 1rem;
+	background: var(--sl-color-accent-low);
+}
+.concept-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.concept-badge {
+	font-size: var(--sl-text-xs); font-weight: 700;
+	padding: 0.1rem 0.55rem; border-radius: 999px;
+	background: var(--sl-color-accent); color: var(--sl-color-black);
+}
+.concept-term { font-size: var(--sl-text-lg); color: var(--sl-color-white); }
+.concept-en { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); font-family: sans-serif; }
+.sl-markdown-content .concept-body { margin-top: 0.5rem; }
+.sl-markdown-content .concept-body > :first-child { margin-top: 0; }
+
+/* ===== مصطلح بينكبس (Term) ===== */
+.sl-markdown-content .term {
+	font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0;
+	cursor: help; text-decoration: underline dotted var(--sl-color-accent); text-decoration-thickness: 2px; text-underline-offset: 0.25em;
+}
+.sl-markdown-content .term:hover { color: var(--sl-color-accent-high); }
+.term-pop {
+	position: fixed; inset: 0; margin: auto; height: fit-content; width: fit-content;
+	max-width: min(26rem, calc(100vw - 2rem));
+	padding: 0.9rem 1rem; border-radius: 0.75rem;
+	border: 1px solid var(--sl-color-accent);
+	background: var(--sl-color-bg, var(--sl-color-black)); color: var(--sl-color-white);
+	box-shadow: 0 12px 40px rgb(0 0 0 / 0.35);
+	font-size: var(--sl-text-base); line-height: 1.7; text-align: start; direction: rtl;
+}
+.term-pop::backdrop { background: rgb(0 0 0 / 0.35); }
+.term-pop-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+.term-pop-head strong { font-size: var(--sl-text-lg); color: var(--sl-color-accent-high); }
+.term-pop-en { color: var(--sl-color-gray-3); font-family: sans-serif; font-size: var(--sl-text-sm); }
+.term-pop-x { margin-inline-start: auto; background: none; border: 0; color: var(--sl-color-gray-3); font-size: 1.1rem; cursor: pointer; }
+.term-pop-def { display: block; }

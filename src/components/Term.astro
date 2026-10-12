@@ -1,0 +1,20 @@
+---
+// مصطلح بيتكبس جوّا الجملة، وبيطلع تعريفه بنافذة صغيرة (HTML popover، بيشتغل بالكبس على الموبايل).
+// <Term t="بلوك" en="Block" def="صندوق بيعمل شغلة وحدة..." />
+interface Props {
+	t: string;
+	def: string;
+	en?: string;
+}
+const { t, def, en } = Astro.props;
+const id = `term-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<button type="button" class="term" popovertarget={id} title={def}>{t}</button><span popover id={id} class="term-pop not-content" role="dialog" aria-label={t}>
+	<span class="term-pop-head">
+		<strong>{t}</strong>
+		{en && en !== t && <span dir="ltr" class="term-pop-en">{en}</span>}
+		<button type="button" class="term-pop-x" popovertarget={id} popovertargetaction="hide" aria-label="سكّر">✕</button>
+	</span>
+	<span class="term-pop-def">{def}</span>
+</span>
