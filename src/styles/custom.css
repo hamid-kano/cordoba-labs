@@ -352,3 +352,29 @@ code,
 .os-json { max-height: 14rem; overflow: auto; font-size: 0.75rem; margin: 0; padding: 0.5rem; border-radius: 0.4rem; background: var(--sl-color-black); }
 .os-json:empty { display: none; }
 .os-calc-expr { display: block; direction: ltr; text-align: left; font-family: var(--sl-font-system-mono); margin-top: 0.2rem; }
+/* الطرفية التدريبية */
+.os-missions { font-size: var(--sl-text-sm); }
+.os-missions ol { margin: 0.3rem 0 0; padding-inline-start: 1.3rem; }
+.os-missions li { color: var(--sl-color-gray-3); }
+.os-missions li.done { color: #2fb36b; }
+.os-missions li.now { color: var(--sl-color-white); font-weight: 700; }
+.os-term {
+	height: 15rem; overflow: auto; margin: 0; padding: 0.6rem; border-radius: 0.5rem 0.5rem 0 0;
+	background: #0d1117; color: #d6deeb; white-space: pre-wrap; overflow-wrap: anywhere;
+	font-family: var(--sl-font-system-mono); font-size: 0.8rem; line-height: 1.5; text-align: left;
+}
+.wl-box > .os-term-line { margin-top: 0; }
+.os-term-line { display: flex; gap: 0.4rem; align-items: center; padding: 0.4rem 0.6rem; border-radius: 0 0 0.5rem 0.5rem; background: #0d1117; border-top: 1px solid #30363d; }
+.os-term-prompt, .os-term .os-p { color: #7ee787; font-family: var(--sl-font-system-mono); font-size: 0.8rem; white-space: nowrap; }
+.os-term-in { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #fff; font-family: var(--sl-font-system-mono); font-size: 0.85rem; caret-color: #7ee787; }
+.os-term .os-dir { color: #79c0ff; font-weight: 700; }
+.os-term .os-hint-t { color: #8b949e; }
+/* اختبار التصيّد */
+.os-phish { display: flex; flex-direction: column; gap: 0.5rem; }
+.os-msg-card { padding: 0.6rem 0.8rem; border: 1px solid var(--sl-color-gray-5); border-radius: 0.6rem; background: var(--sl-color-black); }
+.os-msg-card.ok { border-color: #2fb36b; } .os-msg-card.no { border-color: #e5534b; }
+.os-msg-card small { color: var(--sl-color-gray-3); }
+.os-msg-card p { margin: 0.25rem 0; }
+.os-link { font-family: var(--sl-font-system-mono); font-size: 0.8rem; color: #3a9ec2; overflow-wrap: anywhere; unicode-bidi: isolate; }
+.os-term .os-err { color: #ffa198; text-align: right; }
+.os-term [dir='rtl'] { font-family: var(--sl-font); }

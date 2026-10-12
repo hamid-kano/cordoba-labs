@@ -66,7 +66,11 @@ export default defineConfig({
 				{
 					label: 'نظم التشغيل 1',
 					collapsed: true,
-					items: [{ autogenerate: { directory: 'os1' } }],
+					items: [
+						{ autogenerate: { directory: 'os1' } },
+						// جلسات طلعت من الخطة، بس خليناها للمراجعة لأنها من منهج النظري
+						{ label: 'أرشيف للمراجعة', collapsed: true, items: [{ autogenerate: { directory: 'os1-archive' } }] },
+					],
 				},
 			],
 		}),

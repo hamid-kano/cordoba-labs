@@ -1,11 +1,21 @@
 ---
 // الجلسة 8: tool="request" طلب حقيقي من خادم (زبون وخادم وخدمة ويب)، و tool="caesar" تشفير قيصر، و tool="password" قوة كلمة السر.
 interface Props {
-	tool: 'request' | 'caesar' | 'password';
+	tool: 'request' | 'caesar' | 'password' | 'url';
 }
 const { tool } = Astro.props;
 ---
 
+{
+	tool === 'url' && (
+		<div class="not-content wl-box" data-url-lab>
+			<h4>فكّك الرابط</h4>
+			<label class="wl-label"><span>الصق أي رابط:</span><input class="wl-input" data-in="u" value="https://api.example.com:443/students/5?year=3&city=Aleppo#marks" /></label>
+			<div style="overflow-x:auto"><table class="wl-table" data-out="parts" /></div>
+			<p class="wl-msg" data-out="msg" />
+		</div>
+	)
+}
 {
 	tool === 'request' && (
 		<div class="not-content wl-box" data-req-lab>
@@ -85,6 +95,37 @@ const { tool } = Astro.props;
 		}
 		root.querySelector('[data-act="ok"]')!.addEventListener('click', () => go('students.json'));
 		root.querySelector('[data-act="bad"]')!.addEventListener('click', () => go('missing.json'));
+	});
+
+	document.querySelectorAll<HTMLElement>('[data-url-lab]').forEach((root) => {
+		const inp = root.querySelector<HTMLInputElement>('[data-in="u"]')!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+		const row = (name: string, val: string, mean: string) => `<tr><td>${name}</td><td class="wl-mono">${val ? esc(val) : '–'}</td><td>${mean}</td></tr>`;
+		function run() {
+			let u: URL;
+			try {
+				u = new URL(inp.value.trim());
+			} catch {
+				out('parts').innerHTML = '';
+				out('msg').textContent = 'هاد مش رابط كامل. لازم يبلّش بـ https:// أو http://';
+				out('msg').className = 'wl-msg wl-bad';
+				return;
+			}
+			const port = u.port || (u.protocol === 'https:' ? '443 (الافتراضي)' : u.protocol === 'http:' ? '80 (الافتراضي)' : '');
+			let html = '<thead><tr><th>الجزء</th><th>القيمة</th><th>يعني</th></tr></thead><tbody>';
+			html += row('البروتوكول', u.protocol.replace(':', ''), u.protocol === 'https:' ? 'لغة الحكي مع الخادم، و s يعني <strong>مشفّر</strong> 🔒' : 'لغة الحكي مع الخادم، <strong>بدون تشفير</strong> ⚠️');
+			html += row('الخادم', u.hostname, 'اسم الجهاز يلي عم نحكي معه');
+			html += row('المنفذ', port, 'رقم «الباب» بالخادم');
+			html += row('المسار', u.pathname, 'شو بدنا من الخادم (متل: الطالب رقم 5)');
+			for (const [k, v] of u.searchParams) html += row(`مُعامل: ${esc(k)}`, v, 'معلومة إضافية مع الطلب (بعد ؟)');
+			html += row('الجزء الداخلي', u.hash.replace('#', ''), 'مكان جوّا الصفحة، ما بينبعت للخادم');
+			out('parts').innerHTML = html + '</tbody>';
+			out('msg').textContent = u.protocol === 'https:' ? '✔ الاتصال مشفّر.' : '⚠️ الاتصال مش مشفّر: لا تكتب كلمة سر هون.';
+			out('msg').className = 'wl-msg ' + (u.protocol === 'https:' ? 'wl-good' : 'wl-bad');
+		}
+		inp.addEventListener('input', run);
+		run();
 	});
 
 	const shift = (s: string, k: number) => s.replace(/[a-z]/gi, (c) => {
