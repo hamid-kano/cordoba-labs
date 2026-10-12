@@ -1,0 +1,50 @@
+---
+// خزان المي (الجلسة 7): مضخة من فوق، ومستوى h، ومخرج من تحت فيه صمام.
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 560 336" role="img" aria-label="خزان مي: المضخة بتعبّي من فوق بتدفق q، ومستوى المي h، والمي بتطلع من تحت عن طريق صمام، وكل ما زاد h بتطلع أسرع">
+		<defs>
+			<marker id="tank-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+			</marker>
+		</defs>
+		<!-- المضخة -->
+		<rect x="20" y="18" width="110" height="48" rx="10" class="d-box"></rect>
+		<text x="75" y="48" class="d-t d-b">المضخة</text>
+		<path d="M130 42 H235 V96" class="d-line d-blue tank-pipe" marker-end="url(#tank-ar)"></path>
+		<text x="258" y="74" class="d-t d-b d-ltr">q</text>
+		<text x="182" y="32" class="d-s">بتعبّي</text>
+
+		<!-- المي -->
+		<rect x="152" y="140" width="216" height="128" class="d-fblue tank-water"></rect>
+		<path d="M152 140 q13.5 -7 27 0 t27 0 t27 0 t27 0 t27 0 t27 0 t27 0 t27 0" class="d-line d-blue"></path>
+		<!-- المطلوب -->
+		<line x1="152" y1="112" x2="368" y2="112" class="d-line d-green d-dash"></line>
+		<text x="110" y="117" class="d-s">المطلوب</text>
+		<!-- الخزان -->
+		<path d="M150 70 V270 H370 V70" class="d-line tank-wall"></path>
+
+		<!-- المستوى h -->
+		<line x1="400" y1="268" x2="400" y2="142" class="d-line" marker-start="url(#tank-ar)" marker-end="url(#tank-ar)"></line>
+		<text x="418" y="210" class="d-t d-b d-ltr">h</text>
+		<text x="492" y="210" class="d-s">مستوى المي</text>
+
+		<!-- المخرج والصمام -->
+		<path d="M330 270 V300 H388" class="d-line d-blue tank-pipe"></path>
+		<path d="M388 290 L412 310 V290 L388 310 Z" class="d-box2 d-orange"></path>
+		<text x="400" y="284" class="d-s">الصمام</text>
+		<line x1="412" y1="300" x2="470" y2="300" class="d-line d-blue tank-pipe" marker-end="url(#tank-ar)"></line>
+		<text x="495" y="290" class="d-s">مي طالعة</text>
+		<text x="470" y="326" class="d-s">أسرع لما يزيد h</text>
+	</svg>
+	<figcaption>
+		المضخة بتعبّي بتدفق <strong>q</strong> (من 0 لـ 0.5، وما فيها تسحب). والمي بتطلع من تحت لحالها، و<strong>كل ما زاد المستوى h بتطلع أسرع</strong> لأن الضغط بيزيد. والخط الأخضر المنقّط هو المستوى يلي بدنا ياه.
+	</figcaption>
+</figure>
+
+<style>
+	.tank-water { fill-opacity: 0.3; }
+	.tank-wall { stroke: var(--sl-color-gray-2); stroke-width: 4; stroke-linejoin: round; }
+	.tank-pipe { stroke-width: 4; }
+</style>

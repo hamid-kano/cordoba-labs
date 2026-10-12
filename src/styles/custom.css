@@ -266,3 +266,9 @@ code,
 .wl-box [hidden] { display: none !important; }
 .ai-metrics { grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); }
 .ai-metrics .wl-out strong { font-size: var(--sl-text-base); }
+/* رسومات عريضة (متل بلوكات Simulink): على الموبايل بتنسحب يمين ويسار بدل ما تصغر كتير */
+.wl-fig.wl-wide .wl-scroll { overflow-x: auto; }
+.wl-fig.wl-wide svg { min-width: 38rem; }
+/* رسومات ببطاقة عريضة: كتابة أكبر لحتى تنقرا عالموبايل */
+.wl-fig svg.d-big .d-t { font-size: 20px; }
+.wl-fig svg.d-big .d-s { font-size: 16px; }

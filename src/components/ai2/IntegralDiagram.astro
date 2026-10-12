@@ -1,0 +1,53 @@
+---
+// إضافة التكامل لنموذج Simulink (الجلسة 6، الخطوة 4). البلوكات الجديدة بإطار برتقالي.
+---
+
+<figure class="wl-fig wl-wide">
+	<div class="wl-scroll">
+		<svg viewBox="0 0 700 210" role="img" aria-label="الخطأ بيروح لـ Integrator ثم Gain Ki، وخرج المتحكم الضبابي بيروح لـ Gain Ku، والاتنين بيتجمعوا بـ Sum، وبعدين Saturation ±5 ثم Transfer Fcn">
+			<defs>
+				<marker id="int-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+					<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+				</marker>
+			</defs>
+			<!-- التكامل (جديد) -->
+			<text x="40" y="44" class="d-s">الخطأ</text>
+			<line x1="10" y1="60" x2="108" y2="60" class="d-line" marker-end="url(#int-ar)"></line>
+			<rect x="110" y="38" width="80" height="44" rx="6" class="d-box2 d-orange"></rect>
+			<text x="150" y="66" class="d-s d-ltr d-b">1/s</text>
+			<text x="150" y="98" class="d-s d-ltr">Integrator</text>
+			<line x1="190" y1="60" x2="228" y2="60" class="d-line" marker-end="url(#int-ar)"></line>
+			<path d="M230 38 L290 60 L230 82 Z" class="d-box2 d-orange"></path>
+			<text x="250" y="65" class="d-s d-ltr d-b">Ki</text>
+			<text x="260" y="98" class="d-s d-ltr">Gain</text>
+			<path d="M290 60 H400 V90" class="d-line" marker-end="url(#int-ar)"></path>
+
+			<!-- المتحكم الضبابي (موجود من قبل) -->
+			<text x="90" y="144" class="d-s">من المتحكم الضبابي</text>
+			<line x1="10" y1="160" x2="228" y2="160" class="d-line" marker-end="url(#int-ar)"></line>
+			<path d="M230 138 L290 160 L230 182 Z" class="d-box2"></path>
+			<text x="250" y="165" class="d-s d-ltr d-b">Ku</text>
+			<text x="260" y="198" class="d-s d-ltr">Gain</text>
+			<path d="M290 160 H400 V130" class="d-line" marker-end="url(#int-ar)"></path>
+
+			<!-- الجمع (جديد) -->
+			<circle cx="400" cy="110" r="18" class="d-box2 d-orange"></circle>
+			<text x="400" y="116" class="d-t d-ltr">Σ</text>
+			<text x="414" y="88" class="d-s d-ltr d-b">+</text>
+			<text x="414" y="142" class="d-s d-ltr d-b">+</text>
+			<text x="362" y="116" class="d-s d-ltr">Sum</text>
+			<line x1="418" y1="110" x2="466" y2="110" class="d-line" marker-end="url(#int-ar)"></line>
+
+			<!-- الباقي متل قبل -->
+			<rect x="468" y="88" width="80" height="44" rx="6" class="d-box2"></rect>
+			<path d="M478 124 H493 L523 96 H538" class="d-line d-blue"></path>
+			<text x="508" y="148" class="d-s d-ltr">Saturation ±5</text>
+			<line x1="548" y1="110" x2="586" y2="110" class="d-line" marker-end="url(#int-ar)"></line>
+			<rect x="588" y="88" width="100" height="44" rx="6" class="d-box"></rect>
+			<text x="638" y="116" class="d-s d-ltr d-b">Transfer Fcn</text>
+		</svg>
+	</div>
+	<figcaption>
+		البلوكات <strong>بالإطار البرتقالي</strong> هي الجديدة: التكامل بيجمع الخطأ مع الوقت (<code>Integrator</code>)، وبينضرب بـ <code>Ki</code>، وبينضاف على خرج المتحكم الضبابي قبل الـ Saturation.
+	</figcaption>
+</figure>

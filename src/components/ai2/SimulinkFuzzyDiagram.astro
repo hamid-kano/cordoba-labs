@@ -1,0 +1,76 @@
+---
+// توصيل بلوكات المتحكم الضبابي بـ Simulink (الجلسة 4، الخطوة 4). أسماء البلوكات متل ما هي بـ Simulink.
+---
+
+<figure class="wl-fig wl-wide">
+	<div class="wl-scroll">
+		<svg viewBox="0 0 760 310" role="img" aria-label="الخطأ بيروح لـ Gain Ke ثم Saturation ثم المدخل 1 بالـ Mux، وكمان لـ Derivative ثم Gain Kd ثم Saturation ثم المدخل 2. الـ Mux بيروح لـ Fuzzy Logic Controller ثم Gain Ku ثم Saturation ±5 ثم Transfer Fcn">
+			<defs>
+				<marker id="sf-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+					<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+				</marker>
+			</defs>
+			<!-- مصدر الخطأ -->
+			<text x="34" y="44" class="d-s">الخطأ</text>
+			<text x="34" y="27" class="d-s d-ltr">Sum</text>
+			<line x1="10" y1="60" x2="228" y2="60" class="d-line" marker-end="url(#sf-ar)"></line>
+			<circle cx="60" cy="60" r="4" class="d-fgray"></circle>
+			<path d="M60 60 V140 H108" class="d-line" marker-end="url(#sf-ar)"></path>
+
+			<!-- السطر 1: Ke ثم Saturation -->
+			<path d="M230 38 L290 60 L230 82 Z" class="d-box2 d-orange"></path>
+			<text x="250" y="65" class="d-s d-ltr d-b">Ke</text>
+			<text x="260" y="98" class="d-s d-ltr">Gain</text>
+			<line x1="290" y1="60" x2="348" y2="60" class="d-line" marker-end="url(#sf-ar)"></line>
+			<rect x="350" y="38" width="80" height="44" rx="6" class="d-box2"></rect>
+			<path d="M360 74 H375 L405 46 H420" class="d-line d-blue"></path>
+			<text x="390" y="98" class="d-s d-ltr">Saturation ±1</text>
+			<line x1="430" y1="60" x2="596" y2="60" class="d-line" marker-end="url(#sf-ar)"></line>
+			<text x="520" y="50" class="d-s">المدخل 1</text>
+
+			<!-- السطر 2: Derivative ثم Kd ثم Saturation -->
+			<rect x="110" y="118" width="80" height="44" rx="6" class="d-box2"></rect>
+			<text x="150" y="145" class="d-s d-ltr d-b">du/dt</text>
+			<text x="150" y="178" class="d-s d-ltr">Derivative</text>
+			<line x1="190" y1="140" x2="228" y2="140" class="d-line" marker-end="url(#sf-ar)"></line>
+			<path d="M230 118 L290 140 L230 162 Z" class="d-box2 d-orange"></path>
+			<text x="250" y="145" class="d-s d-ltr d-b">Kd</text>
+			<text x="260" y="178" class="d-s d-ltr">Gain</text>
+			<line x1="290" y1="140" x2="348" y2="140" class="d-line" marker-end="url(#sf-ar)"></line>
+			<rect x="350" y="118" width="80" height="44" rx="6" class="d-box2"></rect>
+			<path d="M360 154 H375 L405 126 H420" class="d-line d-blue"></path>
+			<text x="390" y="178" class="d-s d-ltr">Saturation ±1</text>
+			<line x1="430" y1="140" x2="596" y2="140" class="d-line" marker-end="url(#sf-ar)"></line>
+			<text x="520" y="130" class="d-s">المدخل 2</text>
+
+			<!-- Mux -->
+			<rect x="598" y="36" width="16" height="128" rx="3" class="d-fgray"></rect>
+			<text x="606" y="182" class="d-s d-ltr">Mux</text>
+			<path d="M614 100 H680 V210 H30 V250 H58" class="d-line" marker-end="url(#sf-ar)"></path>
+
+			<!-- السطر 3 -->
+			<rect x="60" y="226" width="160" height="48" rx="6" class="d-box"></rect>
+			<text x="140" y="247" class="d-s d-ltr d-b">Fuzzy Logic</text>
+			<text x="140" y="265" class="d-s d-ltr d-b">Controller</text>
+			<text x="140" y="292" class="d-s d-ltr">FIS name = fis</text>
+			<line x1="220" y1="250" x2="258" y2="250" class="d-line" marker-end="url(#sf-ar)"></line>
+			<path d="M260 228 L320 250 L260 272 Z" class="d-box2 d-orange"></path>
+			<text x="280" y="255" class="d-s d-ltr d-b">Ku</text>
+			<text x="290" y="292" class="d-s d-ltr">Gain</text>
+			<line x1="320" y1="250" x2="358" y2="250" class="d-line" marker-end="url(#sf-ar)"></line>
+			<rect x="360" y="228" width="80" height="44" rx="6" class="d-box2"></rect>
+			<path d="M370 264 H385 L415 236 H430" class="d-line d-blue"></path>
+			<text x="400" y="292" class="d-s d-ltr">Saturation ±5</text>
+			<line x1="440" y1="250" x2="478" y2="250" class="d-line" marker-end="url(#sf-ar)"></line>
+			<rect x="480" y="226" width="150" height="48" rx="6" class="d-box"></rect>
+			<text x="555" y="255" class="d-s d-ltr d-b">1 / (0.5s² + s)</text>
+			<text x="555" y="292" class="d-s d-ltr">Transfer Fcn</text>
+			<line x1="630" y1="250" x2="740" y2="250" class="d-line" marker-end="url(#sf-ar)"></line>
+			<text x="690" y="240" class="d-s">الخرج</text>
+			<text x="690" y="270" class="d-s d-ltr">y</text>
+		</svg>
+	</div>
+	<figcaption>
+		نفس ترتيب البلوكات يلي رح تعملها. الخطأ بيتفرّع لسطرين: فوق الخطأ نفسه، وتحت تغيّره. الاتنين بيتحدّدوا بين −1 و 1 (Saturation)، وبيتجمعوا بالـ Mux <strong>بهالترتيب</strong>، وبعدين بيدخلوا المتحكم. على الموبايل اسحب الرسمة لليمين واليسار.
+	</figcaption>
+</figure>

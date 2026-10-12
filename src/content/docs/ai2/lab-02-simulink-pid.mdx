@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import LoopDiagram from '../../../components/ai2/LoopDiagram.astro';
 import PidLab from '../../../components/ai2/PidLab.astro';
 import Concept from '../../../components/Concept.astro';
 import Term from '../../../components/Term.astro';
@@ -62,11 +63,7 @@ import Term from '../../../components/Term.astro';
 
 هيدي اسمها **حلقة مغلقة**: منقيس الخرج، ومنقارنه بالمطلوب، ومنصحّح. بـ Simulink رح نرسم نفس الشي:
 
-```text
-المطلوب ──► (−) ──► المتحكم ──► النظام ──┬──► الخرج
-             ▲                           │
-             └──────── القياس ◄───────────┘
-```
+<LoopDiagram />
 
 ### متحكم PID ببساطة
 

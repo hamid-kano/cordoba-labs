@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import TankDiagram from '../../../components/ai2/TankDiagram.astro';
 import TankLab from '../../../components/ai2/TankLab.astro';
 import Concept from '../../../components/Concept.astro';
 import Term from '../../../components/Term.astro';
@@ -37,18 +38,7 @@ import Term from '../../../components/Term.astro';
 
 ### الخزان
 
-```text
-        مضخة (q)
-           │
-           ▼
-     ┌───────────┐
-     │~~~~~~~~~~~│ ◄── مستوى المي h
-     │           │
-     │           │
-     └─────┬─────┘
-           │
-           ▼  مي طالعة (كل ما زاد h، بتطلع أسرع)
-```
+<TankDiagram />
 
 - **الدخل:** تدفق المضخة `q`، بين **0** و **0.5**.
 - **الخرج:** مستوى المي `h` بالمتر.

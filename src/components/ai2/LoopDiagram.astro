@@ -1,0 +1,52 @@
+---
+// الحلقة المغلقة (الجلسة 2) مع مثال الكاسة: المطلوب ← المقارنة ← المتحكم ← النظام ← الخرج، والقياس بيرجع للمقارنة.
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 640 230" role="img" aria-label="الحلقة المغلقة: المطلوب ناقص القياس بيعطي الخطأ، والمتحكم بيقرر الدفعة للنظام، والخرج بينقاس وبيرجع للمقارنة">
+		<defs>
+			<marker id="loop-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+			</marker>
+		</defs>
+		<!-- المطلوب -->
+		<text x="52" y="62" class="d-t d-b">المطلوب</text>
+		<text x="52" y="106" class="d-s d-ltr">r</text>
+		<line x1="8" y1="80" x2="102" y2="80" class="d-line" marker-end="url(#loop-ar)"></line>
+		<!-- المقارنة -->
+		<circle cx="122" cy="80" r="18" class="d-box2"></circle>
+		<text x="122" y="86" class="d-t d-ltr">Σ</text>
+		<text x="96" y="70" class="d-s d-ltr d-b">+</text>
+		<text x="108" y="118" class="d-s d-ltr d-b">−</text>
+		<!-- الخطأ -->
+		<line x1="140" y1="80" x2="198" y2="80" class="d-line" marker-end="url(#loop-ar)"></line>
+		<text x="170" y="66" class="d-s">الخطأ</text>
+		<text x="170" y="100" class="d-s d-ltr">e</text>
+		<!-- المتحكم -->
+		<rect x="200" y="50" width="130" height="60" rx="10" class="d-box"></rect>
+		<text x="265" y="78" class="d-t d-b">المتحكم</text>
+		<text x="265" y="99" class="d-s">إيدك</text>
+		<line x1="330" y1="80" x2="388" y2="80" class="d-line" marker-end="url(#loop-ar)"></line>
+		<text x="359" y="66" class="d-s">الدفعة</text>
+		<text x="359" y="100" class="d-s d-ltr">u</text>
+		<!-- النظام -->
+		<rect x="390" y="50" width="130" height="60" rx="10" class="d-box"></rect>
+		<text x="455" y="78" class="d-t d-b">النظام</text>
+		<text x="455" y="99" class="d-s">الحنفية والكاسة</text>
+		<!-- الخرج -->
+		<line x1="520" y1="80" x2="630" y2="80" class="d-line" marker-end="url(#loop-ar)"></line>
+		<text x="590" y="66" class="d-t d-b">الخرج</text>
+		<text x="590" y="100" class="d-s d-ltr">y</text>
+		<circle cx="555" cy="80" r="4" class="d-fgray"></circle>
+		<!-- القياس (التغذية الراجعة) -->
+		<path d="M555 80 V190 H400" class="d-line d-green"></path>
+		<rect x="280" y="165" width="120" height="50" rx="10" class="d-box2"></rect>
+		<text x="340" y="187" class="d-t d-b">القياس</text>
+		<text x="340" y="206" class="d-s">عينك</text>
+		<path d="M280 190 H122 V100" class="d-line d-green" marker-end="url(#loop-ar)"></path>
+		<text x="470" y="182" class="d-s">التغذية الراجعة</text>
+	</svg>
+	<figcaption>
+		الخط الأخضر هو <strong>التغذية الراجعة</strong>: منقيس الخرج ومنرجّعه لنقارنه بالمطلوب. الفرق بينهن هو <strong>الخطأ</strong>، والمتحكم بيقرر الدفعة حسبه. وتحت كل صندوق، شو بيقابله بمثال الكاسة.
+	</figcaption>
+</figure>

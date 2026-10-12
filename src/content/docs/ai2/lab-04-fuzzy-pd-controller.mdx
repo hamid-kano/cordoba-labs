@@ -7,6 +7,8 @@ sidebar:
 ---
 
 import { Aside, Steps, FileTree } from '@astrojs/starlight/components';
+import SimulinkFuzzyDiagram from '../../../components/ai2/SimulinkFuzzyDiagram.astro';
+import FuzzyPdDiagram from '../../../components/ai2/FuzzyPdDiagram.astro';
 import FuzzyLab from '../../../components/ai2/FuzzyLab.astro';
 import Concept from '../../../components/Concept.astro';
 import Term from '../../../components/Term.astro';
@@ -89,11 +91,7 @@ import Term from '../../../components/Term.astro';
 | `Kd` | نفس الشي لتغيّر الخطأ | 0.3 |
 | `Ku` | بيكبّر خرج المتحكم قبل ما يروح للنظام. هو «قوة الدفعة» | 4 |
 
-```text
-e  ──► ×Ke ──┐
-             ├──► المتحكم الضبابي ──► ×Ku ──► النظام
-de ──► ×Kd ──┘
-```
+<FuzzyPdDiagram />
 
 ## جرّب بالمتصفح
 
@@ -195,12 +193,7 @@ simFuzzy(fis, 1, 0.3, 4)       % (المتحكم، Ke، Kd، Ku)
 
 4. وصّل هيك (الخطأ هو الخط الطالع من الـ Sum):
 
-   ```text
-   الخطأ ─┬─► Gain(Ke) ─► Saturation ──────────────► Mux (المدخل 1)
-          └─► Derivative ─► Gain(Kd) ─► Saturation ─► Mux (المدخل 2)
-
-   Mux ─► Fuzzy Logic Controller ─► Gain(Ku) ─► Saturation(±5) ─► Transfer Fcn
-   ```
+   <SimulinkFuzzyDiagram />
 
 5. اكتب بالـ Command Window:
 

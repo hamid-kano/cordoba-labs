@@ -7,6 +7,7 @@ sidebar:
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
+import IntegralDiagram from '../../../components/ai2/IntegralDiagram.astro';
 import FuzzyLab from '../../../components/ai2/FuzzyLab.astro';
 import Concept from '../../../components/Concept.astro';
 import Term from '../../../components/Term.astro';
@@ -151,11 +152,7 @@ simFuzzy(mam, 1, 0.3, 4, 'Disturbance', 0.5, 'Time', 20, 'Ki', 1)
 
 4. **التكامل:** ضيف بلوك <Term t="Integrator" def="بلوك بيجمع الإشارة مع الوقت. هو التكامل نفسه بـ Simulink." /> وبلوك **Gain** (اكتب جواته `Ki`)، وبلوك **Sum** (`++`):
 
-   ```text
-   الخطأ ─► Integrator ─► Gain(Ki) ─┐
-                                    ├─► Sum ─► Saturation(±5)
-   Fuzzy ─► Gain(Ku) ───────────────┘
-   ```
+   <IntegralDiagram />
 
 5. اكتب `Ki = 0.5;` بالـ Command Window واضغط Run.
 
