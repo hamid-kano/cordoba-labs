@@ -1,0 +1,153 @@
+---
+// طرق تخزين الملفات على القرص (الجلسة 3): متجاور، ومرتبط، ومفهرس، على قرص فيه 24 كتلة.
+---
+
+<div class="not-content wl-box" data-file-alloc>
+	<h4>كيف بينحفظ الملف على القرص؟</h4>
+	<div class="wl-row" role="group" aria-label="الطريقة">
+		<span>الطريقة:</span>
+		<button type="button" class="wl-btn" data-method="cont" aria-pressed="true">متجاور</button>
+		<button type="button" class="wl-btn" data-method="link" aria-pressed="false">مرتبط</button>
+		<button type="button" class="wl-btn" data-method="index" aria-pressed="false">مفهرس</button>
+	</div>
+	<ol class="os-steps" data-out="steps"></ol>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="next">الخطوة الجاية ←</button>
+		<button type="button" class="wl-btn" data-act="reset">من الأول</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<div class="os-blocks" data-out="grid"></div>
+	<div style="overflow-x:auto"><table class="wl-table" data-out="dir"></table></div>
+	<p class="os-hint" data-out="free"></p>
+</div>
+
+<script>
+	type Method = 'cont' | 'link' | 'index';
+	type Step = { op: 'add' | 'del'; f: string; size?: number };
+	const N = 24;
+	const STEPS: Step[] = [
+		{ op: 'add', f: 'A', size: 4 },
+		{ op: 'add', f: 'B', size: 3 },
+		{ op: 'add', f: 'C', size: 5 },
+		{ op: 'del', f: 'B' },
+		{ op: 'add', f: 'D', size: 8 },
+		{ op: 'add', f: 'E', size: 6 },
+	];
+	const label = (s: Step) => (s.op === 'add' ? `احفظ الملف ${s.f} (${s.size} كتل)` : `احذف الملف ${s.f}`);
+
+	interface State {
+		owner: (string | null)[];
+		next: (number | null)[]; // للمرتبط: رقم الكتلة الجاية
+		idx: (boolean)[]; // للمفهرس: هالكتلة كتلة فهرس
+		files: Map<string, { blocks: number[]; index?: number }>;
+		msg: string;
+		ok: boolean;
+	}
+
+	function simulate(method: Method, upto: number): State {
+		const s: State = { owner: Array(N).fill(null), next: Array(N).fill(null), idx: Array(N).fill(false), files: new Map(), msg: '', ok: true };
+		const free = () => s.owner.map((o, i) => (o ? -1 : i)).filter((i) => i >= 0);
+		for (let k = 0; k < upto; k++) {
+			const st = STEPS[k];
+			if (st.op === 'del') {
+				const f = s.files.get(st.f)!;
+				for (const b of [...f.blocks, ...(f.index !== undefined ? [f.index] : [])]) {
+					s.owner[b] = null;
+					s.next[b] = null;
+					s.idx[b] = false;
+				}
+				s.files.delete(st.f);
+				s.msg = `انحذف ${st.f}، وصار مكانه فاضي.`;
+				s.ok = true;
+				continue;
+			}
+			const size = st.size!;
+			const fr = free();
+			if (method === 'cont') {
+				let start = -1;
+				for (let i = 0; i + size <= N && start < 0; i++) if (s.owner.slice(i, i + size).every((o) => !o)) start = i;
+				if (start < 0) {
+					s.msg = `ما في ${size} كتل فاضية ورا بعض لـ ${st.f}، مع إنه في ${fr.length} كتل فاضية! هاد هو التجزؤ الخارجي.`;
+					s.ok = false;
+					continue;
+				}
+				const blocks = Array.from({ length: size }, (_, i) => start + i);
+				blocks.forEach((b) => (s.owner[b] = st.f));
+				s.files.set(st.f, { blocks });
+			} else {
+				const need = size + (method === 'index' ? 1 : 0);
+				if (fr.length < need) {
+					s.msg = `ما في مكان كفاية لـ ${st.f}: بدو ${need} كتل، والفاضي ${fr.length}.`;
+					s.ok = false;
+					continue;
+				}
+				if (method === 'link') {
+					const blocks = fr.slice(0, size);
+					blocks.forEach((b, i) => {
+						s.owner[b] = st.f;
+						s.next[b] = blocks[i + 1] ?? null;
+					});
+					s.files.set(st.f, { blocks });
+				} else {
+					const index = fr[0];
+					const blocks = fr.slice(1, need);
+					s.owner[index] = st.f;
+					s.idx[index] = true;
+					blocks.forEach((b) => (s.owner[b] = st.f));
+					s.files.set(st.f, { blocks, index });
+				}
+			}
+			s.msg = `انحفظ ${st.f} ✔`;
+			s.ok = true;
+		}
+		return s;
+	}
+
+	document.querySelectorAll<HTMLElement>('[data-file-alloc]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let method: Method = 'cont';
+		let step = 0;
+
+		function run() {
+			const s = simulate(method, step);
+			out('steps').innerHTML = STEPS.map((x, i) => `<li class="${i < step ? 'done' : i === step ? 'now' : ''}">${label(x)}</li>`).join('');
+			const m = out('msg');
+			m.textContent = step === 0 ? 'القرص فاضي: 24 كتلة. اكبس «الخطوة الجاية».' : s.msg;
+			m.className = 'wl-msg ' + (step === 0 ? '' : s.ok ? 'wl-good' : 'wl-bad');
+			out('grid').innerHTML = s.owner
+				.map((o, i) => {
+					const extra = o && method === 'link' ? `<small>${s.next[i] === null ? '⏹' : '→' + s.next[i]}</small>` : o && s.idx[i] ? '<small>فهرس</small>' : '';
+					return `<div class="os-b ${o ? 'f-' + o : ''} ${s.idx[i] ? 'ix' : ''}"><i>${i}</i><b>${o ?? ''}</b>${extra}</div>`;
+				})
+				.join('');
+			let head = '<thead><tr><th>الملف</th>';
+			head += method === 'cont' ? '<th>البداية</th><th>الطول</th>' : method === 'link' ? '<th>أول كتلة</th><th>السلسلة</th>' : '<th>كتلة الفهرس</th><th>بداخلها</th>';
+			let body = '</tr></thead><tbody>';
+			for (const [f, v] of s.files) {
+				if (method === 'cont') body += `<tr><td>${f}</td><td>${v.blocks[0]}</td><td>${v.blocks.length}</td></tr>`;
+				else if (method === 'link') body += `<tr><td>${f}</td><td>${v.blocks[0]}</td><td class="wl-mono">${v.blocks.join('→')}</td></tr>`;
+				else body += `<tr><td>${f}</td><td>${v.index}</td><td class="wl-mono">${v.blocks.join(', ')}</td></tr>`;
+			}
+			out('dir').innerHTML = s.files.size ? head + body + '</tbody>' : '';
+			const freeN = s.owner.filter((o) => !o).length;
+			out('free').textContent = `الكتل الفاضية: ${freeN} من ${N}. فوق: جدول المجلد (شو بيحفظ نظام الملفات عن كل ملف).`;
+			(root.querySelector('[data-act="next"]') as HTMLButtonElement).disabled = step >= STEPS.length;
+		}
+		root.querySelectorAll<HTMLButtonElement>('[data-method]').forEach((b) =>
+			b.addEventListener('click', () => {
+				method = b.dataset.method as Method;
+				root.querySelectorAll('[data-method]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				run();
+			}),
+		);
+		root.querySelector('[data-act="next"]')!.addEventListener('click', () => {
+			step = Math.min(STEPS.length, step + 1);
+			run();
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', () => {
+			step = 0;
+			run();
+		});
+		run();
+	});
+</script>

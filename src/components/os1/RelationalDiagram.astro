@@ -1,0 +1,77 @@
+---
+// النموذج العلائقي (الجلسة 5): 3 جداول، والمفاتيح الأساسية والأجنبية بتربطهن.
+const students = [['1', 'أحمد', 'حلب'], ['2', 'سارة', 'دمشق'], ['3', 'محمد', 'حمص']];
+const courses = [['1', 'نظم التشغيل 1'], ['2', 'الشبكات']];
+const marks = [['1', '1', '85'], ['1', '2', '70'], ['2', '1', '92']];
+const R = 26;
+---
+
+<figure class="wl-fig wl-wide">
+	<div class="wl-scroll">
+		<svg viewBox="0 0 720 205" role="img" aria-label="جدول العلامات marks بيربط جدول الطلاب students وجدول المواد courses عن طريق رقم الطالب ورقم المادة">
+			<defs>
+				<marker id="rel-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+					<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+				</marker>
+			</defs>
+			<!-- students -->
+			<text x="110" y="24" class="d-t d-b d-ltr">students</text>
+			<rect x="20" y="36" width="180" height={R} class="d-box"></rect>
+			<text x="45" y="54" class="d-s d-ltr d-b">🔑 id</text>
+			<text x="110" y="54" class="d-s d-ltr d-b">name</text>
+			<text x="170" y="54" class="d-s d-ltr d-b">city</text>
+			{students.map((r, i) => (
+				<g>
+					<rect x="20" y={36 + R * (i + 1)} width="180" height={R} class="d-box2"></rect>
+					<text x="45" y={54 + R * (i + 1)} class="d-s d-ltr">{r[0]}</text>
+					<text x="110" y={54 + R * (i + 1)} class="d-s">{r[1]}</text>
+					<text x="170" y={54 + R * (i + 1)} class="d-s">{r[2]}</text>
+				</g>
+			))}
+
+			<!-- marks -->
+			<text x="360" y="24" class="d-t d-b d-ltr">marks</text>
+			<rect x="260" y="36" width="210" height={R} class="d-box"></rect>
+			<text x="300" y="54" class="d-s d-ltr d-b">student_id</text>
+			<text x="380" y="54" class="d-s d-ltr d-b">course_id</text>
+			<text x="445" y="54" class="d-s d-ltr d-b">mark</text>
+			{marks.map((r, i) => (
+				<g>
+					<rect x="260" y={36 + R * (i + 1)} width="210" height={R} class="d-box2"></rect>
+					<text x="300" y={54 + R * (i + 1)} class="d-s d-ltr d-orange-t">{r[0]}</text>
+					<text x="380" y={54 + R * (i + 1)} class="d-s d-ltr d-orange-t">{r[1]}</text>
+					<text x="445" y={54 + R * (i + 1)} class="d-s d-ltr">{r[2]}</text>
+				</g>
+			))}
+
+			<!-- courses -->
+			<text x="610" y="24" class="d-t d-b d-ltr">courses</text>
+			<rect x="520" y="36" width="180" height={R} class="d-box"></rect>
+			<text x="545" y="54" class="d-s d-ltr d-b">🔑 id</text>
+			<text x="630" y="54" class="d-s d-ltr d-b">title</text>
+			{courses.map((r, i) => (
+				<g>
+					<rect x="520" y={36 + R * (i + 1)} width="180" height={R} class="d-box2"></rect>
+					<text x="545" y={54 + R * (i + 1)} class="d-s d-ltr">{r[0]}</text>
+					<text x="630" y={54 + R * (i + 1)} class="d-s">{r[1]}</text>
+				</g>
+			))}
+
+			<!-- العلاقات -->
+			<path d="M258 75 H202" class="d-line d-orange" marker-end="url(#rel-ar)"></path>
+			<path d="M472 75 H518" class="d-line d-orange" marker-end="url(#rel-ar)"></path>
+			<text x="236" y="168" class="d-s">كل علامة بتأشّر</text>
+			<text x="236" y="188" class="d-s">على طالب</text>
+			<text x="485" y="168" class="d-s">وعلى مادة</text>
+			<text x="360" y="168" class="d-s">🔑 المفتاح الأساسي</text>
+			<text x="360" y="188" class="d-s">بيميّز كل سطر</text>
+		</svg>
+	</div>
+	<figcaption>
+		كل جدول إله <strong>مفتاح أساسي</strong> (🔑) ما بيتكرر. وجدول العلامات ما بيكتب اسم الطالب، بيكتب <strong>رقمه</strong> بس (الأرقام البرتقالية)، وهاد اسمه <strong>مفتاح أجنبي</strong>: بيأشّر على سطر بجدول تاني. هيك ما منكرر الاسم بكل مكان.
+	</figcaption>
+</figure>
+
+<style>
+	.d-orange-t { fill: #e0a030; font-weight: 700; }
+</style>

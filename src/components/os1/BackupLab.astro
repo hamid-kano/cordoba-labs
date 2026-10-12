@@ -1,0 +1,72 @@
+---
+// النسخ الاحتياطي (الجلسة 4): كامل، وتزايدي، وتفاضلي. وشو لازم نرجّع لما يخرب الجهاز.
+---
+
+<div class="not-content wl-box" data-backup-lab>
+	<h4>خطة النسخ الاحتياطي لأسبوع</h4>
+	<div class="wl-row" role="group" aria-label="نوع النسخ">
+		<button type="button" class="wl-btn" data-kind="full" aria-pressed="false">كامل كل يوم</button>
+		<button type="button" class="wl-btn" data-kind="incr" aria-pressed="true">كامل + تزايدي</button>
+		<button type="button" class="wl-btn" data-kind="diff" aria-pressed="false">كامل + تفاضلي</button>
+	</div>
+	<div class="wl-grid">
+		<label class="wl-label"><span>حجم كل البيانات (GB)</span><input class="wl-input" type="number" min="1" value="100" data-in="full" /></label>
+		<label class="wl-label"><span>قديش بيتغيّر كل يوم (GB)</span><input class="wl-input" type="number" min="0" value="10" data-in="change" /></label>
+		<label class="wl-label"><span>الجهاز خرب بليلة يوم</span>
+			<select class="wl-select" data-in="day">
+				<option value="0">الجمعة</option><option value="1">السبت</option><option value="2">الأحد</option><option value="3">الاثنين</option>
+				<option value="4" selected>الثلاثاء</option><option value="5">الأربعاء</option><option value="6">الخميس</option>
+			</select>
+		</label>
+	</div>
+	<div class="os-week" data-out="week"></div>
+	<p class="wl-msg" data-out="msg"></p>
+	<div class="wl-grid">
+		<div class="wl-out"><span>مساحة النسخ بالأسبوع</span><strong data-out="space"></strong></div>
+		<div class="wl-out"><span>عدد النسخ يلي لازم نرجّعها</span><strong data-out="count"></strong></div>
+		<div class="wl-out"><span>حجم يلي لازم نرجّعه</span><strong data-out="restore"></strong></div>
+	</div>
+</div>
+
+<script>
+	import { restoreChain, backupSize, type BackupKind } from '../../scripts/os1';
+	const DAYS = ['الجمعة', 'السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+	const KIND_NAME = { full: 'كامل', incr: 'تزايدي', diff: 'تفاضلي' };
+
+	document.querySelectorAll<HTMLElement>('[data-backup-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const val = (k: string) => +root.querySelector<HTMLInputElement>(`[data-in="${k}"]`)!.value;
+		let kind: BackupKind = 'incr';
+
+		function run() {
+			const full = Math.max(1, val('full'));
+			const change = Math.max(0, val('change'));
+			const day = val('day');
+			const chain = new Set(restoreChain(kind, day));
+			let space = 0;
+			let restore = 0;
+			out('week').innerHTML = DAYS.map((d, i) => {
+				const size = backupSize(kind, i, full, change);
+				space += size;
+				if (chain.has(i)) restore += size;
+				const type = i === 0 || kind === 'full' ? 'full' : kind;
+				const state = i > day ? 'later' : chain.has(i) ? 'need' : '';
+				return `<div class="os-day ${state}"><b>${d}</b><span class="t-${type}">${KIND_NAME[type]}</span><small dir="ltr">${size} GB</small></div>`;
+			}).join('');
+			const names = [...chain].map((i) => DAYS[i]).join(' + ');
+			out('msg').innerHTML = `لنرجّع بيانات ليلة ${DAYS[day]} منحتاج: <strong>${names}</strong>.`;
+			out('space').textContent = `${space} GB`;
+			out('count').textContent = String(chain.size);
+			out('restore').textContent = `${restore} GB`;
+		}
+		root.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach((b) =>
+			b.addEventListener('click', () => {
+				kind = b.dataset.kind as BackupKind;
+				root.querySelectorAll('[data-kind]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				run();
+			}),
+		);
+		root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', run));
+		run();
+	});
+</script>

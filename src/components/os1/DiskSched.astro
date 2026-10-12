@@ -1,0 +1,155 @@
+---
+// محاكي جدولة القرص (الجلسة 1): FCFS و SSTF و SCAN و C-SCAN و LOOK و C-LOOK
+---
+
+<div class="not-content wl-box" data-disk-sched>
+	<h4>محاكي جدولة القرص</h4>
+	<div class="wl-row">
+		<span>مثال جاهز:</span>
+		<button type="button" class="wl-btn" data-ex="1">مثال 1</button>
+		<button type="button" class="wl-btn" data-ex="2">مثال 2</button>
+		<button type="button" class="wl-btn" data-ex="3">مثال 3</button>
+	</div>
+	<div class="wl-grid">
+		<label class="wl-label"><span>الطلبات بالترتيب (أرقام المسارات)</span><input class="wl-input" data-in="q" value="98 183 37 122 14 124 65 67" /></label>
+		<label class="wl-label"><span>مكان الرأس هلق</span><input class="wl-input" type="number" data-in="head" value="53" /></label>
+		<label class="wl-label"><span>آخر مسار بالقرص</span><input class="wl-input" type="number" data-in="max" value="199" /></label>
+		<label class="wl-label"><span>الرأس ماشي باتجاه</span>
+			<select class="wl-select" data-in="dir">
+				<option value="down">الصفر (لتحت)</option>
+				<option value="up">آخر مسار (لفوق)</option>
+			</select>
+		</label>
+	</div>
+	<div class="wl-row" role="group" aria-label="الخوارزمية">
+		<button type="button" class="wl-btn" data-algo="fcfs" aria-pressed="true">FCFS</button>
+		<button type="button" class="wl-btn" data-algo="sstf" aria-pressed="false">SSTF</button>
+		<button type="button" class="wl-btn" data-algo="scan" aria-pressed="false">SCAN</button>
+		<button type="button" class="wl-btn" data-algo="cscan" aria-pressed="false">C-SCAN</button>
+		<button type="button" class="wl-btn" data-algo="look" aria-pressed="false">LOOK</button>
+		<button type="button" class="wl-btn" data-algo="clook" aria-pressed="false">C-LOOK</button>
+	</div>
+	<p class="wl-msg" data-out="desc"></p>
+	<div class="wl-out"><span>ترتيب الخدمة</span><strong data-out="order"></strong></div>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="حركة رأس القرص" data-out="chart"></svg>
+		<figcaption>كل سطر خطوة: الخط بيبيّن لوين تحرك الرأس. الخط المنقّط هو القفزة الراجعة.</figcaption>
+	</figure>
+	<div class="wl-grid">
+		<div class="wl-out"><span>مجموع حركة الرأس</span><strong data-out="total"></strong></div>
+		<div class="wl-out"><span>متوسط الحركة لكل طلب</span><strong data-out="avg"></strong></div>
+	</div>
+	<p data-out="calc" class="os-calc"></p>
+	<details class="answer">
+		<summary>قارن كل الخوارزميات على نفس الطلبات</summary>
+		<div style="overflow-x:auto"><table class="wl-table" data-out="cmp"></table></div>
+	</details>
+</div>
+
+<script>
+	import { diskSchedule, type DiskAlgo } from '../../scripts/os1';
+
+	const EX: Record<string, [string, number, number, 'up' | 'down']> = {
+		'1': ['98 183 37 122 14 124 65 67', 53, 199, 'down'],
+		'2': ['82 170 43 140 24 16 190', 50, 199, 'up'],
+		'3': ['10 22 20 2 40 6 38', 20, 49, 'up'],
+	};
+	const NAMES: Record<DiskAlgo, string> = { fcfs: 'FCFS', sstf: 'SSTF', scan: 'SCAN', cscan: 'C-SCAN', look: 'LOOK', clook: 'C-LOOK' };
+	const DESC: Record<DiskAlgo, string> = {
+		fcfs: 'FCFS: مين أجا أول بيتخدم أول، متل دور الفرن. عادل بس الرأس بيروح وبيرجع كتير.',
+		sstf: 'SSTF: كل مرة بيروح للطلب الأقرب. حركة قليلة، بس الطلب البعيد ممكن يستنى كتير.',
+		scan: 'SCAN (المصعد): بيكمّل باتجاهه لآخر القرص، وبعدين بيرجع وبيخدم الباقي.',
+		cscan: 'C-SCAN: بيمشي باتجاه واحد لآخر القرص، وبيقفز للطرف التاني بدون ما يخدم، وبيكمّل بنفس الاتجاه.',
+		look: 'LOOK: متل SCAN، بس بيرجع عند آخر طلب بدل ما يوصل لآخر القرص.',
+		clook: 'C-LOOK: متل C-SCAN، بس بيقفز من آخر طلب لأول طلب بالطرف التاني.',
+	};
+
+	document.querySelectorAll<HTMLElement>('[data-disk-sched]').forEach((root) => {
+		const inp = (k: string) => root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-in="${k}"]`)!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let algo: DiskAlgo = 'fcfs';
+
+		function read() {
+			const max = Math.max(1, Math.round(+inp('max').value || 199));
+			const head = Math.min(max, Math.max(0, Math.round(+inp('head').value || 0)));
+			const q = inp('q')
+				.value.split(/[\s,،]+/)
+				.map(Number)
+				.filter((n) => Number.isFinite(n) && n >= 0 && n <= max)
+				.map(Math.round);
+			return { q, head, max, up: inp('dir').value === 'up' };
+		}
+
+		function run() {
+			const { q, head, max, up } = read();
+			const r = diskSchedule(algo, q, head, max, up);
+			out('desc').textContent = DESC[algo];
+			out('order').setAttribute('dir', 'ltr');
+			out('order').textContent = r.order.length ? [head, ...r.order].join(' → ') : '–';
+			out('total').textContent = `${r.total}`;
+			out('avg').textContent = q.length ? (r.total / q.length).toFixed(2) : '–';
+			const steps = r.path.slice(1).map((c, i) => `|${c} − ${r.path[i]}|`);
+			out('calc').innerHTML = r.path.length > 1 ? `الحساب${r.jump ? ` (منها القفزة الراجعة <bdi dir="ltr">${r.jump}</bdi>)` : ''}:<span class="os-calc-expr" dir="ltr">${steps.join(' + ')} = ${r.total}</span>` : '';
+			draw(r.path, max, algo === 'cscan' || algo === 'clook' ? r.jump : 0, r.order.length ? new Set(r.order) : new Set());
+			// المقارنة
+			let rows = '<thead><tr><th>الخوارزمية</th><th>مجموع الحركة</th></tr></thead><tbody>';
+			const all = (Object.keys(NAMES) as DiskAlgo[]).map((a) => [a, diskSchedule(a, q, head, max, up).total] as const);
+			const best = Math.min(...all.map((x) => x[1]));
+			for (const [a, t] of all) rows += `<tr class="${t === best ? 'hl' : ''}"><td>${NAMES[a]}</td><td>${t}</td></tr>`;
+			out('cmp').innerHTML = rows + '</tbody>';
+		}
+
+		function draw(path: number[], max: number, jump: number, served: Set<number>) {
+			const svg = out('chart') as unknown as SVGSVGElement;
+			const W = Math.max(320, Math.round(svg.getBoundingClientRect().width) || 600);
+			const P = { l: 16, r: 16, t: 34 };
+			const row = 26;
+			const H = P.t + row * (path.length - 1) + 20;
+			svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+			const X = (c: number) => P.l + (c / max) * (W - P.l - P.r);
+			const Y = (i: number) => P.t + i * row;
+			let g = `<line class="ai-frame" x1="${X(0)}" x2="${X(max)}" y1="${P.t - 12}" y2="${P.t - 12}"/>`;
+			const ticks = [0, Math.round(max / 4), Math.round(max / 2), Math.round((3 * max) / 4), max];
+			for (const t of ticks) g += `<text class="ai-tick" x="${X(t)}" y="${P.t - 18}" text-anchor="middle">${t}</text>`;
+			for (let i = 1; i < path.length; i++) {
+				const isJump = jump > 0 && isJumpStep(path, i, jump);
+				g += `<line x1="${X(path[i - 1])}" y1="${Y(i - 1)}" x2="${X(path[i])}" y2="${Y(i)}" class="os-seg ${isJump ? 'os-jump' : ''}"/>`;
+			}
+			path.forEach((c, i) => {
+				const real = i === 0 || served.has(c);
+				g += `<circle cx="${X(c)}" cy="${Y(i)}" r="${real ? 5 : 3.5}" class="${i === 0 ? 'os-head' : real ? 'os-dot' : 'os-edge'}"/>`;
+				const right = X(c) > W - 60;
+				g += `<text class="ai-tick" x="${X(c) + (right ? -9 : 9)}" y="${Y(i) + 4}" text-anchor="${right ? 'end' : 'start'}">${c}</text>`;
+			});
+			svg.innerHTML = g;
+		}
+		// القفزة: الخطوة يلي طولها = jump وبتبلّش من طرف أو من آخر طلب قبل تغيير الاتجاه
+		function isJumpStep(path: number[], i: number, jump: number) {
+			const d = path[i] - path[i - 1];
+			if (Math.abs(d) !== jump) return false;
+			const prev = i >= 2 ? path[i - 1] - path[i - 2] : 0;
+			return prev !== 0 && Math.sign(prev) !== Math.sign(d);
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-algo]').forEach((b) =>
+			b.addEventListener('click', () => {
+				algo = b.dataset.algo as DiskAlgo;
+				root.querySelectorAll('[data-algo]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				run();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const [q, h, m, d] = EX[b.dataset.ex!];
+				inp('q').value = q;
+				inp('head').value = String(h);
+				inp('max').value = String(m);
+				inp('dir').value = d;
+				run();
+			}),
+		);
+		root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', run));
+		addEventListener('resize', run);
+		run();
+	});
+</script>

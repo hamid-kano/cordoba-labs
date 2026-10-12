@@ -1,0 +1,106 @@
+---
+// محرر SQL حقيقي بالمتصفح (الجلسة 5): sql.js (SQLite) على قاعدة بيانات صغيرة للطلاب.
+// ملف الـ wasm بـ public/files/os1/sql-wasm.wasm (منسوخ من node_modules/sql.js/dist)
+---
+
+<div class="not-content wl-box" data-sql-lab>
+	<h4>جرّب SQL بالمتصفح</h4>
+	<p class="os-hint">قاعدة البيانات فيها 3 جداول: <code>students</code> (الطلاب)، و <code>courses</code> (المواد)، و <code>marks</code> (العلامات). اختار سؤال جاهز أو اكتب أمرك.</p>
+	<div class="wl-row os-q" data-out="presets"></div>
+	<textarea class="wl-input os-sql" rows="3" spellcheck="false" data-in="sql">SELECT * FROM students;</textarea>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="run">▶ نفّذ</button>
+		<button type="button" class="wl-btn" data-act="reset">رجّع القاعدة متل ما كانت</button>
+	</div>
+	<p class="wl-msg" data-out="msg">عم يتحمّل محرك SQL...</p>
+	<div style="overflow-x:auto"><table class="wl-table" data-out="res"></table></div>
+</div>
+
+<script>
+	import initSqlJs from 'sql.js/dist/sql-wasm.js';
+
+	const SETUP = `
+CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, city TEXT, year INTEGER);
+CREATE TABLE courses (id INTEGER PRIMARY KEY, title TEXT, hours INTEGER);
+CREATE TABLE marks (student_id INTEGER REFERENCES students(id), course_id INTEGER REFERENCES courses(id), mark INTEGER, PRIMARY KEY (student_id, course_id));
+INSERT INTO students VALUES (1,'أحمد','حلب',3),(2,'سارة','دمشق',3),(3,'محمد','حمص',2),(4,'ليلى','حلب',2),(5,'عمر','دمشق',3);
+INSERT INTO courses VALUES (1,'نظم التشغيل 1',3),(2,'الشبكات اللاسلكية',3),(3,'الذكاء الصنعي 2',4);
+INSERT INTO marks VALUES (1,1,85),(1,2,70),(2,1,92),(2,3,88),(3,1,55),(3,2,64),(4,1,73),(5,3,95),(5,1,48);`;
+
+	const PRESETS: [string, string][] = [
+		['كل الطلاب', 'SELECT * FROM students;'],
+		['طلاب حلب', "SELECT name, year FROM students WHERE city = 'حلب';"],
+		['العلامات من الأعلى', 'SELECT student_id, course_id, mark FROM marks ORDER BY mark DESC;'],
+		['الناجحين (60 وفوق)', 'SELECT * FROM marks WHERE mark >= 60;'],
+		['اسم الطالب مع علامته', 'SELECT s.name, c.title, m.mark\nFROM marks m\nJOIN students s ON s.id = m.student_id\nJOIN courses c ON c.id = m.course_id;'],
+		['معدل كل مادة', 'SELECT c.title, ROUND(AVG(m.mark), 1) AS avg_mark, COUNT(*) AS students\nFROM marks m JOIN courses c ON c.id = m.course_id\nGROUP BY c.title;'],
+		['ضيف طالب', "INSERT INTO students VALUES (6, 'نور', 'اللاذقية', 1);\nSELECT * FROM students;"],
+		['عدّل علامة', 'UPDATE marks SET mark = 60 WHERE student_id = 5 AND course_id = 1;\nSELECT * FROM marks WHERE student_id = 5;'],
+		['جرّب تكرار المفتاح', "INSERT INTO students VALUES (1, 'حدا تاني', 'حماة', 1);"],
+	];
+	const esc = (v: unknown) => String(v ?? 'NULL').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+
+	document.querySelectorAll<HTMLElement>('[data-sql-lab]').forEach(async (root) => {
+		const ta = root.querySelector<HTMLTextAreaElement>('[data-in="sql"]')!;
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const res = root.querySelector<HTMLElement>('[data-out="res"]')!;
+		const wasmUrl = new URL('../../files/os1/sql-wasm.wasm', location.href).href;
+		let SQL: Awaited<ReturnType<typeof initSqlJs>>;
+		let db: InstanceType<typeof SQL.Database>;
+		try {
+			SQL = await initSqlJs({ locateFile: () => wasmUrl });
+		} catch {
+			msg.textContent = 'ما قدرنا نحمّل محرك SQL. تأكد من الإنترنت وحدّث الصفحة.';
+			msg.className = 'wl-msg wl-bad';
+			return;
+		}
+		const reset = () => {
+			db?.close();
+			db = new SQL.Database();
+			db.run(SETUP);
+		};
+		reset();
+
+		function run() {
+			res.innerHTML = '';
+			try {
+				const r = db.exec(ta.value);
+				const changed = db.getRowsModified();
+				if (!r.length) {
+					msg.textContent = `✔ تنفّذ. عدد الأسطر يلي تغيّرت: ${changed}`;
+					msg.className = 'wl-msg wl-good';
+					return;
+				}
+				const last = r[r.length - 1];
+				res.innerHTML =
+					'<thead><tr>' + last.columns.map((c) => `<th dir="ltr">${esc(c)}</th>`).join('') + '</tr></thead><tbody>' +
+					last.values.map((row) => '<tr>' + row.map((v) => `<td>${esc(v)}</td>`).join('') + '</tr>').join('') + '</tbody>';
+				msg.textContent = `✔ رجع ${last.values.length} سطر.`;
+				msg.className = 'wl-msg wl-good';
+			} catch (e) {
+				const text = String((e as Error).message);
+				const hint = /UNIQUE|PRIMARY/i.test(text) ? ' (المفتاح الأساسي لازم يكون مميز: ما في طالبين بنفس الرقم)' : /no such table/i.test(text) ? ' (اسم الجدول غلط)' : /no such column/i.test(text) ? ' (اسم العمود غلط)' : /syntax/i.test(text) ? ' (في غلطة بكتابة الأمر)' : '';
+				msg.textContent = `✘ خطأ: ${text}${hint}`;
+				msg.className = 'wl-msg wl-bad';
+			}
+		}
+
+		root.querySelector('[data-out="presets"]')!.innerHTML = PRESETS.map((p, i) => `<button type="button" class="wl-btn" data-p="${i}">${p[0]}</button>`).join('');
+		root.querySelectorAll<HTMLButtonElement>('[data-p]').forEach((b) =>
+			b.addEventListener('click', () => {
+				ta.value = PRESETS[+b.dataset.p!][1];
+				run();
+			}),
+		);
+		root.querySelector('[data-act="run"]')!.addEventListener('click', run);
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', () => {
+			reset();
+			ta.value = PRESETS[0][1];
+			run();
+		});
+		ta.addEventListener('keydown', (e) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+		});
+		run();
+	});
+</script>

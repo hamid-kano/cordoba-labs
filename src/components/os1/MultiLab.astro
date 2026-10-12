@@ -1,0 +1,158 @@
+---
+// المعالجات المتعددة (الجلسة 7): tool="balance" توزيع المهام وموازنة الحمل، و tool="race" التعارض على متغير مشترك.
+interface Props {
+	tool: 'balance' | 'race';
+}
+const { tool } = Astro.props;
+---
+
+{
+	tool === 'balance' ? (
+		<div class="not-content wl-box" data-lb-lab>
+			<h4>وزّع المهام على المعالجات</h4>
+			<div class="wl-grid">
+				<label class="wl-label"><span>أطوال المهام (ثواني)</span><input class="wl-input" data-in="tasks" value="8 3 6 2 7 4 5 1" /></label>
+				<label class="wl-label"><span>عدد المعالجات</span>
+					<select class="wl-select" data-in="cpus"><option>2</option><option>3</option><option selected>4</option></select>
+				</label>
+			</div>
+			<div class="wl-row" role="group" aria-label="طريقة التوزيع">
+				<button type="button" class="wl-btn" data-p="one" aria-pressed="true">كلها على معالج واحد</button>
+				<button type="button" class="wl-btn" data-p="rr" aria-pressed="false">بالدور</button>
+				<button type="button" class="wl-btn" data-p="least" aria-pressed="false">للأقل شغل</button>
+				<button type="button" class="wl-btn" data-p="lpt" aria-pressed="false">الأطول أولاً للأقل شغل</button>
+			</div>
+			<p class="wl-msg" data-out="desc" />
+			<div class="os-lanes" data-out="lanes" />
+			<div class="wl-grid">
+				<div class="wl-out"><span>متى بيخلص الكل؟</span><strong data-out="end" /></div>
+				<div class="wl-out"><span>استغلال المعالجات</span><strong data-out="util" /></div>
+			</div>
+		</div>
+	) : (
+		<div class="not-content wl-box" data-race-lab>
+			<h4>معالجين وعدّاد واحد</h4>
+			<p class="os-hint">العدّاد <code>x = 5</code>. كل معالج بدو يعمل <code>x = x + 1</code>، يعني 3 خطوات: يقرأ، يجمع، يكتب. لازم يطلع <strong>7</strong>.</p>
+			<div class="wl-row" role="group" aria-label="الطريقة">
+				<button type="button" class="wl-btn" data-mode="race" aria-pressed="true">بدون قفل</button>
+				<button type="button" class="wl-btn" data-mode="lock" aria-pressed="false">مع قفل (Lock)</button>
+			</div>
+			<div style="overflow-x:auto"><table class="wl-table" data-out="tbl" /></div>
+			<div class="wl-row">
+				<button type="button" class="wl-btn primary" data-act="step">الخطوة الجاية ←</button>
+				<button type="button" class="wl-btn" data-act="all">كل الخطوات</button>
+				<button type="button" class="wl-btn" data-act="reset">من الأول</button>
+			</div>
+			<p class="wl-msg" data-out="msg" />
+		</div>
+	)
+}
+
+<script>
+	import { balance, type LbPolicy } from '../../scripts/os1';
+
+	const DESC: Record<LbPolicy, string> = {
+		one: 'بدون توزيع: معالج واحد عم يشتغل، والباقي قاعدين.',
+		rr: 'بالدور: المهمة 1 للمعالج 1، والمهمة 2 للمعالج 2... بدون ما نطّلع على طول المهمة.',
+		least: 'موازنة الحمل: كل مهمة بتروح للمعالج يلي عنده أقل شغل هلق.',
+		lpt: 'منرتّب المهام من الأطول للأقصر، وكل وحدة للمعالج الأقل شغل. غالباً بيعطي أحسن توزيع.',
+	};
+	const COLORS = ['#3a9ec2', '#e0a030', '#2fb36b', '#e5534b', '#a371f7', '#d16ba5', '#5ab0a0', '#8a8f98'];
+
+	document.querySelectorAll<HTMLElement>('[data-lb-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const inp = (k: string) => root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-in="${k}"]`)!;
+		let policy: LbPolicy = 'one';
+		function run() {
+			const tasks = inp('tasks').value.split(/[\s,،]+/).map(Number).filter((x) => x > 0).slice(0, 16);
+			const cpus = +inp('cpus').value;
+			if (!tasks.length) return;
+			const r = balance(tasks, cpus, policy);
+			out('desc').textContent = DESC[policy];
+			const scale = 100 / Math.max(r.makespan, 1);
+			out('lanes').innerHTML = r.lanes
+				.map(
+					(lane, c) =>
+						`<div class="os-lane"><span class="os-lane-name">CPU ${c + 1}</span><div class="os-lane-bar">` +
+						lane.map((t) => `<span style="inset-inline-start:${t.start * scale}%;width:${t.len * scale}%;background:${COLORS[t.task % COLORS.length]}" title="المهمة ${t.task + 1}: ${t.len} ث">T${t.task + 1}</span>`).join('') +
+						`</div><span class="os-lane-sum">${r.load[c]}</span></div>`,
+				)
+				.join('');
+			out('end').textContent = `${r.makespan} s`;
+			out('util').textContent = `${Math.round(r.utilization * 100)}%`;
+		}
+		root.querySelectorAll<HTMLButtonElement>('[data-p]').forEach((b) =>
+			b.addEventListener('click', () => {
+				policy = b.dataset.p as LbPolicy;
+				root.querySelectorAll('[data-p]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				run();
+			}),
+		);
+		root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', run));
+		run();
+	});
+
+	type Op = { cpu: 1 | 2; act: string; run: (s: { x: number; r1: number; r2: number; lock: number }) => string | null };
+	// كل عملية بترجع وصف، أو null إذا لازم تستنى (القفل مسكّر)
+	function ops(mode: 'race' | 'lock'): Op[] {
+		const read = (cpu: 1 | 2): Op => ({ cpu, act: 'يقرأ x', run: (s) => { s[cpu === 1 ? 'r1' : 'r2'] = s.x; return `قرأ ${s.x}`; } });
+		const add = (cpu: 1 | 2): Op => ({ cpu, act: 'يجمع 1', run: (s) => { const k = cpu === 1 ? 'r1' : 'r2'; s[k] += 1; return `صار عنده ${s[k]}`; } });
+		const write = (cpu: 1 | 2): Op => ({ cpu, act: 'يكتب x', run: (s) => { s.x = s[cpu === 1 ? 'r1' : 'r2']; return `x = ${s.x}`; } });
+		const lock = (cpu: 1 | 2): Op => ({ cpu, act: 'يقفل', run: (s) => { if (s.lock && s.lock !== cpu) return null; s.lock = cpu; return 'القفل إله 🔒'; } });
+		const unlock = (cpu: 1 | 2): Op => ({ cpu, act: 'يفتح القفل', run: (s) => { s.lock = 0; return 'فتح 🔓'; } });
+		if (mode === 'race') return [read(1), read(2), add(1), add(2), write(1), write(2)];
+		return [lock(1), read(1), lock(2), add(1), write(1), unlock(1), lock(2), read(2), add(2), write(2), unlock(2)];
+	}
+
+	document.querySelectorAll<HTMLElement>('[data-race-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let mode: 'race' | 'lock' = 'race';
+		let done = 0;
+		function run() {
+			const list = ops(mode);
+			const s = { x: 5, r1: 0, r2: 0, lock: 0 };
+			let rows = '<thead><tr><th>#</th><th>المعالج 1</th><th>المعالج 2</th><th>x</th></tr></thead><tbody>';
+			for (let i = 0; i < done; i++) {
+				const o = list[i];
+				const res = o.run(s) ?? 'القفل مسكّر، بيستنى ⏳';
+				const cell = `${o.act}: ${res}`;
+				rows += `<tr><td>${i + 1}</td><td>${o.cpu === 1 ? cell : ''}</td><td>${o.cpu === 2 ? cell : ''}</td><td>${s.x}</td></tr>`;
+			}
+			out('tbl').innerHTML = rows + '</tbody>';
+			const m = out('msg');
+			const finished = done >= list.length;
+			(root.querySelector('[data-act="step"]') as HTMLButtonElement).disabled = finished;
+			if (!finished) {
+				m.textContent = done ? '' : 'اكبس «الخطوة الجاية» وراقب x.';
+				m.className = 'wl-msg';
+			} else if (s.x === 7) {
+				m.textContent = '✔ x = 7: القفل خلّى معالج واحد يدخل بكل مرة. هاد هو الإقصاء المتبادل.';
+				m.className = 'wl-msg wl-good';
+			} else {
+				m.textContent = `✘ x = ${s.x} بدل 7! المعالجين قرأوا نفس القيمة بنفس الوقت، فضاعت زيادة وحدة. هاد اسمه «حالة سباق».`;
+				m.className = 'wl-msg wl-bad';
+			}
+		}
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+			b.addEventListener('click', () => {
+				mode = b.dataset.mode as 'race' | 'lock';
+				root.querySelectorAll('[data-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				done = 0;
+				run();
+			}),
+		);
+		root.querySelector('[data-act="step"]')!.addEventListener('click', () => {
+			done++;
+			run();
+		});
+		root.querySelector('[data-act="all"]')!.addEventListener('click', () => {
+			done = ops(mode).length;
+			run();
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', () => {
+			done = 0;
+			run();
+		});
+		run();
+	});
+</script>

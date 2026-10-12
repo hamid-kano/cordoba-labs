@@ -1,0 +1,58 @@
+---
+// بصمة SHA-256 (الجلسة 4 والجلسة 8): أي تغيير صغير بالنص بيغيّر البصمة كلها.
+---
+
+<div class="not-content wl-box" data-hash-lab>
+	<h4>جرّب البصمة (SHA-256)</h4>
+	<label class="wl-label"><span>اكتب أي نص (متل محتوى ملف):</span>
+		<textarea class="wl-input os-text" rows="3" data-in="t">علامة الطالب أحمد: 85</textarea>
+	</label>
+	<div class="wl-out"><span>البصمة</span><strong class="os-hash" data-out="h"></strong></div>
+	<p class="wl-msg" data-out="cmp"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-act="save">📌 احفظ البصمة هلق</button>
+		<button type="button" class="wl-btn" data-act="tamper">غيّر حرف واحد</button>
+	</div>
+</div>
+
+<script>
+	const hex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+	document.querySelectorAll<HTMLElement>('[data-hash-lab]').forEach((root) => {
+		const t = root.querySelector<HTMLTextAreaElement>('[data-in="t"]')!;
+		const h = root.querySelector<HTMLElement>('[data-out="h"]')!;
+		const cmp = root.querySelector<HTMLElement>('[data-out="cmp"]')!;
+		let saved = '';
+		let current = '';
+		async function run() {
+			if (!crypto?.subtle) {
+				h.textContent = 'المتصفح ما بيدعم الحساب هون';
+				return;
+			}
+			current = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t.value)));
+			h.textContent = current;
+			if (!saved) cmp.textContent = 'احفظ البصمة، وبعدين غيّر النص ولو حرف، وشوف شو بيصير.';
+			else if (saved === current) {
+				cmp.textContent = '✔ نفس البصمة المحفوظة: الملف ما تغيّر.';
+				cmp.className = 'wl-msg wl-good';
+			} else {
+				let same = 0;
+				for (let i = 0; i < 64; i++) if (saved[i] === current[i]) same++;
+				cmp.textContent = `✘ البصمة تغيّرت: الملف انعدّل! (بس ${same} من 64 خانة بقيت متل ما هي)`;
+				cmp.className = 'wl-msg wl-bad';
+			}
+		}
+		t.addEventListener('input', run);
+		root.querySelector('[data-act="save"]')!.addEventListener('click', () => {
+			saved = current;
+			cmp.className = 'wl-msg';
+			run();
+		});
+		root.querySelector('[data-act="tamper"]')!.addEventListener('click', () => {
+			const v = t.value;
+			const i = v.search(/\d/);
+			t.value = i >= 0 ? v.slice(0, i) + ((+v[i] + 1) % 10) + v.slice(i + 1) : v + '.';
+			run();
+		});
+		run();
+	});
+</script>

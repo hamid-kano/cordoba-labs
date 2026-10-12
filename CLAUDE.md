@@ -85,7 +85,11 @@ public/favicon.png, apple-touch-icon.png, og-image.png   أيقونات وصور
   - جلسة Packet Tracer القديمة (`lab-01-wlan-setup`) انحذفت.
   - أخطاء بملفات المادة (صحّحها بالجلسات بهدوء): القانون بخط اليد ‎(2πdf/c)² والصح ‎(4πdf/c)²؛ «IP Version 5» والصح IPv6؛ Class D للـ Multicast مش «عسكرية»؛ 127 للـ loopback؛ MAC فيه `5t`؛ OSI من ISO مش IEEE؛ RTP بدل RIP؛ Probe Response مش Probe Request.
   - **لا تحط معادلات KaTeX فيها كلمات عربية** (بتعطي تحذير unknownSymbol)، اكتب الكلام العربي برّا المعادلة.
-- **نظم تشغيل 1:** خطة + جلسة 1 (fork/exec/wait بـ C).
+- **نظم تشغيل 1:** المنهج النظري هو **الفصول 12 لـ 19** (يبدو كتاب Deitel، صورة جدول الأسابيع من المستخدم): الأقراص، و RAID، والملفات، والنسخ، وقواعد البيانات، وتصميم المعالج، والمعالجات المتعددة، والشبكات والأنظمة الموزعة وخدمات الويب، والأمن. ما فيه عمليات ولا جدولة معالج (جلسة `fork` القديمة انحذفت). نفس الأسلوب المبسّط، و**كل الجلسات من المتصفح** (المستخدم طلب 8 جلسات بأمثلة وتمارين بسيطة).
+  - الجلسات: 1 `lab-01-disk-scheduling` (DiskSched، DiskDiagram)، 2 `lab-02-raid` (RaidLab)، 3 `lab-03-file-systems` (FileAlloc على 24 كتلة)، 4 `lab-04-backup-recovery` (BackupLab، HashLab)، 5 `lab-05-databases` (SqlLab، RelationalDiagram)، 6 `lab-06-processor-design` (CpuLab tool=time/pipe)، 7 `lab-07-multiprocessors` (MultiLab tool=balance/race، UmaNumaDiagram)، 8 `lab-08-distributed-security` (NetLab tool=request/caesar/password، ClientServerDiagram، HashLab).
+  - المكوّنات بـ `src/components/os1/`، والحسابات بـ `src/scripts/os1.ts` (جدولة القرص، و RAID، والنسخ، والأداء، والموازنة)، وبتنجرب بـ `node file.mts`. أرقام الصفحات كلها من هالمحرك: مثال 1 (طلبات Silberschatz، الرأس 53، لتحت) FCFS 640، SSTF 236، SCAN 236، LOOK 208؛ مثال 2 (الرأس 50، لفوق) 642، 208، 332، C-SCAN 391 مع القفزة، LOOK 314، C-LOOK 341.
+  - **SqlLab** بيستخدم `sql.js` (مثبّت `1.11.0`)، وملف `public/files/os1/sql-wasm.wasm` منسوخ من `node_modules/sql.js/dist` (إذا تحدّثت المكتبة لازم ينسخ من جديد). و NetLab بيطلب `public/files/os1/students.json` من نفس الموقع.
+  - التجارب الحقيقية على ويندوز (Task Manager، و PowerShell `Get-PhysicalDisk` و `Get-FileHash` و `Get-CimInstance Win32_Processor`، و `tree`).
 - توزيع العلامات بخطة ذكاء 2 مجرد مثال.
 
 ## Git والنشر

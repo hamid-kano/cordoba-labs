@@ -1,0 +1,142 @@
+---
+// الجلسة 8: tool="request" طلب حقيقي من خادم (زبون وخادم وخدمة ويب)، و tool="caesar" تشفير قيصر، و tool="password" قوة كلمة السر.
+interface Props {
+	tool: 'request' | 'caesar' | 'password';
+}
+const { tool } = Astro.props;
+---
+
+{
+	tool === 'request' && (
+		<div class="not-content wl-box" data-req-lab>
+			<h4>اطلب بيانات من الخادم</h4>
+			<p class="os-hint">جهازك هو <strong>الزبون</strong>، وخادم الموقع هو <strong>الخادم</strong>. رح نطلب ملف بيانات بصيغة JSON، متل ما بيعمل أي تطبيق موبايل.</p>
+			<div class="wl-row">
+				<button type="button" class="wl-btn primary" data-act="ok">📨 اطلب students.json</button>
+				<button type="button" class="wl-btn" data-act="bad">اطلب ملف مش موجود</button>
+			</div>
+			<div class="wl-out"><span>الطلب</span><strong class="os-mono-out" data-out="req">–</strong></div>
+			<div class="wl-grid">
+				<div class="wl-out"><span>رد الخادم</span><strong data-out="status">–</strong></div>
+				<div class="wl-out"><span>الوقت</span><strong data-out="time">–</strong></div>
+			</div>
+			<pre class="os-json" dir="ltr" data-out="body" />
+			<div data-out="table" />
+		</div>
+	)
+}
+{
+	tool === 'caesar' && (
+		<div class="not-content wl-box" data-caesar-lab>
+			<h4>تشفير قيصر</h4>
+			<div class="wl-grid">
+				<label class="wl-label"><span>الرسالة (بالإنكليزي)</span><input class="wl-input" data-in="msg" value="HELLO STUDENTS" /></label>
+				<label class="ai-slider"><span>المفتاح (قديش منزيح)<output data-o="k" /></span><input type="range" min="0" max="25" value="3" data-in="k" /></label>
+			</div>
+			<div class="wl-out"><span>الرسالة المشفّرة</span><strong class="os-mono-out" data-out="enc" /></div>
+			<p class="os-hint" data-out="map" />
+			<div class="wl-out"><span>فك التشفير بنفس المفتاح</span><strong class="os-mono-out" data-out="dec" /></div>
+		</div>
+	)
+}
+{
+	tool === 'password' && (
+		<div class="not-content wl-box" data-pw-lab>
+			<h4>قديش كلمة السر قوية؟</h4>
+			<label class="wl-label"><span>جرّب كلمة سر (ما تكتب كلمة سرك الحقيقية!)</span><input class="wl-input" data-in="pw" value="ahmad123" autocomplete="off" /></label>
+			<div class="wl-grid">
+				<div class="wl-out"><span>عدد الاحتمالات</span><strong data-out="combos" /></div>
+				<div class="wl-out"><span>وقت الكسر بالتجريب</span><strong data-out="time" /></div>
+			</div>
+			<p class="wl-msg" data-out="tips" />
+			<p class="os-hint">الحساب على فرض جهاز بيجرّب 10 مليار كلمة بالثانية. كلمات السر المشهورة أو الأسماء بتنكسر أسرع بكتير لأنها أول شي بيتجرّب.</p>
+		</div>
+	)
+}
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-req-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		async function go(file: string) {
+			const url = new URL(`../../files/os1/${file}`, location.href);
+			out('req').textContent = `GET ${url.pathname}`;
+			out('status').textContent = '…';
+			out('body').textContent = '';
+			out('table').innerHTML = '';
+			const t0 = performance.now();
+			try {
+				const r = await fetch(url, { cache: 'no-store' });
+				out('time').textContent = `${Math.round(performance.now() - t0)} ms`;
+				out('status').textContent = `${r.status} ${r.ok ? 'OK ✔' : r.status === 404 ? 'Not Found ✘' : ''}`;
+				if (!r.ok) {
+					out('body').textContent = 'الخادم ردّ إنه الملف مش موجود (404).';
+					return;
+				}
+				const data = await r.json();
+				out('body').textContent = JSON.stringify(data, null, 2);
+				out('table').innerHTML =
+					'<p class="os-hint">ونفس البيانات بعد ما «فهمها» التطبيق وعرضها:</p><table class="wl-table"><thead><tr><th>الاسم</th><th>المدينة</th><th>العلامة</th></tr></thead><tbody>' +
+					data.students.map((s: { name: string; city: string; mark: number }) => `<tr><td>${s.name}</td><td>${s.city}</td><td>${s.mark}</td></tr>`).join('') +
+					'</tbody></table>';
+			} catch {
+				out('status').textContent = 'ما في اتصال ✘';
+				out('body').textContent = 'ما قدرنا نوصل للخادم. تأكد من الإنترنت.';
+			}
+		}
+		root.querySelector('[data-act="ok"]')!.addEventListener('click', () => go('students.json'));
+		root.querySelector('[data-act="bad"]')!.addEventListener('click', () => go('missing.json'));
+	});
+
+	const shift = (s: string, k: number) => s.replace(/[a-z]/gi, (c) => {
+		const base = c <= 'Z' ? 65 : 97;
+		return String.fromCharCode(((c.charCodeAt(0) - base + k + 26) % 26) + base);
+	});
+	document.querySelectorAll<HTMLElement>('[data-caesar-lab]').forEach((root) => {
+		const inp = (k: string) => root.querySelector<HTMLInputElement>(`[data-in="${k}"]`)!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		function run() {
+			const k = +inp('k').value;
+			root.querySelector('[data-o="k"]')!.textContent = String(k);
+			const enc = shift(inp('msg').value, k);
+			out('enc').textContent = enc;
+			out('dec').textContent = shift(enc, -k);
+			out('map').innerHTML = `يعني: <bdi dir="ltr">A → ${shift('A', k)}، B → ${shift('B', k)}، C → ${shift('C', k)} ...</bdi> وفي بس 25 مفتاح، فالمهاجم بيجرّبهن كلهن بثواني.`;
+		}
+		root.querySelectorAll('input').forEach((i) => i.addEventListener('input', run));
+		run();
+	});
+
+	document.querySelectorAll<HTMLElement>('[data-pw-lab]').forEach((root) => {
+		const inp = root.querySelector<HTMLInputElement>('[data-in="pw"]')!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const human = (s: number) => {
+			if (s < 1) return 'أقل من ثانية';
+			const units: [number, string][] = [[3.15e7 * 1e6, 'مليون سنة'], [3.15e7 * 1e3, 'ألف سنة'], [3.15e7, 'سنة'], [86400, 'يوم'], [3600, 'ساعة'], [60, 'دقيقة'], [1, 'ثانية']];
+			for (const [u, n] of units) if (s >= u) return `${(s / u).toLocaleString('en-US', { maximumFractionDigits: 1 })} ${n}`;
+			return '';
+		};
+		function run() {
+			const p = inp.value;
+			let pool = 0;
+			const has = { lower: /[a-z]/.test(p), upper: /[A-Z]/.test(p), digit: /\d/.test(p), sym: /[^a-zA-Z0-9]/.test(p) };
+			if (has.lower) pool += 26;
+			if (has.upper) pool += 26;
+			if (has.digit) pool += 10;
+			if (has.sym) pool += 33;
+			const combos = Math.pow(pool || 1, p.length);
+			const exp = p.length * Math.log10(pool || 1);
+			out('combos').innerHTML = `<bdi dir="ltr">${pool || 0}<sup>${p.length}</sup> ≈ 10<sup>${exp.toFixed(0)}</sup></bdi>`;
+			out('time').textContent = human(combos / 1e10 / 2);
+			const tips = [];
+			if (p.length < 12) tips.push('طوّلها لـ 12 حرف أو أكتر');
+			if (!has.upper) tips.push('ضيف حروف كبيرة');
+			if (!has.digit) tips.push('ضيف أرقام');
+			if (!has.sym) tips.push('ضيف رموز متل ! أو #');
+			const m = out('tips');
+			m.textContent = tips.length ? `نصيحة: ${tips.join('، ')}.` : '✔ كلمة سر قوية.';
+			m.className = 'wl-msg ' + (tips.length ? 'wl-bad' : 'wl-good');
+		}
+		inp.addEventListener('input', run);
+		run();
+	});
+</script>

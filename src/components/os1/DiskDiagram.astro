@@ -1,0 +1,54 @@
+---
+// القرص الصلب من فوق (الجلسة 1): الصحن، والمسارات، والقطاع، والذراع والرأس.
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 600 330" role="img" aria-label="قرص صلب من فوق: صحن عليه مسارات دائرية، والقطاع جزء من المسار، والذراع بيحرّك الرأس بين المسارات">
+		<defs>
+			<marker id="disk-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+			</marker>
+		</defs>
+		<!-- الصحن والمسارات -->
+		<circle cx="200" cy="165" r="140" class="d-box2"></circle>
+		<circle cx="200" cy="165" r="118" class="d-line disk-track"></circle>
+		<circle cx="200" cy="165" r="96" class="d-line disk-track"></circle>
+		<circle cx="200" cy="165" r="74" class="d-line disk-track"></circle>
+		<circle cx="200" cy="165" r="52" class="d-line disk-track"></circle>
+		<circle cx="200" cy="165" r="16" class="d-fgray"></circle>
+		<!-- قطاع -->
+		<path d="M200 69 A96 96 0 0 1 268 97 L252 113 A74 74 0 0 0 200 91 Z" class="d-fblue disk-sector"></path>
+		<!-- المسار المظلل -->
+		<circle cx="200" cy="165" r="96" class="d-line d-green disk-hl"></circle>
+		<!-- اتجاه الدوران -->
+		<path d="M90 70 A150 150 0 0 1 150 28" class="d-line" marker-end="url(#disk-ar)"></path>
+		<text x="92" y="38" class="d-s">بيلف</text>
+		<!-- الذراع والرأس -->
+		<path d="M520 300 L330 165 L290 165" class="d-line disk-arm"></path>
+		<circle cx="520" cy="300" r="12" class="d-fgray"></circle>
+		<rect x="280" y="157" width="16" height="16" rx="3" class="d-fred"></rect>
+		<path d="M298 178 Q 320 210 362 214" class="d-line"></path>
+		<path d="M300 130 L360 130" class="d-line d-dash" marker-start="url(#disk-ar)" marker-end="url(#disk-ar)"></path>
+
+		<!-- الأسماء -->
+		<text x="470" y="60" class="d-t d-b">المسار</text>
+		<line x1="420" y1="55" x2="296" y2="110" class="d-line d-green"></line>
+		<text x="470" y="100" class="d-t d-b">القطاع</text>
+		<line x1="425" y1="95" x2="262" y2="96" class="d-line d-blue"></line>
+		<text x="420" y="225" class="d-t d-b">الرأس</text>
+		<text x="420" y="248" class="d-s">بيقرأ ويكتب</text>
+		<text x="410" y="140" class="d-s">الذراع بيتحرك</text>
+		<text x="410" y="160" class="d-s">بين المسارات</text>
+		<text x="555" y="320" class="d-s">الذراع</text>
+	</svg>
+	<figcaption>
+		القرص مقسوم لـ<strong>مسارات</strong> (دواير)، وكل مسار مقسوم لـ<strong>قطاعات</strong>. لنقرأ شي، الذراع بيحرّك الرأس للمسار الصح (هاد <strong>زمن البحث</strong>، وهو الأبطأ)، وبعدين منستنى القرص يلف لحتى يوصل القطاع (هاد <strong>زمن الدوران</strong>).
+	</figcaption>
+</figure>
+
+<style>
+	.disk-track { stroke-width: 1.2; opacity: 0.6; }
+	.disk-hl { stroke-width: 3; opacity: 0.9; }
+	.disk-sector { fill-opacity: 0.55; }
+	.disk-arm { stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; stroke: var(--sl-color-gray-3); }
+</style>

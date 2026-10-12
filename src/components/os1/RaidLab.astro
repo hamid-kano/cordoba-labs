@@ -1,0 +1,140 @@
+---
+// مختبر RAID (الجلسة 2): اختار المستوى وعدد الأقراص، واكبس على قرص لتخرّبه وشوف إذا البيانات بتضل سليمة.
+---
+
+<div class="not-content wl-box" data-raid-lab>
+	<h4>مختبر RAID</h4>
+	<div class="wl-row" role="group" aria-label="المستوى">
+		<span>المستوى:</span>
+		<button type="button" class="wl-btn" data-level="0" aria-pressed="false">RAID 0</button>
+		<button type="button" class="wl-btn" data-level="1" aria-pressed="false">RAID 1</button>
+		<button type="button" class="wl-btn" data-level="5" aria-pressed="true">RAID 5</button>
+		<button type="button" class="wl-btn" data-level="6" aria-pressed="false">RAID 6</button>
+		<button type="button" class="wl-btn" data-level="10" aria-pressed="false">RAID 10</button>
+	</div>
+	<div class="wl-row">
+		<span>عدد الأقراص:</span>
+		<button type="button" class="wl-btn" data-n="-1" aria-label="قرص أقل">−</button>
+		<strong data-out="n" class="wl-mono"></strong>
+		<button type="button" class="wl-btn" data-n="1" aria-label="قرص زيادة">+</button>
+		<span>حجم كل قرص:</span>
+		<select class="wl-select" data-in="size">
+			<option value="1">1 TB</option>
+			<option value="2" selected>2 TB</option>
+			<option value="4">4 TB</option>
+		</select>
+	</div>
+	<p class="wl-msg" data-out="note"></p>
+	<div class="os-disks" data-out="disks"></div>
+	<p class="os-hint">اكبس على أي قرص لتخرّبه (أو تصلّحه).</p>
+	<p class="wl-msg" data-out="status"></p>
+	<div class="wl-grid">
+		<div class="wl-out"><span>المساحة الكلية</span><strong data-out="raw"></strong></div>
+		<div class="wl-out"><span>المساحة يلي فيك تستخدمها</span><strong data-out="usable"></strong></div>
+		<div class="wl-out"><span>نسبة الاستفادة</span><strong data-out="eff"></strong></div>
+		<div class="wl-out"><span>بيتحمّل خراب</span><strong data-out="tol"></strong></div>
+	</div>
+</div>
+
+<script>
+	import { raidInfo, type RaidLevel } from '../../scripts/os1';
+
+	document.querySelectorAll<HTMLElement>('[data-raid-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let level: RaidLevel = 5;
+		let n = 4;
+		let failed = new Set<number>();
+
+		// محتوى كل قرص لـ 4 صفوف (Stripes)
+		function layout(): string[][] {
+			const disks: string[][] = Array.from({ length: n }, () => []);
+			let k = 1;
+			for (let row = 0; row < 4; row++) {
+				if (level === 0) for (let d = 0; d < n; d++) disks[d].push(`D${k++}`);
+				else if (level === 1) {
+					const b = `D${k++}`;
+					for (let d = 0; d < n; d++) disks[d].push(b);
+				} else if (level === 5) {
+					const p = (n - 1 - row % n + n) % n;
+					for (let d = 0; d < n; d++) disks[d].push(d === p ? `P${row + 1}` : `D${k++}`);
+				} else if (level === 6) {
+					const p = (n - 1 - row % n + n) % n;
+					const q = (p + 1) % n;
+					for (let d = 0; d < n; d++) disks[d].push(d === p ? `P${row + 1}` : d === q ? `Q${row + 1}` : `D${k++}`);
+				} else {
+					for (let pair = 0; pair < n / 2; pair++) {
+						const b = `D${k++}`;
+						disks[2 * pair].push(b);
+						disks[2 * pair + 1].push(b);
+					}
+				}
+			}
+			return disks;
+		}
+
+		function alive() {
+			const f = failed.size;
+			if (level === 0) return f === 0;
+			if (level === 1) return f < n;
+			if (level === 5) return f <= 1;
+			if (level === 6) return f <= 2;
+			for (let p = 0; p < n / 2; p++) if (failed.has(2 * p) && failed.has(2 * p + 1)) return false;
+			return true;
+		}
+
+		function run() {
+			const size = +root.querySelector<HTMLSelectElement>('[data-in="size"]')!.value;
+			const info = raidInfo(level, n, size)!;
+			out('n').textContent = String(n);
+			out('note').textContent = info.ok ? info.note : `RAID ${level} بدو ${level === 10 ? 'عدد زوجي من الأقراص، 4 أو أكتر' : `${info.min} أقراص على الأقل`}.`;
+			const disks = layout();
+			const ok = alive();
+			out('disks').innerHTML = disks
+				.map(
+					(blocks, d) =>
+						`<button type="button" class="os-disk ${failed.has(d) ? 'bad' : ''}" data-disk="${d}" aria-pressed="${failed.has(d)}" aria-label="القرص ${d + 1}">` +
+						`<span class="os-disk-name">قرص ${d + 1}${failed.has(d) ? ' ✘' : ''}</span>` +
+						blocks.map((b) => `<span class="os-blk ${b[0] === 'D' ? '' : 'par'}">${b}</span>`).join('') +
+						`</button>`,
+				)
+				.join('');
+			out('disks').querySelectorAll<HTMLButtonElement>('[data-disk]').forEach((b) =>
+				b.addEventListener('click', () => {
+					const d = +b.dataset.disk!;
+					failed.has(d) ? failed.delete(d) : failed.add(d);
+					run();
+				}),
+			);
+			const st = out('status');
+			st.className = 'wl-msg ' + (ok ? 'wl-good' : 'wl-bad');
+			st.textContent = failed.size === 0 ? 'كل الأقراص شغّالة.' : ok ? `خرب ${failed.size} وما زالت البيانات سليمة ✔ (بدّل القرص الخربان وبترجع البيانات عليه)` : 'راحت البيانات! ✘ هالمستوى ما بيتحمّل هالعدد من الأقراص الخربانة.';
+			out('raw').textContent = `${n * size} TB`;
+			out('usable').textContent = info.ok ? `${info.usable} TB` : '–';
+			out('eff').textContent = info.ok ? `${Math.round((info.usable / (n * size)) * 100)}%` : '–';
+			out('tol').textContent = level === 10 ? 'قرص من كل زوج' : `${info.tolerate} ${info.tolerate === 1 ? 'قرص' : 'أقراص'}`;
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-level]').forEach((b) =>
+			b.addEventListener('click', () => {
+				level = +b.dataset.level! as RaidLevel;
+				root.querySelectorAll('[data-level]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				const min = level === 0 || level === 1 ? 2 : level === 5 ? 3 : 4;
+				if (n < min) n = min;
+				if (level === 10 && n % 2) n++;
+				failed = new Set();
+				run();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-n]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const step = level === 10 ? 2 * +b.dataset.n! : +b.dataset.n!;
+				const min = level === 0 || level === 1 ? 2 : level === 5 ? 3 : 4;
+				n = Math.min(8, Math.max(min, n + step));
+				failed = new Set([...failed].filter((d) => d < n));
+				run();
+			}),
+		);
+		root.querySelector('[data-in="size"]')!.addEventListener('input', run);
+		run();
+	});
+</script>
