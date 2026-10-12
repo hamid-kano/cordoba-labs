@@ -217,3 +217,13 @@ code,
 .term-pop-en { color: var(--sl-color-gray-3); font-family: sans-serif; font-size: var(--sl-text-sm); }
 .term-pop-x { margin-inline-start: auto; background: none; border: 0; color: var(--sl-color-gray-3); font-size: 1.1rem; cursor: pointer; }
 .term-pop-def { display: block; }
+
+/* ===== إخفاء القائمة الجانبية و«على هذه الصفحة» (PanelToggles.astro) ===== */
+@media (min-width: 50em) {
+	:root[data-hide-nav] .sidebar-pane { display: none; }
+	:root[data-hide-nav][data-has-sidebar] { --sl-content-inline-start: 0rem; }
+}
+@media (min-width: 72em) {
+	:root[data-hide-toc] .right-sidebar-container { display: none; }
+	:root[data-hide-toc] .main-pane { width: 100%; --sl-content-margin-inline: auto; }
+}

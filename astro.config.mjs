@@ -43,6 +43,7 @@ export default defineConfig({
 			],
 			components: {
 				Banner: './src/components/Banner.astro',
+				SocialIcons: './src/components/PanelToggles.astro',
 			},
 			lastUpdated: true,
 			pagination: true,

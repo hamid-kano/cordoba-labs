@@ -23,6 +23,8 @@ src/content/docs/
     lab-NN-name.mdx    جلسة (sidebar.order: NN)
 src/data/announcements.ts   مصدر الإعلانات (الأحدث أولاً). أول عنصر بيظهر بالشريط
 src/components/Banner.astro override لشريط الإعلانات، بينسكر وبينحفظ بـ localStorage
+src/components/PanelToggles.astro override لـ SocialIcons: زرين بالهيدر (كمبيوتر بس) لإخفاء القائمة الجانبية و«على هذه الصفحة»
+                            (بيحطوا data-hide-nav / data-hide-toc على <html>، والـ CSS بآخر custom.css، والحالة بـ localStorage)
 src/styles/custom.css       الألوان، و .lab-meta، و details.answer، والكود/المعادلات LTR
 public/files/<course>/      ملفات التحميل (.m، .c ...)
 src/assets/brand/           هوية جامعة قرطبة الخاصة (شوف تحت)

@@ -1,0 +1,96 @@
+---
+// أزرار إظهار/إخفاء القائمة الجانبية و«على هذه الصفحة» (على شاشات الكمبيوتر بس).
+// بينحط مكان SocialIcons بالهيدر، والاختيار بينحفظ بـ localStorage.
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
+
+const { hasSidebar, toc } = Astro.locals.starlightRoute;
+---
+
+<script is:inline>
+	try {
+		for (const k of ['nav', 'toc']) {
+			if (localStorage.getItem('cpu-hide-' + k) === '1') document.documentElement.setAttribute('data-hide-' + k, '');
+		}
+	} catch {}
+</script>
+
+{
+	hasSidebar && (
+		<button type="button" class="panel-toggle" data-panel="nav" title="إظهار وإخفاء القائمة الجانبية" aria-label="إظهار وإخفاء القائمة الجانبية">
+			<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /><path class="pt-fill" d="M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4z" /></svg>
+		</button>
+	)
+}
+{
+	toc && (
+		<button type="button" class="panel-toggle toc-toggle" data-panel="toc" title="إظهار وإخفاء «على هذه الصفحة»" aria-label="إظهار وإخفاء «على هذه الصفحة»">
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1.2" /><circle cx="4.5" cy="12" r="1.2" /><circle cx="4.5" cy="18" r="1.2" /></svg>
+		</button>
+	)
+}
+<Default />
+
+<script>
+	const root = document.documentElement;
+	document.querySelectorAll<HTMLButtonElement>('.panel-toggle').forEach((btn) => {
+		const k = btn.dataset.panel!;
+		const sync = () => btn.setAttribute('aria-pressed', String(!root.hasAttribute(`data-hide-${k}`)));
+		sync();
+		btn.addEventListener('click', () => {
+			const hide = root.toggleAttribute(`data-hide-${k}`);
+			try {
+				localStorage.setItem(`cpu-hide-${k}`, hide ? '1' : '0');
+			} catch {}
+			sync();
+		});
+	});
+</script>
+
+<style>
+	.panel-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 2rem;
+		height: 2rem;
+		padding: 0;
+		border: 1px solid transparent;
+		border-radius: 0.4rem;
+		background: none;
+		color: var(--sl-color-gray-2);
+		cursor: pointer;
+	}
+	.panel-toggle:hover {
+		color: var(--sl-color-white);
+		border-color: var(--sl-color-gray-5);
+	}
+	.panel-toggle svg {
+		width: 1.35rem;
+		height: 1.35rem;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.8;
+		stroke-linecap: round;
+	}
+	.panel-toggle circle,
+	.panel-toggle .pt-fill {
+		fill: currentColor;
+		stroke: none;
+	}
+	/* لما تكون القائمة مخفية، الجزء الملوّن بالأيقونة بيختفي */
+	.panel-toggle[aria-pressed='false'] .pt-fill {
+		fill: none;
+	}
+	.panel-toggle[aria-pressed='false'] {
+		opacity: 0.6;
+	}
+	/* «على هذه الصفحة» بيطلع جانبي من 72rem وطالع. تحت هيك هي قائمة منسدلة أصلاً */
+	.toc-toggle {
+		display: none;
+	}
+	@media (min-width: 72rem) {
+		.toc-toggle {
+			display: flex;
+		}
+	}
+</style>
