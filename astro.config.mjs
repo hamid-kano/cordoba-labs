@@ -12,6 +12,9 @@ const withBase = (path) => `${base.replace(/\/$/, '')}/${path}`;
 const ogImage = new URL(withBase('og-image.png'), site).href;
 
 export default defineConfig({
+	// sql.js (محرر SQL بجلسة نظم التشغيل 5) مكتوبة بصيغة قديمة (CommonJS)، فمنخلّي Vite يجهّزها
+	// من أول ما يشتغل السيرفر، وإلا أول فتحة للصفحة بتعلق بخطأ «Outdated Optimize Dep».
+	vite: { optimizeDeps: { include: ['sql.js/dist/sql-wasm.js'] } },
 	site,
 	base,
 	markdown: { remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] },
