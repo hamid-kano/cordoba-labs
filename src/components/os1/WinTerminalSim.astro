@@ -1,0 +1,331 @@
+---
+// طرفية ويندوز (cmd) تدريبية بالمتصفح (الجلسة 1): نظام ملفات وهمي، وأوامر cmd الأساسية، ومهمات بتتصحّح لحالها.
+---
+
+<div class="not-content wl-box" data-win-term>
+	<h4>طرفية ويندوز التدريبية</h4>
+	<div class="os-missions" data-out="missions"></div>
+	<div class="os-term os-term-win" dir="ltr" data-out="screen" aria-live="polite"></div>
+	<form class="os-term-line os-term-win" dir="ltr" data-form>
+		<span class="os-term-prompt" data-out="prompt"></span>
+		<input class="os-term-in" data-in="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="اكتب أمر" />
+	</form>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-act="help">help</button>
+		<button type="button" class="wl-btn" data-act="reset">من الأول</button>
+	</div>
+	<p class="os-hint">اكتب الأمر واكبس Enter. السهم لفوق بيرجّع الأمر يلي قبله. هاد نظام ملفات تدريبي، ما بيأثر على جهازك.</p>
+</div>
+
+<script>
+	type Node = { type: 'dir'; name: string; children: Node[] } | { type: 'file'; name: string; content: string };
+	const HOME = 'C:\\Users\\student';
+
+	function initialFs(): Node {
+		const dir = (name: string, children: Node[] = []): Node => ({ type: 'dir', name, children });
+		const file = (name: string, content: string): Node => ({ type: 'file', name, content });
+		return dir('C:', [
+			dir('Users', [
+				dir('student', [
+					dir('Desktop'),
+					dir('Documents', [file('cv.txt', 'Ahmad - Cordoba University\r\n')]),
+					dir('Pictures', [file('photo.jpg', '[صورة]\r\n')]),
+					file('notes.txt', 'first note\r\n'),
+				]),
+			]),
+			dir('Windows', [dir('System32')]),
+		]);
+	}
+
+	interface State { root: Node; cwd: string; last: string; history: string[]; done: Set<number>; flags: Record<string, boolean> }
+
+	// ويندوز ما بيفرّق بين الحروف الكبيرة والصغيرة
+	const child = (d: Node, name: string) => (d.type === 'dir' ? d.children.find((c) => c.name.toLowerCase() === name.toLowerCase()) : undefined);
+	function resolve(cwd: string, p: string): string {
+		p = p.replace(/^"|"$/g, '').replace(/%USERPROFILE%/gi, HOME).replace(/\//g, '\\');
+		let abs: string;
+		if (/^[a-z]:/i.test(p)) abs = p;
+		else if (p.startsWith('\\')) abs = 'C:' + p;
+		else abs = cwd + '\\' + p;
+		const parts: string[] = [];
+		for (const x of abs.split('\\')) {
+			if (!x || x === '.') continue;
+			if (x === '..') {
+				if (parts.length > 1) parts.pop();
+			} else parts.push(x);
+		}
+		return parts.join('\\') || 'C:';
+	}
+	function get(s: State, path: string): Node | undefined {
+		const parts = path.split('\\');
+		if (parts[0].toUpperCase() !== 'C:') return undefined;
+		let n: Node | undefined = s.root;
+		for (const x of parts.slice(1)) {
+			n = n && child(n, x);
+			if (!n) return undefined;
+		}
+		return n;
+	}
+	// الاسم بالشكل الحقيقي (متل Documents حتى لو كتبت documents)
+	function realPath(s: State, path: string) {
+		const parts = path.split('\\');
+		let n: Node = s.root;
+		const out = ['C:'];
+		for (const x of parts.slice(1)) {
+			const c = child(n, x);
+			if (!c) return path;
+			out.push(c.name);
+			n = c;
+		}
+		return out.join('\\');
+	}
+	const split = (path: string) => ({ dir: path.slice(0, path.lastIndexOf('\\')) || 'C:', name: path.slice(path.lastIndexOf('\\') + 1) });
+	const esc = (t: string) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+	const bytes = (t: string) => new TextEncoder().encode(t).length;
+	const stamp = () => {
+		const d = new Date();
+		const p = (x: number) => String(x).padStart(2, '0');
+		return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}  ${p(d.getHours())}:${p(d.getMinutes())}`;
+	};
+
+	const MISSIONS: { text: string; check: (s: State) => boolean }[] = [
+		{ text: 'اعرف وين إنت: اكتب <code>cd</code> لحاله', check: (s) => s.last.toLowerCase() === 'cd' },
+		{ text: 'شوف شو في حواليك: <code>dir</code>', check: (s) => /^dir\b/i.test(s.last) },
+		{ text: 'فوت على مجلد <code>Documents</code>', check: (s) => s.cwd.toLowerCase() === `${HOME}\\Documents`.toLowerCase() },
+		{ text: 'اعمل مجلد اسمه <code>os1</code> جوّا Documents', check: (s) => get(s, `${HOME}\\Documents\\os1`)?.type === 'dir' },
+		{ text: 'جوّا <code>os1</code> اعمل ملف <code>notes.txt</code> فيه كلمة hello', check: (s) => { const f = get(s, `${HOME}\\Documents\\os1\\notes.txt`); return f?.type === 'file' && /hello/i.test(f.content); } },
+		{ text: 'اعرض محتوى الملف بـ <code>type</code>', check: (s) => /^type\s+.*notes\.txt/i.test(s.last) },
+		{ text: 'انسخه لـ <code>backup.txt</code> بنفس المجلد', check: (s) => { s.flags.backup ||= get(s, `${HOME}\\Documents\\os1\\backup.txt`)?.type === 'file'; return s.flags.backup; } },
+		{ text: 'احذف <code>backup.txt</code>', check: (s) => !!s.flags.backup && !get(s, `${HOME}\\Documents\\os1\\backup.txt`) },
+		{ text: 'ارجع لمجلدك الرئيسي: <code>cd ..\\..</code>', check: (s) => s.cwd.toLowerCase() === HOME.toLowerCase() && s.done.has(7) },
+	];
+
+	const LINUX: Record<string, string> = { ls: 'dir', pwd: 'cd', cat: 'type', cp: 'copy', mv: 'move', rm: 'del', clear: 'cls', touch: 'echo hello > notes.txt', man: 'help' };
+
+	function run(s: State, line: string): string {
+		const redir = line.match(/^echo\s+(.*?)\s*(>>?)\s*(.+)$/i);
+		if (redir) {
+			const path = resolve(s.cwd, redir[3].trim());
+			const { dir, name } = split(path);
+			const d = get(s, dir);
+			if (d?.type !== 'dir') return 'The system cannot find the path specified.';
+			const old = child(d, name);
+			if (old?.type === 'dir') return 'Access is denied.';
+			const text = redir[1] + '\r\n';
+			if (old?.type === 'file') old.content = redir[2] === '>>' ? old.content + text : text;
+			else d.children.push({ type: 'file', name, content: text });
+			return '';
+		}
+		const m = line.trim().match(/^(\S+?)(?=$|\s|\\|\.\.)\s*(.*)$/);
+		const cmd = (m?.[1] ?? '').toLowerCase();
+		const rest = (m?.[2] ?? '').trim();
+		const args = rest.match(/"[^"]*"|\S+/g) ?? [];
+		const P = (p: string) => resolve(s.cwd, p);
+		switch (cmd) {
+			case 'help':
+				return ['CD        وين أنا؟ أو فوت لمجلد (cd .. لورا)', 'DIR       شو في بالمجلد', 'MKDIR     اعمل مجلد', 'ECHO > f  اكتب نص بملف (>> بيضيف)', 'TYPE      اعرض محتوى ملف', 'COPY      انسخ', 'MOVE      انقل', 'REN       غيّر الاسم', 'DEL       احذف ملف', 'RMDIR     احذف مجلد فاضي (rmdir /s لمجلد فيه شي)', 'TREE      شجرة المجلدات (tree /f مع الملفات)', 'CLS       نظّف الشاشة', 'WHOAMI، HOSTNAME، VER، DATE /T'].join('\n');
+			case 'echo':
+				return esc(rest) || 'ECHO is on.';
+			case 'whoami':
+				return 'lab-pc\\student';
+			case 'hostname':
+				return 'lab-pc';
+			case 'ver':
+				return 'Microsoft Windows [Version 10.0.26100]';
+			case 'date':
+				return rest.toLowerCase() === '/t' ? new Date().toLocaleDateString('en-GB') : 'اكتب date /t لتشوف التاريخ بدون ما تغيّره';
+			case 'cd':
+			case 'chdir': {
+				if (!rest) return realPath(s, s.cwd);
+				const target = P(rest);
+				const n = get(s, target);
+				if (!n) return 'The system cannot find the path specified.';
+				if (n.type !== 'dir') return 'The directory name is invalid.';
+				s.cwd = realPath(s, target);
+				return '';
+			}
+			case 'dir': {
+				const tp = args.find((a) => !a.startsWith('/'));
+				const target = tp ? P(tp) : s.cwd;
+				const n = get(s, target);
+				if (n?.type !== 'dir') return 'File Not Found';
+				const items = [...n.children].sort((a, b) => a.name.localeCompare(b.name));
+				let files = 0;
+				let size = 0;
+				const lines = [` Directory of ${esc(realPath(s, target))}`, ''];
+				for (const c of items) {
+					if (c.type === 'dir') lines.push(`${stamp()}    &lt;DIR&gt;          <b class="os-dir">${esc(c.name)}</b>`);
+					else {
+						files++;
+						size += bytes(c.content);
+						lines.push(`${stamp()}    ${String(bytes(c.content)).padStart(14)} ${esc(c.name)}`);
+					}
+				}
+				lines.push(`${String(files).padStart(16)} File(s) ${String(size).padStart(14)} bytes`, `${String(items.length - files).padStart(16)} Dir(s)`);
+				return lines.join('\n');
+			}
+			case 'mkdir':
+			case 'md': {
+				if (!args.length) return 'The syntax of the command is incorrect.';
+				for (const a of args) {
+					const { dir, name } = split(P(a));
+					const d = get(s, dir);
+					if (d?.type !== 'dir') return 'The system cannot find the path specified.';
+					if (child(d, name)) return `A subdirectory or file ${esc(a)} already exists.`;
+					d.children.push({ type: 'dir', name: name.replace(/"/g, ''), children: [] });
+				}
+				return '';
+			}
+			case 'type': {
+				if (!args.length) return 'The syntax of the command is incorrect.';
+				const n = get(s, P(args[0]));
+				if (!n) return 'The system cannot find the file specified.';
+				if (n.type === 'dir') return 'Access is denied.';
+				return esc(n.content.replace(/\r?\n$/, ''));
+			}
+			case 'copy':
+			case 'move': {
+				if (args.length < 2) return 'The syntax of the command is incorrect.';
+				const src = P(args[0]);
+				const n = get(s, src);
+				if (!n) return 'The system cannot find the file specified.';
+				if (cmd === 'copy' && n.type === 'dir') return 'لنسخ مجلد بويندوز منستخدم xcopy أو robocopy (مش مدعوم هون)';
+				let dst = P(args[1]);
+				if (get(s, dst)?.type === 'dir') dst = dst + '\\' + n.name;
+				const { dir, name } = split(dst);
+				const d = get(s, dir);
+				if (d?.type !== 'dir') return 'The system cannot find the path specified.';
+				const old = child(d, name);
+				if (old && old !== n) d.children.splice(d.children.indexOf(old), 1);
+				const copy = cmd === 'copy' ? (JSON.parse(JSON.stringify(n)) as Node) : n;
+				if (cmd === 'move') {
+					const p = get(s, split(src).dir)!;
+					if (p.type === 'dir') p.children.splice(p.children.indexOf(n), 1);
+				}
+				copy.name = name;
+				d.children.push(copy);
+				return cmd === 'copy' ? '        1 file(s) copied.' : '        1 file(s) moved.';
+			}
+			case 'ren':
+			case 'rename': {
+				if (args.length < 2) return 'The syntax of the command is incorrect.';
+				const n = get(s, P(args[0]));
+				if (!n) return 'The system cannot find the file specified.';
+				n.name = args[1].replace(/"/g, '');
+				return '';
+			}
+			case 'del':
+			case 'erase': {
+				if (!args.length) return 'The syntax of the command is incorrect.';
+				const path = P(args[0]);
+				const n = get(s, path);
+				if (!n) return `Could Not Find ${esc(path)}`;
+				if (n.type === 'dir') return 'del للملفات. للمجلد استخدم rmdir';
+				const p = get(s, split(path).dir)!;
+				if (p.type === 'dir') p.children.splice(p.children.indexOf(n), 1);
+				return '';
+			}
+			case 'rmdir':
+			case 'rd': {
+				const sub = args.some((a) => a.toLowerCase() === '/s');
+				const name = args.find((a) => !a.startsWith('/'));
+				if (!name) return 'The syntax of the command is incorrect.';
+				const path = P(name);
+				const n = get(s, path);
+				if (!n || n.type !== 'dir') return 'The system cannot find the file specified.';
+				if (s.cwd.toLowerCase().startsWith(path.toLowerCase())) return 'The process cannot access the file because it is being used by another process.';
+				if (n.children.length && !sub) return 'The directory is not empty.';
+				const p = get(s, split(path).dir)!;
+				if (p.type === 'dir') p.children.splice(p.children.indexOf(n), 1);
+				return '';
+			}
+			case 'tree': {
+				const withFiles = args.some((a) => a.toLowerCase() === '/f');
+				const lines: string[] = [esc(realPath(s, s.cwd))];
+				const walk = (n: Node, pre: string) => {
+					if (n.type !== 'dir') return;
+					const kids = [...n.children].filter((c) => withFiles || c.type === 'dir').sort((a, b) => a.name.localeCompare(b.name));
+					kids.forEach((c, i) => {
+						const last = i === kids.length - 1;
+						lines.push(`${pre}${last ? '└───' : '├───'}${c.type === 'dir' ? `<b class="os-dir">${esc(c.name)}</b>` : esc(c.name)}`);
+						walk(c, pre + (last ? '    ' : '│   '));
+					});
+				};
+				walk(get(s, s.cwd)!, '');
+				return lines.join('\n');
+			}
+			default:
+				if (LINUX[cmd]) return `«${cmd}» أمر لينكس. بويندوز اكتب ${LINUX[cmd]}`;
+				return `'${esc(m?.[1] ?? '')}' is not recognized as an internal or external command.`;
+		}
+	}
+
+	const fmtLine = (l: string) => {
+		if (/[؀-ۿ]/.test(l) && !/^[A-Z]{2,}\s/.test(l)) {
+			const body = l.replace(/[A-Za-z0-9_.\\/:%~>-]+(?:\s+\/[a-z])?/g, (w) => `<bdi dir="ltr">${w}</bdi>`);
+			return `<div dir="rtl" class="os-err">${body}</div>`;
+		}
+		return `<div>${l || '&nbsp;'}</div>`;
+	};
+
+	document.querySelectorAll<HTMLElement>('[data-win-term]').forEach((root) => {
+		const screen = root.querySelector<HTMLElement>('[data-out="screen"]')!;
+		const input = root.querySelector<HTMLInputElement>('[data-in="cmd"]')!;
+		let s: State;
+		let hi = 0;
+		const prompt = () => `${s.cwd}>`;
+		function reset() {
+			s = { root: initialFs(), cwd: HOME, last: '', history: [], done: new Set(), flags: {} };
+			screen.innerHTML = '<div>Microsoft Windows [Version 10.0.26100]</div><div dir="rtl" class="os-hint-t">هاد cmd تدريبي. ابدأ بالمهمة الأولى، أو اكتب <bdi dir="ltr">help</bdi>.</div><div>&nbsp;</div>';
+			paint();
+		}
+		function paint() {
+			root.querySelector('[data-out="prompt"]')!.textContent = prompt();
+			let first = -1;
+			MISSIONS.forEach((m, i) => {
+				if (!s.done.has(i) && first < 0 && m.check(s)) s.done.add(i);
+				if (!s.done.has(i) && first < 0) first = i;
+			});
+			root.querySelector('[data-out="missions"]')!.innerHTML =
+				`<strong>المهمات (${s.done.size}/${MISSIONS.length})</strong><ol>` +
+				MISSIONS.map((m, i) => `<li class="${s.done.has(i) ? 'done' : i === first ? 'now' : ''}">${s.done.has(i) ? '✔ ' : ''}${m.text}</li>`).join('') +
+				'</ol>' + (s.done.size === MISSIONS.length ? '<p class="wl-msg wl-good">🎉 خلّصت كل المهمات! جرّب <code>tree /f</code> لتشوف شغلك.</p>' : '');
+			screen.scrollTop = screen.scrollHeight;
+		}
+		root.querySelector('[data-form]')!.addEventListener('submit', (e) => {
+			e.preventDefault();
+			const line = input.value.trim();
+			input.value = '';
+			if (!line) return;
+			s.history.push(line);
+			hi = s.history.length;
+			const before = prompt();
+			if (line.toLowerCase() === 'cls') {
+				screen.innerHTML = '';
+				s.last = 'cls';
+				paint();
+				return;
+			}
+			const out = run(s, line);
+			s.last = line;
+			screen.innerHTML += `<div><span class="os-p">${esc(before)}</span>${esc(line)}</div>${out ? out.split('\n').map(fmtLine).join('') : ''}<div>&nbsp;</div>`;
+			paint();
+		});
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'ArrowUp' && hi > 0) {
+				input.value = s.history[--hi];
+				e.preventDefault();
+			} else if (e.key === 'ArrowDown') {
+				hi = Math.min(s.history.length, hi + 1);
+				input.value = s.history[hi] ?? '';
+				e.preventDefault();
+			}
+		});
+		root.querySelector('[data-act="help"]')!.addEventListener('click', () => {
+			input.value = 'help';
+			root.querySelector<HTMLFormElement>('[data-form]')!.requestSubmit();
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', reset);
+		reset();
+	});
+</script>

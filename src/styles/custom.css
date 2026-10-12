@@ -378,3 +378,5 @@ code,
 .os-link { font-family: var(--sl-font-system-mono); font-size: 0.8rem; color: #3a9ec2; overflow-wrap: anywhere; unicode-bidi: isolate; }
 .os-term .os-err { color: #ffa198; text-align: right; }
 .os-term [dir='rtl'] { font-family: var(--sl-font); }
+.os-term-win { background: #0c0c0c; }
+.os-term-win .os-term-prompt, .os-term-win.os-term .os-p { color: #cccccc; }
