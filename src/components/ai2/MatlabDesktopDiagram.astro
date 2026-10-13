@@ -1,0 +1,61 @@
+---
+// رسمة مبسّطة لواجهة MATLAB بأقسامها الستة المرقّمة (الجلسة 1). مش صورة حقيقية، بس نفس الترتيب الافتراضي.
+const tag = (x: number, y: number, n: number) => ({ x, y, n });
+const tags = [tag(24, 22, 1), tag(24, 86, 2), tag(24, 120, 3), tag(194, 120, 4), tag(194, 278, 5), tag(488, 120, 6)];
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 640 400" role="img" aria-label="رسم مبسّط لواجهة MATLAB: شريط الأدوات في الأعلى، ثم شريط المسار، ثم Current Folder يساراً، والـ Editor في الوسط أعلى، والـ Command Window في الوسط أسفل، والـ Workspace يميناً">
+		<!-- 1. شريط الأدوات -->
+		<rect x="8" y="6" width="624" height="62" rx="6" class="d-box2"></rect>
+		{['HOME', 'PLOTS', 'APPS', 'EDITOR'].map((t, i) => (
+			<text x={78 + i * 82} y="26" class="d-s d-ltr d-b" style={i === 0 ? 'fill:#3a9ec2' : ''}>{t}</text>
+		))}
+		{[['New Script', 74], ['Open', 192], ['Simulink', 310], ['▶ Run', 570]].map(([t, x]) => (
+			<g>
+				<rect x={(x as number) - 52} y="36" width="104" height="24" rx="4" class="d-box"></rect>
+				<text x={x} y="53" class="d-s d-ltr">{t}</text>
+			</g>
+		))}
+
+		<!-- 2. شريط المسار -->
+		<rect x="8" y="74" width="624" height="24" rx="4" class="d-box2"></rect>
+		<text x="60" y="91" class="d-s d-ltr d-start">C:\Users\student\Desktop\AI2-Lab</text>
+
+		<!-- 3. Current Folder -->
+		<rect x="8" y="104" width="170" height="290" rx="6" class="d-box2"></rect>
+		<text x="93" y="150" class="d-s d-ltr d-b">Current Folder</text>
+		<text x="24" y="180" class="d-s d-ltr d-start">📄 lab01_basics.m</text>
+		<text x="24" y="204" class="d-s d-ltr d-start">📄 myfirst.m</text>
+
+		<!-- 4. Editor -->
+		<rect x="184" y="104" width="290" height="160" rx="6" class="d-box2"></rect>
+		<text x="329" y="150" class="d-s d-ltr d-b">Editor</text>
+		<text x="200" y="180" class="d-s d-ltr d-start">t = 0:0.01:5;</text>
+		<text x="200" y="204" class="d-s d-ltr d-start">plot(t, sin(t))</text>
+
+		<!-- 5. Command Window -->
+		<rect x="184" y="270" width="290" height="124" rx="6" class="d-box2" style="stroke:#2fb36b"></rect>
+		<text x="329" y="300" class="d-s d-ltr d-b">Command Window</text>
+		<text x="200" y="330" class="d-s d-ltr d-start">&gt;&gt; a = 5 + 2</text>
+		<text x="200" y="354" class="d-s d-ltr d-start">a = 7</text>
+		<text x="200" y="380" class="d-s d-ltr d-start">&gt;&gt; |</text>
+
+		<!-- 6. Workspace -->
+		<rect x="480" y="104" width="152" height="290" rx="6" class="d-box2"></rect>
+		<text x="556" y="150" class="d-s d-ltr d-b">Workspace</text>
+		<text x="496" y="180" class="d-s d-ltr d-start">a</text><text x="616" y="180" class="d-s d-ltr d-end">7</text>
+		<text x="496" y="204" class="d-s d-ltr d-start">t</text><text x="616" y="204" class="d-s d-ltr d-end">1×501</text>
+
+		<!-- الأرقام -->
+		{tags.map((g) => (
+			<g>
+				<circle cx={g.x} cy={g.y} r="13" class="d-forange"></circle>
+				<text x={g.x} y={g.y + 5} class="d-s d-ltr d-b" style="fill:#fff">{g.n}</text>
+			</g>
+		))}
+	</svg>
+	<figcaption>
+		رسم مبسّط للترتيب الافتراضي. الأرقام تطابق الجدول في الأسفل. وإذا اختلف ترتيب النوافذ عندك، فالأسماء نفسها موجودة.
+	</figcaption>
+</figure>
