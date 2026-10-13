@@ -1,0 +1,39 @@
+---
+// Fuzzy-PID بمعنى «المشرف»: المتحكم الضبابي فوق، بيغيّر Kp و Ki و Kd تبع الـ PID حسب الحالة.
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 640 280" role="img" aria-label="المتحكم الضبابي فوق بيقرأ الخطأ وتغيّره، وبيغيّر أزرار الـ PID تحت، والـ PID بيتحكم بالنظام">
+		<defs>
+			<marker id="fsup-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+			</marker>
+		</defs>
+		<!-- المشرف الضبابي -->
+		<rect x="200" y="14" width="230" height="64" rx="12" class="d-box2 d-orange"></rect>
+		<text x="315" y="42" class="d-t d-b">المشرف الضبابي</text>
+		<text x="315" y="64" class="d-s">بيقدّر الموقف بالقواعد</text>
+		<path d="M268 78 V146" class="d-line d-orange" marker-end="url(#fsup-ar)"></path>
+		<path d="M315 78 V146" class="d-line d-orange" marker-end="url(#fsup-ar)"></path>
+		<path d="M362 78 V146" class="d-line d-orange" marker-end="url(#fsup-ar)"></path>
+		<text x="252" y="116" class="d-s d-ltr d-b">Kp</text>
+		<text x="299" y="116" class="d-s d-ltr d-b">Ki</text>
+		<text x="346" y="116" class="d-s d-ltr d-b">Kd</text>
+		<!-- الخطأ -->
+		<text x="40" y="160" class="d-s">الخطأ</text>
+		<line x1="10" y1="178" x2="198" y2="178" class="d-line" marker-end="url(#fsup-ar)"></line>
+		<path d="M100 178 V46 H198" class="d-line d-dash" marker-end="url(#fsup-ar)"></path>
+		<!-- PID -->
+		<rect x="200" y="148" width="230" height="60" rx="12" class="d-box"></rect>
+		<text x="315" y="175" class="d-t d-b d-ltr">PID</text>
+		<text x="315" y="196" class="d-s">بيحسب بسرعة ودقة</text>
+		<line x1="430" y1="178" x2="498" y2="178" class="d-line" marker-end="url(#fsup-ar)"></line>
+		<!-- النظام -->
+		<rect x="500" y="150" width="120" height="56" rx="10" class="d-box"></rect>
+		<text x="560" y="184" class="d-t d-b">النظام</text>
+		<text x="315" y="252" class="d-s">الأزرار ما عادت ثابتة: بتتغيّر لحالها حسب الحالة</text>
+	</svg>
+	<figcaption>
+		الـ <strong>PID</strong> تحت بيشتغل كالعادة، بس أزراره ما عادت ثابتة. الـ<strong>مشرف الضبابي</strong> فوق بيشوف الوضع (مثلاً: منعطف حاد ولا خط مستقيم؟) وبيغيّر <code>Kp</code> و <code>Ki</code> و <code>Kd</code> لحالهن.
+	</figcaption>
+</figure>
