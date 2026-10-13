@@ -5,7 +5,6 @@
 	--cpu-green-dark: #006738;
 	--cpu-green: #009344;
 	--cpu-ink: #232020;
-	--banner-bg: var(--cpu-green-dark);
 }
 
 /* الوضع الليلي (الافتراضي في Starlight): أخضر أفتح لحتى يبيّن على الخلفية الغامقة */
@@ -291,7 +290,7 @@ code,
 	.kw-table td, .kw-table th { padding: 0.15rem 0.4rem; }
 }
 @media print {
-	.site-banner, .sl-banner, .panel-toggle { display: none !important; }
+	.sl-banner, .panel-toggle { display: none !important; }
 }
 
 /* ===== أدوات نظم التشغيل 1 (src/components/os1/) ===== */

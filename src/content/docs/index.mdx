@@ -12,14 +12,10 @@ hero:
     - text: ابدأ بالذكاء الصنعي 2
       link: ai2/
       icon: right-arrow
-    - text: آخر الإعلانات
-      link: announcements/
-      variant: minimal
 ---
 
-import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { Card, CardGrid } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
-import { announcements, courseNames } from '../../data/announcements';
 import seal from '../../assets/brand/cordoba-seal.jpg';
 
 ## المواد
@@ -38,16 +34,6 @@ import seal from '../../assets/brand/cordoba-seal.jpg';
 		[خطة المادة ←](os1/)
 	</Card>
 </CardGrid>
-
-## آخر الإعلانات
-
-{announcements.slice(0, 3).map((a) => (
-	<LinkCard
-		title={a.title}
-		description={`${a.date}${a.course ? ' · ' + courseNames[a.course] : ''}${a.body ? ' — ' + a.body : ''}`}
-		href={a.link ? `${a.link}/` : 'announcements/'}
-	/>
-))}
 
 ## كيف تستفيد من الموقع
 
