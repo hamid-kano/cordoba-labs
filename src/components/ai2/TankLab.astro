@@ -3,19 +3,19 @@
 ---
 
 <div class="not-content wl-box" data-tank-lab>
-	<h4>جرّب الخزان بالمتصفح</h4>
+	<h4>جرّب الخزان في المتصفح</h4>
 	<div class="wl-row">
 		<label class="ai-check"><input type="checkbox" data-show="pi" checked /> PI عادي</label>
 		<label class="ai-check"><input type="checkbox" data-show="aw" /> PI مع حماية من التراكم</label>
 		<label class="ai-check"><input type="checkbox" data-show="fz" checked /> المتحكم الضبابي</label>
 	</div>
 	<div class="ai-sliders">
-		<label class="ai-slider"><span>Kp تبع PI<output data-o="Kp"></output></span><input type="range" min="0.05" max="1.5" step="0.01" value="0.38" data-k="Kp" /></label>
-		<label class="ai-slider"><span>Ki تبع PI<output data-o="Ki"></output></span><input type="range" min="0" max="0.5" step="0.01" value="0.09" data-k="Ki" /></label>
-		<label class="ai-slider"><span>Ku تبع الضبابي<output data-o="Ku"></output></span><input type="range" min="0.05" max="1" step="0.05" value="0.3" data-k="Ku" /></label>
+		<label class="ai-slider"><span>Kp لمتحكم PI<output data-o="Kp"></output></span><input type="range" min="0.05" max="1.5" step="0.01" value="0.38" data-k="Kp" /></label>
+		<label class="ai-slider"><span>Ki لمتحكم PI<output data-o="Ki"></output></span><input type="range" min="0" max="0.5" step="0.01" value="0.09" data-k="Ki" /></label>
+		<label class="ai-slider"><span>Ku للمتحكم الضبابي<output data-o="Ku"></output></span><input type="range" min="0.05" max="1" step="0.05" value="0.3" data-k="Ku" /></label>
 	</div>
 	<figure class="ai-chart">
-		<svg role="img" aria-label="مستوى المي مع الزمن" data-chart="h"></svg>
+		<svg role="img" aria-label="مستوى الماء مع الزمن" data-chart="h"></svg>
 		<figcaption class="ai-legend">
 			<span class="ai-ref"><i class="dash"></i>المطلوب</span>
 			<span class="ai-c4"><i></i>PI</span>
@@ -25,7 +25,7 @@
 	</figure>
 	<figure class="ai-chart">
 		<svg role="img" aria-label="تدفق المضخة مع الزمن" data-chart="q"></svg>
-		<figcaption>تدفق المضخة q. الخط المنقّط فوق هو آخر طاقة المضخة (0.5).</figcaption>
+		<figcaption>تدفق المضخة q. الخط المنقّط في الأعلى هو أقصى طاقة للمضخة (0.5).</figcaption>
 	</figure>
 	<div style="overflow-x:auto">
 		<table class="wl-table">

@@ -11,7 +11,7 @@ const ki = mode === 's6' || mode === 'proj';
 ---
 
 <div class="not-content wl-box" data-fuzzy-lab data-mode={mode}>
-	<h4>جرّب المتحكم الضبابي بالمتصفح</h4>
+	<h4>جرّب المتحكم الضبابي في المتصفح</h4>
 
 	{
 		mode === 'proj' && (
@@ -55,7 +55,7 @@ const ki = mode === 's6' || mode === 'proj';
 		<figcaption class="ai-legend">
 			<span class="ai-c1"><i></i>الخرج y</span>
 			<span class="ai-ref"><i class="dash"></i>المطلوب</span>
-			<span class="ai-ghost" data-ghost-legend hidden><i class="dash"></i>الرسمة المثبّتة</span>
+			<span class="ai-ghost" data-ghost-legend hidden><i class="dash"></i>الرسم المثبّت</span>
 			<span class="ai-c4"><i class="dash"></i>اللحظة المختارة</span>
 		</figcaption>
 	</figure>
@@ -68,23 +68,23 @@ const ki = mode === 's6' || mode === 'proj';
 	<p class="wl-msg" data-r="msg"></p>
 	<div class="ai-bars" data-r="req"></div>
 	<div class="wl-row">
-		<button type="button" class="wl-btn" data-pin>📌 ثبّت الرسمة للمقارنة</button>
-		<button type="button" class="wl-btn" data-unpin hidden>شيل الرسمة المثبّتة</button>
+		<button type="button" class="wl-btn" data-pin>📌 ثبّت الرسم للمقارنة</button>
+		<button type="button" class="wl-btn" data-unpin hidden>أزل الرسم المثبّت</button>
 	</div>
 
 	<details class="answer">
-		<summary>شو عم يصير جوّا المتحكم؟ (القواعد وسطح التحكم)</summary>
-		<label class="ai-slider"><span>اختار لحظة<output data-o="tsel"></output></span><input type="range" min="0" max="1000" step="1" value="50" data-k="tsel" /></label>
+		<summary>ماذا يحدث داخل المتحكم؟ (القواعد وسطح التحكم)</summary>
+		<label class="ai-slider"><span>اختر لحظة<output data-o="tsel"></output></span><input type="range" min="0" max="1000" step="1" value="50" data-k="tsel" /></label>
 		<p data-r="now"></p>
 		<div class="ai-two">
 			<div>
-				<p><strong>جدول القواعد:</strong> كل ما كانت القاعدة أقوى بهاللحظة، بيكون لونها أغمق.</p>
+				<p><strong>جدول القواعد:</strong> كلما كانت القاعدة أقوى في هذه اللحظة، كان لونها أغمق.</p>
 				<div class="ai-rules" data-r="rules"></div>
 			</div>
 			<figure class="ai-chart">
 				<svg role="img" aria-label="سطح التحكم مع مسار المتحكم" data-chart="surf"></svg>
 				<figcaption>
-					سطح التحكم من فوق: البرتقالي دفعة موجبة، والأزرق دفعة سالبة. الخط الأبيض هو الطريق يلي مشي عليه المتحكم، والنقطة هي اللحظة المختارة.
+					سطح التحكم من الأعلى: البرتقالي دفعة موجبة، والأزرق دفعة سالبة. الخط الأبيض هو المسار الذي سلكه المتحكم، والنقطة هي اللحظة المختارة.
 				</figcaption>
 			</figure>
 		</div>
@@ -166,18 +166,18 @@ const ki = mode === 's6' || mode === 'proj';
 					metric('أعلى قيمة بعد الاضطراب', num(Math.max(...post), 2)) +
 					metric('القيمة النهائية', num(yf, 3));
 				if (Math.abs(yf - ref) < 0.01) {
-					msg.textContent = 'رجع لـ 1 بعد الاضطراب: التكامل شال الخطأ المستقر.';
+					msg.textContent = 'عاد إلى 1 بعد الاضطراب: أزال التكامل الخطأ المستقر.';
 					msg.classList.add('wl-good');
-				} else msg.textContent = `في خطأ مستقر: الخرج واقف عند ${yf.toFixed(2)} بدل 1. جرّب تكبّر Ki.`;
+				} else msg.textContent = `يوجد خطأ مستقر: الخرج متوقف عند ${yf.toFixed(2)} بدل 1. جرّب تكبير Ki.`;
 			} else {
 				m.innerHTML =
 					metric('التجاوز', num(s.os, 1, '%')) +
-					metric('زمن الاستقرار', Number.isFinite(s.ts) ? num(s.ts, 2, 's') : 'ما استقر') +
+					metric('زمن الاستقرار', Number.isFinite(s.ts) ? num(s.ts, 2, 's') : 'لم يستقر') +
 					metric('القيمة النهائية', num(s.final, 3)) +
 					metric('أكبر دفعة |u|', num(umax, 2));
 				if (mode === 's5') {
 					const ok = s.os < 2 && s.ts < 1.5;
-					msg.textContent = ok ? '🎉 حليت التحدي: تجاوز أقل من 2% واستقرار أسرع من 1.5 ثانية.' : 'التحدي: تجاوز أقل من 2%، واستقرار أسرع من 1.5 ثانية.';
+					msg.textContent = ok ? '🎉 حللت التحدي: تجاوز أقل من 2% واستقرار أسرع من 1.5 ثانية.' : 'التحدي: تجاوز أقل من 2%، واستقرار أسرع من 1.5 ثانية.';
 					if (ok) msg.classList.add('wl-good');
 				}
 				if (mode === 'proj') {
@@ -187,7 +187,7 @@ const ki = mode === 's6' || mode === 'proj';
 					if ('final' in p.req) {
 						const ok = Math.abs(s.final - ref) < 0.02;
 						all &&= ok;
-						html += check(ok, `يوصل لـ 1 بالضبط (هلق ${s.final.toFixed(3)})`);
+						html += check(ok, `يصل إلى 1 تماماً (الآن ${s.final.toFixed(3)})`);
 					}
 					const okOs = s.os < p.req.os;
 					const okTs = s.ts < p.req.ts;
@@ -195,7 +195,7 @@ const ki = mode === 's6' || mode === 'proj';
 					html += check(okOs, `التجاوز أقل من ${p.req.os}%`) + check(okTs, `الاستقرار أقل من ${p.req.ts} ثانية`);
 					r('req').innerHTML = html;
 					if (all) {
-						msg.textContent = '🎉 حققت كل الشروط. هلق طبّقها على MATLAB واكتب بالتقرير ليش اخترت هالأرقام.';
+						msg.textContent = '🎉 حققت كل الشروط. طبّقها الآن على MATLAB، واكتب في التقرير لماذا اخترت هذه الأرقام.';
 						msg.classList.add('wl-good');
 					}
 				}
@@ -224,7 +224,7 @@ const ki = mode === 's6' || mode === 'proj';
 			const i = +k('tsel')!.value;
 			root.querySelector('[data-o="tsel"]')!.textContent = `t = ${res.t[i].toFixed(2)} s`;
 			const det = evalfisDetail(fis, [res.ein[i], res.dein[i]]);
-			r('now').innerHTML = `بهاللحظة: الخطأ بعد Ke ${num(res.ein[i], 2)}، وتغيّره بعد Kd ${num(res.dein[i], 2)}، وخرج المتحكم ${num(det.value, 2)}، يعني الدفعة ${num(res.u[i], 2)}.`;
+			r('now').innerHTML = `في هذه اللحظة: الخطأ بعد Ke ${num(res.ein[i], 2)}، وتغيّره بعد Kd ${num(res.dein[i], 2)}، وخرج المتحكم ${num(det.value, 2)}، أي أن الدفعة ${num(res.u[i], 2)}.`;
 
 			// جدول القواعد: السطور e والأعمدة de
 			const n = state.sets;

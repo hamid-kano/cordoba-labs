@@ -3,7 +3,7 @@
 ---
 
 <figure class="wl-fig">
-	<svg class="d-big" viewBox="0 0 560 336" role="img" aria-label="خزان مي: المضخة بتعبّي من فوق بتدفق q، ومستوى المي h، والمي بتطلع من تحت عن طريق صمام، وكل ما زاد h بتطلع أسرع">
+	<svg class="d-big" viewBox="0 0 560 336" role="img" aria-label="خزان ماء: تملأ المضخة من الأعلى بتدفق q، ومستوى الماء h، ويخرج الماء من الأسفل عبر صمام، وكلما زاد h خرج أسرع">
 		<defs>
 			<marker id="tank-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
 				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
@@ -14,7 +14,7 @@
 		<text x="75" y="48" class="d-t d-b">المضخة</text>
 		<path d="M130 42 H235 V96" class="d-line d-blue tank-pipe" marker-end="url(#tank-ar)"></path>
 		<text x="258" y="74" class="d-t d-b d-ltr">q</text>
-		<text x="182" y="32" class="d-s">بتعبّي</text>
+		<text x="182" y="32" class="d-s">تملأ</text>
 
 		<!-- المي -->
 		<rect x="152" y="140" width="216" height="128" class="d-fblue tank-water"></rect>
@@ -28,18 +28,18 @@
 		<!-- المستوى h -->
 		<line x1="400" y1="268" x2="400" y2="142" class="d-line" marker-start="url(#tank-ar)" marker-end="url(#tank-ar)"></line>
 		<text x="418" y="210" class="d-t d-b d-ltr">h</text>
-		<text x="492" y="210" class="d-s">مستوى المي</text>
+		<text x="492" y="210" class="d-s">مستوى الماء</text>
 
 		<!-- المخرج والصمام -->
 		<path d="M330 270 V300 H388" class="d-line d-blue tank-pipe"></path>
 		<path d="M388 290 L412 310 V290 L388 310 Z" class="d-box2 d-orange"></path>
 		<text x="400" y="284" class="d-s">الصمام</text>
 		<line x1="412" y1="300" x2="470" y2="300" class="d-line d-blue tank-pipe" marker-end="url(#tank-ar)"></line>
-		<text x="495" y="290" class="d-s">مي طالعة</text>
-		<text x="470" y="326" class="d-s">أسرع لما يزيد h</text>
+		<text x="495" y="290" class="d-s">ماء خارج</text>
+		<text x="470" y="326" class="d-s">أسرع كلما زاد h</text>
 	</svg>
 	<figcaption>
-		المضخة بتعبّي بتدفق <strong>q</strong> (من 0 لـ 0.5، وما فيها تسحب). والمي بتطلع من تحت لحالها، و<strong>كل ما زاد المستوى h بتطلع أسرع</strong> لأن الضغط بيزيد. والخط الأخضر المنقّط هو المستوى يلي بدنا ياه.
+		تملأ المضخة الخزان بتدفق <strong>q</strong> (من 0 إلى 0.5، ولا تستطيع السحب). ويخرج الماء من الأسفل وحده، و<strong>كلما زاد المستوى h خرج أسرع</strong> لأن الضغط يزيد. والخط الأخضر المنقّط هو المستوى الذي نريده.
 	</figcaption>
 </figure>
 

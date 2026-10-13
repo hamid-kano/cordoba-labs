@@ -4,7 +4,7 @@
 ---
 
 <div class="not-content wl-box" data-pid-lab>
-	<h4>جرّب PID بالمتصفح</h4>
+	<h4>جرّب PID في المتصفح</h4>
 	<div class="wl-row">
 		<span>تجارب الجلسة:</span>
 		<button type="button" class="wl-btn" data-p="1,0,0">أ: P=1</button>
@@ -13,16 +13,16 @@
 		<button type="button" class="wl-btn" data-p="5,0.5,1">د: P=5، I=0.5، D=1</button>
 	</div>
 	<div class="ai-sliders">
-		<label class="ai-slider"><span>P: قديش بعيد<output data-o="P"></output></span><input type="range" min="0" max="20" step="0.1" value="5" data-k="P" /></label>
-		<label class="ai-slider"><span>I: قديش صرلي بعيد<output data-o="I"></output></span><input type="range" min="0" max="5" step="0.1" value="0" data-k="I" /></label>
-		<label class="ai-slider"><span>D: قديش عم قرّب بسرعة<output data-o="D"></output></span><input type="range" min="0" max="5" step="0.1" value="1" data-k="D" /></label>
+		<label class="ai-slider"><span>P: كم أنا بعيد<output data-o="P"></output></span><input type="range" min="0" max="20" step="0.1" value="5" data-k="P" /></label>
+		<label class="ai-slider"><span>I: منذ متى وأنا بعيد<output data-o="I"></output></span><input type="range" min="0" max="5" step="0.1" value="0" data-k="I" /></label>
+		<label class="ai-slider"><span>D: سرعة اقترابي<output data-o="D"></output></span><input type="range" min="0" max="5" step="0.1" value="1" data-k="D" /></label>
 	</div>
 	<figure class="ai-chart">
 		<svg role="img" aria-label="استجابة النظام مع الزمن" data-chart></svg>
 		<figcaption class="ai-legend">
 			<span class="ai-c1"><i></i>الخرج y</span>
 			<span class="ai-ref"><i class="dash"></i>المطلوب (1)</span>
-			<span class="ai-ghost" data-ghost-legend hidden><i class="dash"></i>الرسمة المثبّتة</span>
+			<span class="ai-ghost" data-ghost-legend hidden><i class="dash"></i>الرسم المثبّت</span>
 		</figcaption>
 	</figure>
 	<div class="wl-grid ai-metrics">
@@ -32,8 +32,8 @@
 	</div>
 	<p class="wl-msg" data-r="msg"></p>
 	<div class="wl-row">
-		<button type="button" class="wl-btn" data-pin>📌 ثبّت الرسمة للمقارنة</button>
-		<button type="button" class="wl-btn" data-unpin hidden>شيل الرسمة المثبّتة</button>
+		<button type="button" class="wl-btn" data-pin>📌 ثبّت الرسم للمقارنة</button>
+		<button type="button" class="wl-btn" data-unpin hidden>أزل الرسم المثبّت</button>
 	</div>
 </div>
 
@@ -63,16 +63,16 @@
 			series.push({ x: r.t, y: r.y, cls: 'ai-c1' });
 			drawChart(svg, { series, xMin: 0, xMax: 10, yMin: 0, yMax: Math.max(1.6, Math.min(3, s.peak * 1.05)), xLabel: 't (s)', yLabel: 'y', hlines: [{ y: 1, cls: 'ai-ref' }] });
 			out('os').innerHTML = unstable ? '–' : num(s.os, 1, '%');
-			out('ts').innerHTML = unstable || !Number.isFinite(s.ts) ? 'ما استقر' : num(s.ts, 2, 's');
+			out('ts').innerHTML = unstable || !Number.isFinite(s.ts) ? 'لم يستقر' : num(s.ts, 2, 's');
 			out('yf').innerHTML = unstable ? '–' : num(s.final, 3);
 			const m = out('msg');
 			m.className = 'wl-msg';
-			if (P === 0) m.textContent = 'بدون P ما في شي بيدفش النظام. كبّر P.';
-			else if (unstable) m.textContent = 'النظام ما عم يستقر! خفّف I.';
-			else if (s.os > 20) m.textContent = 'تجاوز كبير. جرّب تزيد D (الفرامل) أو تخفف P.';
-			else if (s.ts > 5) m.textContent = 'بطيء كتير. جرّب تزيد P.';
+			if (P === 0) m.textContent = 'بدون P لا يوجد ما يدفع النظام. كبّر P.';
+			else if (unstable) m.textContent = 'النظام لا يستقر! خفّف I.';
+			else if (s.os > 20) m.textContent = 'تجاوز كبير. جرّب زيادة D (الفرامل) أو تخفيف P.';
+			else if (s.ts > 5) m.textContent = 'بطيء جداً. جرّب زيادة P.';
 			else {
-				m.textContent = 'استجابة منيحة: سريعة وتجاوزها مقبول.';
+				m.textContent = 'استجابة جيدة: سريعة وتجاوزها مقبول.';
 				m.classList.add('wl-good');
 			}
 		}

@@ -3,14 +3,14 @@
 ---
 
 <div class="not-content wl-box" data-fan-lab>
-	<h4>جرّب المروحة الضبابية بالمتصفح</h4>
+	<h4>جرّب المروحة الضبابية في المتصفح</h4>
 	<div class="ai-sliders">
 		<label class="ai-slider"><span>الحرارة<output data-o="temp"></output></span><input type="range" min="0" max="40" step="0.5" value="24" data-k="temp" /></label>
 		<label class="ai-slider" data-hum-wrap hidden><span>الرطوبة<output data-o="hum"></output></span><input type="range" min="0" max="100" step="1" value="45" data-k="hum" /></label>
 	</div>
-	<label class="ai-check"><input type="checkbox" data-k="useHum" /> ضيف الرطوبة كمدخل تاني (زيادة)</label>
+	<label class="ai-check"><input type="checkbox" data-k="useHum" /> أضف الرطوبة مدخلاً ثانياً (إضافة)</label>
 
-	<p><strong>1. التضبيب:</strong> قديش الحرارة من كل مجموعة؟</p>
+	<p><strong>1. التضبيب:</strong> إلى أي حد تنتمي الحرارة إلى كل مجموعة؟</p>
 	<figure class="ai-chart">
 		<svg role="img" aria-label="دوال انتماء الحرارة" data-chart="in"></svg>
 		<figcaption class="ai-legend">
@@ -19,14 +19,14 @@
 	</figure>
 	<div class="ai-bars" data-r="deg"></div>
 
-	<p><strong>2. القواعد:</strong> كل قاعدة بتاخد قوة شرطها.</p>
+	<p><strong>2. القواعد:</strong> تأخذ كل قاعدة قوة شرطها.</p>
 	<div class="ai-bars" data-r="rules"></div>
 
-	<p><strong>3 و 4. القص والجمع، وبعدين مركز الثقل:</strong></p>
+	<p><strong>3 و 4. القص والجمع، ثم مركز الثقل:</strong></p>
 	<figure class="ai-chart">
 		<svg role="img" aria-label="شكل الخرج ومركز ثقله" data-chart="out"></svg>
 		<figcaption class="ai-legend">
-			<span class="ai-ghost"><i class="dash"></i>بطيء، وسط، سريع (قبل القص)</span><span class="ai-c2"><i></i>الشكل الناتج</span><span class="ai-c4"><i></i>مركز الثقل</span>
+			<span class="ai-ghost"><i class="dash"></i>بطيئة، متوسطة، سريعة (قبل القص)</span><span class="ai-c2"><i></i>الشكل الناتج</span><span class="ai-c4"><i></i>مركز الثقل</span>
 		</figcaption>
 	</figure>
 	<div class="wl-out"><span>سرعة المروحة</span><strong data-r="speed"></strong></div>
@@ -42,9 +42,9 @@
 		{ name: 'حار', type: 'trapmf', p: [20, 30, 40, 40] },
 	] as const;
 	const speedMfs = [
-		{ name: 'بطيء', type: 'trimf', p: [0, 0, 50] },
-		{ name: 'وسط', type: 'trimf', p: [25, 50, 75] },
-		{ name: 'سريع', type: 'trimf', p: [50, 100, 100] },
+		{ name: 'بطيئة', type: 'trimf', p: [0, 0, 50] },
+		{ name: 'متوسطة', type: 'trimf', p: [25, 50, 75] },
+		{ name: 'سريعة', type: 'trimf', p: [50, 100, 100] },
 	] as const;
 	const humMfs = [
 		{ name: 'قليلة', type: 'trapmf', p: [0, 0, 30, 60] },
@@ -62,8 +62,8 @@
 		inputs: [fis1.inputs[0], { name: 'hum', range: [0, 100], mfs: humMfs.map((m) => ({ ...m, p: [...m.p] })) }],
 		rules: [[1, 0, 1], [2, 1, 2], [2, 2, 3], [3, 0, 3]],
 	};
-	const ruleText1 = ['إذا بارد ← بطيء', 'إذا معتدل ← وسط', 'إذا حار ← سريع'];
-	const ruleText2 = ['إذا بارد ← بطيء', 'إذا معتدل والرطوبة قليلة ← وسط', 'إذا معتدل والرطوبة عالية ← سريع', 'إذا حار ← سريع'];
+	const ruleText1 = ['إذا بارد ← بطيئة', 'إذا معتدل ← متوسطة', 'إذا حار ← سريعة'];
+	const ruleText2 = ['إذا بارد ← بطيئة', 'إذا معتدل والرطوبة قليلة ← متوسطة', 'إذا معتدل والرطوبة عالية ← سريعة', 'إذا حار ← سريعة'];
 	const cls = ['ai-c1', 'ai-c3', 'ai-c4'];
 	const range = (a: number, b: number, n: number) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
 	const bar = (label: string, v: number) =>

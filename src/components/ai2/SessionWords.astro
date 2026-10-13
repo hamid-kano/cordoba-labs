@@ -15,15 +15,15 @@ const plain = (t: string) => t.replace(/`([^`]+)`/g, `${LRI}$1${PDI}`);
 
 {
 	list.length > 0 && (
-		<aside class="session-words" aria-label="كلمات هالجلسة">
-			<p class="sw-title">🔤 كلمات هالجلسة <span>اكبس على أي كلمة لتشوف شو بتعمل</span></p>
+		<aside class="session-words" aria-label="كلمات هذه الجلسة">
+			<p class="sw-title">🔤 كلمات هذه الجلسة <span>اضغط على أي كلمة لترى معناها</span></p>
 			<div class="sw-chips">
 				{list.map((w) => (
 					<Term t={w.w} en={w.ar} def={plain(w.def)} />
 				))}
 			</div>
 			<p class="sw-more">
-				<a href="../keywords/">كل الكلمات ببطاقة وحدة بتنطبع ←</a>
+				<a href="../keywords/">كل الكلمات في بطاقة واحدة قابلة للطباعة ←</a>
 			</p>
 		</aside>
 	)

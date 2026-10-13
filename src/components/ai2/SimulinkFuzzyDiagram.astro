@@ -4,7 +4,7 @@
 
 <figure class="wl-fig wl-wide">
 	<div class="wl-scroll">
-		<svg viewBox="0 0 760 310" role="img" aria-label="الخطأ بيروح لـ Gain Ke ثم Saturation ثم المدخل 1 بالـ Mux، وكمان لـ Derivative ثم Gain Kd ثم Saturation ثم المدخل 2. الـ Mux بيروح لـ Fuzzy Logic Controller ثم Gain Ku ثم Saturation ±5 ثم Transfer Fcn">
+		<svg viewBox="0 0 760 310" role="img" aria-label="يذهب الخطأ إلى Gain Ke ثم Saturation ثم المدخل 1 في الـ Mux، ويذهب أيضاً إلى Derivative ثم Gain Kd ثم Saturation ثم المدخل 2. ويذهب الـ Mux إلى Fuzzy Logic Controller ثم Gain Ku ثم Saturation ±5 ثم Transfer Fcn">
 			<defs>
 				<marker id="sf-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
 					<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
@@ -71,6 +71,6 @@
 		</svg>
 	</div>
 	<figcaption>
-		نفس ترتيب البلوكات يلي رح تعملها. الخطأ بيتفرّع لسطرين: فوق الخطأ نفسه، وتحت تغيّره. الاتنين بيتحدّدوا بين −1 و 1 (Saturation)، وبيتجمعوا بالـ Mux <strong>بهالترتيب</strong>، وبعدين بيدخلوا المتحكم. على الموبايل اسحب الرسمة لليمين واليسار.
+		هذا ترتيب البلوكات التي ستبنيها. يتفرّع الخطأ إلى سطرين: في الأعلى الخطأ نفسه، وفي الأسفل تغيّره. يُحدّ كلاهما بين −1 و 1 (Saturation)، ثم يُجمعان في الـ Mux <strong>بهذا الترتيب</strong>، ثم يدخلان المتحكم. على الهاتف، اسحب الرسم يميناً ويساراً.
 	</figcaption>
 </figure>
