@@ -11,7 +11,7 @@ const { tool } = Astro.props;
 		<div class="not-content wl-box" data-lb-lab>
 			<h4>وزّع المهام على المعالجات</h4>
 			<div class="wl-grid">
-				<label class="wl-label"><span>أطوال المهام (ثواني)</span><input class="wl-input" data-in="tasks" value="8 3 6 2 7 4 5 1" /></label>
+				<label class="wl-label"><span>أطوال المهام (ثوانٍ)</span><input class="wl-input" data-in="tasks" value="8 3 6 2 7 4 5 1" /></label>
 				<label class="wl-label"><span>عدد المعالجات</span>
 					<select class="wl-select" data-in="cpus"><option>2</option><option>3</option><option selected>4</option></select>
 				</label>
@@ -19,29 +19,29 @@ const { tool } = Astro.props;
 			<div class="wl-row" role="group" aria-label="طريقة التوزيع">
 				<button type="button" class="wl-btn" data-p="one" aria-pressed="true">كلها على معالج واحد</button>
 				<button type="button" class="wl-btn" data-p="rr" aria-pressed="false">بالدور</button>
-				<button type="button" class="wl-btn" data-p="least" aria-pressed="false">للأقل شغل</button>
-				<button type="button" class="wl-btn" data-p="lpt" aria-pressed="false">الأطول أولاً للأقل شغل</button>
+				<button type="button" class="wl-btn" data-p="least" aria-pressed="false">للأقل حملاً</button>
+				<button type="button" class="wl-btn" data-p="lpt" aria-pressed="false">الأطول أولاً للأقل حملاً</button>
 			</div>
 			<p class="wl-msg" data-out="desc" />
 			<div class="os-lanes" data-out="lanes" />
 			<div class="wl-grid">
-				<div class="wl-out"><span>متى بيخلص الكل؟</span><strong data-out="end" /></div>
+				<div class="wl-out"><span>متى ينتهي الجميع؟</span><strong data-out="end" /></div>
 				<div class="wl-out"><span>استغلال المعالجات</span><strong data-out="util" /></div>
 			</div>
 		</div>
 	) : (
 		<div class="not-content wl-box" data-race-lab>
-			<h4>معالجين وعدّاد واحد</h4>
-			<p class="os-hint">العدّاد <code>x = 5</code>. كل معالج بدو يعمل <code>x = x + 1</code>، يعني 3 خطوات: يقرأ، يجمع، يكتب. لازم يطلع <strong>7</strong>.</p>
+			<h4>معالجان وعدّاد واحد</h4>
+			<p class="os-hint">العدّاد <code>x = 5</code>. يريد كل معالج أن ينفّذ <code>x = x + 1</code>، أي 3 خطوات: يقرأ، يجمع، يكتب. ويجب أن تكون النتيجة <strong>7</strong>.</p>
 			<div class="wl-row" role="group" aria-label="الطريقة">
 				<button type="button" class="wl-btn" data-mode="race" aria-pressed="true">بدون قفل</button>
 				<button type="button" class="wl-btn" data-mode="lock" aria-pressed="false">مع قفل (Lock)</button>
 			</div>
 			<div style="overflow-x:auto"><table class="wl-table" data-out="tbl" /></div>
 			<div class="wl-row">
-				<button type="button" class="wl-btn primary" data-act="step">الخطوة الجاية ←</button>
+				<button type="button" class="wl-btn primary" data-act="step">الخطوة التالية ←</button>
 				<button type="button" class="wl-btn" data-act="all">كل الخطوات</button>
-				<button type="button" class="wl-btn" data-act="reset">من الأول</button>
+				<button type="button" class="wl-btn" data-act="reset">من البداية</button>
 			</div>
 			<p class="wl-msg" data-out="msg" />
 		</div>
@@ -52,10 +52,10 @@ const { tool } = Astro.props;
 	import { balance, type LbPolicy } from '../../scripts/os1';
 
 	const DESC: Record<LbPolicy, string> = {
-		one: 'بدون توزيع: معالج واحد عم يشتغل، والباقي قاعدين.',
-		rr: 'بالدور: المهمة 1 للمعالج 1، والمهمة 2 للمعالج 2... بدون ما نطّلع على طول المهمة.',
-		least: 'موازنة الحمل: كل مهمة بتروح للمعالج يلي عنده أقل شغل هلق.',
-		lpt: 'منرتّب المهام من الأطول للأقصر، وكل وحدة للمعالج الأقل شغل. غالباً بيعطي أحسن توزيع.',
+		one: 'بدون توزيع: معالج واحد يعمل، والباقي بلا عمل.',
+		rr: 'بالدور: المهمة 1 للمعالج 1، والمهمة 2 للمعالج 2... دون النظر إلى طول المهمة.',
+		least: 'موازنة الحمل: تذهب كل مهمة إلى المعالج الأقل حملاً الآن.',
+		lpt: 'نرتّب المهام من الأطول إلى الأقصر، وتذهب كل واحدة إلى المعالج الأقل حملاً. وغالباً يعطي أفضل توزيع.',
 	};
 	const COLORS = ['#3a9ec2', '#e0a030', '#2fb36b', '#e5534b', '#a371f7', '#d16ba5', '#5ab0a0', '#8a8f98'];
 
@@ -96,9 +96,9 @@ const { tool } = Astro.props;
 	// كل عملية بترجع وصف، أو null إذا لازم تستنى (القفل مسكّر)
 	function ops(mode: 'race' | 'lock'): Op[] {
 		const read = (cpu: 1 | 2): Op => ({ cpu, act: 'يقرأ x', run: (s) => { s[cpu === 1 ? 'r1' : 'r2'] = s.x; return `قرأ ${s.x}`; } });
-		const add = (cpu: 1 | 2): Op => ({ cpu, act: 'يجمع 1', run: (s) => { const k = cpu === 1 ? 'r1' : 'r2'; s[k] += 1; return `صار عنده ${s[k]}`; } });
+		const add = (cpu: 1 | 2): Op => ({ cpu, act: 'يجمع 1', run: (s) => { const k = cpu === 1 ? 'r1' : 'r2'; s[k] += 1; return `أصبح لديه ${s[k]}`; } });
 		const write = (cpu: 1 | 2): Op => ({ cpu, act: 'يكتب x', run: (s) => { s.x = s[cpu === 1 ? 'r1' : 'r2']; return `x = ${s.x}`; } });
-		const lock = (cpu: 1 | 2): Op => ({ cpu, act: 'يقفل', run: (s) => { if (s.lock && s.lock !== cpu) return null; s.lock = cpu; return 'القفل إله 🔒'; } });
+		const lock = (cpu: 1 | 2): Op => ({ cpu, act: 'يقفل', run: (s) => { if (s.lock && s.lock !== cpu) return null; s.lock = cpu; return 'القفل له 🔒'; } });
 		const unlock = (cpu: 1 | 2): Op => ({ cpu, act: 'يفتح القفل', run: (s) => { s.lock = 0; return 'فتح 🔓'; } });
 		if (mode === 'race') return [read(1), read(2), add(1), add(2), write(1), write(2)];
 		return [lock(1), read(1), lock(2), add(1), write(1), unlock(1), lock(2), read(2), add(2), write(2), unlock(2)];
@@ -114,7 +114,7 @@ const { tool } = Astro.props;
 			let rows = '<thead><tr><th>#</th><th>المعالج 1</th><th>المعالج 2</th><th>x</th></tr></thead><tbody>';
 			for (let i = 0; i < done; i++) {
 				const o = list[i];
-				const res = o.run(s) ?? 'القفل مسكّر، بيستنى ⏳';
+				const res = o.run(s) ?? 'القفل مغلق، ينتظر ⏳';
 				const cell = `${o.act}: ${res}`;
 				rows += `<tr><td>${i + 1}</td><td>${o.cpu === 1 ? cell : ''}</td><td>${o.cpu === 2 ? cell : ''}</td><td>${s.x}</td></tr>`;
 			}
@@ -123,13 +123,13 @@ const { tool } = Astro.props;
 			const finished = done >= list.length;
 			(root.querySelector('[data-act="step"]') as HTMLButtonElement).disabled = finished;
 			if (!finished) {
-				m.textContent = done ? '' : 'اكبس «الخطوة الجاية» وراقب x.';
+				m.textContent = done ? '' : 'اضغط «الخطوة التالية» وراقب x.';
 				m.className = 'wl-msg';
 			} else if (s.x === 7) {
-				m.textContent = '✔ x = 7: القفل خلّى معالج واحد يدخل بكل مرة. هاد هو الإقصاء المتبادل.';
+				m.textContent = '✔ x = 7: سمح القفل لمعالج واحد بالدخول في كل مرة. وهذا هو الإقصاء المتبادل.';
 				m.className = 'wl-msg wl-good';
 			} else {
-				m.textContent = `✘ x = ${s.x} بدل 7! المعالجين قرأوا نفس القيمة بنفس الوقت، فضاعت زيادة وحدة. هاد اسمه «حالة سباق».`;
+				m.textContent = `✘ x = ${s.x} بدل 7! قرأ المعالجان القيمة نفسها في الوقت نفسه، فضاعت زيادة واحدة. وهذا اسمه «حالة سباق».`;
 				m.className = 'wl-msg wl-bad';
 			}
 		}

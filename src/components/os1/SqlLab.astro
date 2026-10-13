@@ -4,15 +4,15 @@
 ---
 
 <div class="not-content wl-box" data-sql-lab>
-	<h4>جرّب SQL بالمتصفح</h4>
-	<p class="os-hint">قاعدة البيانات فيها 3 جداول: <code>students</code> (الطلاب)، و <code>courses</code> (المواد)، و <code>marks</code> (العلامات). اختار سؤال جاهز أو اكتب أمرك.</p>
+	<h4>جرّب SQL في المتصفح</h4>
+	<p class="os-hint">قاعدة البيانات فيها 3 جداول: <code>students</code> (الطلاب)، و <code>courses</code> (المواد)، و <code>marks</code> (العلامات). اختر سؤالاً جاهزاً أو اكتب أمرك.</p>
 	<div class="wl-row os-q" data-out="presets"></div>
 	<textarea class="wl-input os-sql" rows="3" spellcheck="false" data-in="sql">SELECT * FROM students;</textarea>
 	<div class="wl-row">
 		<button type="button" class="wl-btn primary" data-act="run">▶ نفّذ</button>
-		<button type="button" class="wl-btn" data-act="reset">رجّع القاعدة متل ما كانت</button>
+		<button type="button" class="wl-btn" data-act="reset">أعِد القاعدة كما كانت</button>
 	</div>
-	<p class="wl-msg" data-out="msg">عم يتحمّل محرك SQL...</p>
+	<p class="wl-msg" data-out="msg">جارٍ تحميل محرك SQL...</p>
 	<div style="overflow-x:auto"><table class="wl-table" data-out="res"></table></div>
 </div>
 
@@ -31,12 +31,12 @@ INSERT INTO marks VALUES (1,1,85),(1,2,70),(2,1,92),(2,3,88),(3,1,55),(3,2,64),(
 		['كل الطلاب', 'SELECT * FROM students;'],
 		['طلاب حلب', "SELECT name, year FROM students WHERE city = 'حلب';"],
 		['العلامات من الأعلى', 'SELECT student_id, course_id, mark FROM marks ORDER BY mark DESC;'],
-		['الناجحين (60 وفوق)', 'SELECT * FROM marks WHERE mark >= 60;'],
+		['الناجحون (60 فما فوق)', 'SELECT * FROM marks WHERE mark >= 60;'],
 		['اسم الطالب مع علامته', 'SELECT s.name, c.title, m.mark\nFROM marks m\nJOIN students s ON s.id = m.student_id\nJOIN courses c ON c.id = m.course_id;'],
 		['معدل كل مادة', 'SELECT c.title, ROUND(AVG(m.mark), 1) AS avg_mark, COUNT(*) AS students\nFROM marks m JOIN courses c ON c.id = m.course_id\nGROUP BY c.title;'],
-		['ضيف طالب', "INSERT INTO students VALUES (6, 'نور', 'اللاذقية', 1);\nSELECT * FROM students;"],
+		['أضف طالباً', "INSERT INTO students VALUES (6, 'نور', 'اللاذقية', 1);\nSELECT * FROM students;"],
 		['عدّل علامة', 'UPDATE marks SET mark = 60 WHERE student_id = 5 AND course_id = 1;\nSELECT * FROM marks WHERE student_id = 5;'],
-		['جرّب تكرار المفتاح', "INSERT INTO students VALUES (1, 'حدا تاني', 'حماة', 1);"],
+		['جرّب تكرار المفتاح', "INSERT INTO students VALUES (1, 'شخص آخر', 'حماة', 1);"],
 	];
 	const esc = (v: unknown) => String(v ?? 'NULL').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
 
@@ -50,7 +50,7 @@ INSERT INTO marks VALUES (1,1,85),(1,2,70),(2,1,92),(2,3,88),(3,1,55),(3,2,64),(
 		try {
 			SQL = await initSqlJs({ locateFile: () => wasmUrl });
 		} catch {
-			msg.textContent = 'ما قدرنا نحمّل محرك SQL. تأكد من الإنترنت وحدّث الصفحة.';
+			msg.textContent = 'لم نستطع تحميل محرك SQL. تأكد من الإنترنت وحدّث الصفحة.';
 			msg.className = 'wl-msg wl-bad';
 			return;
 		}
@@ -67,7 +67,7 @@ INSERT INTO marks VALUES (1,1,85),(1,2,70),(2,1,92),(2,3,88),(3,1,55),(3,2,64),(
 				const r = db.exec(ta.value);
 				const changed = db.getRowsModified();
 				if (!r.length) {
-					msg.textContent = `✔ تنفّذ. عدد الأسطر يلي تغيّرت: ${changed}`;
+					msg.textContent = `✔ نُفّذ. عدد الأسطر التي تغيّرت: ${changed}`;
 					msg.className = 'wl-msg wl-good';
 					return;
 				}
@@ -75,11 +75,11 @@ INSERT INTO marks VALUES (1,1,85),(1,2,70),(2,1,92),(2,3,88),(3,1,55),(3,2,64),(
 				res.innerHTML =
 					'<thead><tr>' + last.columns.map((c) => `<th dir="ltr">${esc(c)}</th>`).join('') + '</tr></thead><tbody>' +
 					last.values.map((row) => '<tr>' + row.map((v) => `<td>${esc(v)}</td>`).join('') + '</tr>').join('') + '</tbody>';
-				msg.textContent = `✔ رجع ${last.values.length} سطر.`;
+				msg.textContent = `✔ أُعيد ${last.values.length} سطر.`;
 				msg.className = 'wl-msg wl-good';
 			} catch (e) {
 				const text = String((e as Error).message);
-				const hint = /UNIQUE|PRIMARY/i.test(text) ? ' (المفتاح الأساسي لازم يكون مميز: ما في طالبين بنفس الرقم)' : /no such table/i.test(text) ? ' (اسم الجدول غلط)' : /no such column/i.test(text) ? ' (اسم العمود غلط)' : /syntax/i.test(text) ? ' (في غلطة بكتابة الأمر)' : '';
+				const hint = /UNIQUE|PRIMARY/i.test(text) ? ' (يجب أن يكون المفتاح الأساسي مميزاً: لا يوجد طالبان بالرقم نفسه)' : /no such table/i.test(text) ? ' (اسم الجدول خاطئ)' : /no such column/i.test(text) ? ' (اسم العمود خاطئ)' : /syntax/i.test(text) ? ' (يوجد خطأ في كتابة الأمر)' : '';
 				msg.textContent = `✘ خطأ: ${text}${hint}`;
 				msg.className = 'wl-msg wl-bad';
 			}

@@ -3,20 +3,20 @@
 ---
 
 <div class="not-content wl-box" data-phish>
-	<h4>حقيقية ولا تصيّد؟</h4>
-	<p class="os-hint">لكل رسالة قرّر: آمنة ولا محاولة تصيّد؟ وبعدين اقرأ السبب.</p>
+	<h4>حقيقية أم تصيّد؟</h4>
+	<p class="os-hint">قرّر لكل رسالة: آمنة أم محاولة تصيّد؟ ثم اقرأ السبب.</p>
 	<div class="os-phish" data-out="list"></div>
 	<p class="wl-msg" data-out="score"></p>
 </div>
 
 <script>
 	const ITEMS: { from: string; text: string; link?: string; phish: boolean; why: string }[] = [
-		{ from: 'رسالة SMS', text: 'تم إيقاف حسابك البنكي! حدّث بياناتك خلال ساعة:', link: 'http://bank-sy-update.top/login', phish: true, why: 'البنك ما بيطلب بياناتك برابط. والرابط مش موقع البنك، والاستعجال («خلال ساعة») علامة تصيّد.' },
-		{ from: 'واتساب من رقم غريب', text: 'مبروك! ربحت آيفون 15 بمسابقة. ادفع 10$ رسوم شحن:', link: 'https://free-iphone-gift.xyz', phish: true, why: 'ما شاركت بمسابقة، وفي طلب مصاري. جوائز «ببلاش» بدها دفع = احتيال.' },
-		{ from: 'Google', text: 'تسجيل دخول جديد لحسابك من جهاز Windows. إذا كان إنت، ما في شي لازم تعمله.', link: 'https://myaccount.google.com/notifications', phish: false, why: 'الرابط على google.com الحقيقي، وما بيطلب كلمة سر ولا مصاري، وبيقلك ما تعمل شي إذا كان إنت.' },
-		{ from: 'إيميل «Microsoft»', text: 'صندوق بريدك امتلأ. سجّل دخول هون لتزيد المساحة:', link: 'https://micros0ft-support.com/verify', phish: true, why: 'انتبه للعنوان: micros0ft فيه صفر بدل حرف o. هي حيلة مشهورة.' },
-		{ from: 'موقع الجامعة', text: 'نزلت علامات المذاكرة الأولى على موقع العملي:', link: 'https://hamid-kano.github.io/cordoba-labs/', phish: false, why: 'نفس عنوان موقع العملي يلي بتعرفه، وما في طلب كلمة سر أو بيانات.' },
-		{ from: 'رسالة من «رفيقك»', text: 'هاي، بعتلك كود تأكيد بالغلط على رقمك، فيك تبعتلي ياه؟', phish: true, why: 'هي حيلة لسرقة حسابك: الكود هو مفتاح حسابك أنت. ما تعطي أي كود تأكيد لحدا، حتى لو رفيقك.' },
+		{ from: 'رسالة SMS', text: 'تم إيقاف حسابك البنكي! حدّث بياناتك خلال ساعة:', link: 'http://bank-sy-update.top/login', phish: true, why: 'المصرف لا يطلب بياناتك عبر رابط. والرابط ليس موقع المصرف، والاستعجال («خلال ساعة») علامة تصيّد.' },
+		{ from: 'واتساب من رقم غريب', text: 'مبروك! ربحت آيفون 15 في مسابقة. ادفع 10$ رسوم شحن:', link: 'https://free-iphone-gift.xyz', phish: true, why: 'لم تشارك في أي مسابقة، وهناك طلب مال. جوائز «مجانية» تحتاج إلى دفع = احتيال.' },
+		{ from: 'Google', text: 'تسجيل دخول جديد إلى حسابك من جهاز Windows. إذا كان هذا أنت، فلا يلزمك فعل شيء.', link: 'https://myaccount.google.com/notifications', phish: false, why: 'الرابط على google.com الحقيقي، ولا يطلب كلمة سر ولا مالاً، ويقول لك ألا تفعل شيئاً إذا كان هذا أنت.' },
+		{ from: 'بريد إلكتروني من «Microsoft»', text: 'امتلأ صندوق بريدك. سجّل الدخول هنا لزيادة المساحة:', link: 'https://micros0ft-support.com/verify', phish: true, why: 'انتبه للعنوان: في micros0ft صفر بدل الحرف o. وهذه حيلة مشهورة.' },
+		{ from: 'موقع الجامعة', text: 'صدرت علامات المذاكرة الأولى على موقع العملي:', link: 'https://hamid-kano.github.io/cordoba-labs/', phish: false, why: 'عنوان موقع العملي نفسه الذي تعرفه، ولا يوجد طلب كلمة سر أو بيانات.' },
+		{ from: 'رسالة من «صديقك»', text: 'مرحباً، أُرسل إليك رمز تأكيد بالخطأ على رقمك، هل يمكنك أن ترسله لي؟', phish: true, why: 'هذه حيلة لسرقة حسابك: الرمز هو مفتاح حسابك أنت. لا تعطِ أي رمز تأكيد لأحد، حتى لو كان صديقك.' },
 	];
 
 	document.querySelectorAll<HTMLElement>('[data-phish]').forEach((root) => {
@@ -32,7 +32,7 @@
 					<small>${it.from}</small>
 					<p>${it.text}${it.link ? `<br><span class="os-link" dir="ltr">${it.link}</span>` : ''}</p>
 					${answered
-						? `<p class="${right ? 'wl-good' : 'wl-bad'}"><strong>${right ? '✔ صح' : '✘ لأ'}: ${it.phish ? 'تصيّد' : 'آمنة'}.</strong> ${it.why}</p>`
+						? `<p class="${right ? 'wl-good' : 'wl-bad'}"><strong>${right ? '✔ صحيح' : '✘ خطأ'}: ${it.phish ? 'تصيّد' : 'آمنة'}.</strong> ${it.why}</p>`
 						: `<div class="wl-row"><button type="button" class="wl-btn" data-i="${i}" data-a="0">✔ آمنة</button><button type="button" class="wl-btn" data-i="${i}" data-a="1">🎣 تصيّد</button></div>`}
 				</div>`;
 			}).join('');
@@ -43,7 +43,7 @@
 				}),
 			);
 			const right = [...answers].filter(([i, a]) => ITEMS[i].phish === a).length;
-			score.textContent = answers.size === ITEMS.length ? `النتيجة: ${right} من ${ITEMS.length}` : `جاوبت ${answers.size} من ${ITEMS.length}`;
+			score.textContent = answers.size === ITEMS.length ? `النتيجة: ${right} من ${ITEMS.length}` : `أجبت عن ${answers.size} من ${ITEMS.length}`;
 			score.className = 'wl-msg ' + (answers.size === ITEMS.length ? (right === ITEMS.length ? 'wl-good' : '') : '');
 		}
 		paint();

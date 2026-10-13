@@ -9,7 +9,7 @@ const { tool } = Astro.props;
 {
 	tool === 'time' ? (
 		<div class="not-content wl-box" data-cpu-time>
-			<h4>حاسبة زمن التنفيذ: مين أسرع؟</h4>
+			<h4>حاسبة زمن التنفيذ: من الأسرع؟</h4>
 			<p class="os-hint">زمن التنفيذ = عدد التعليمات × عدد الدورات لكل تعليمة (CPI) ÷ التردد</p>
 			<div class="os-two-cpu">
 				{['A', 'B'].map((c) => (
@@ -25,7 +25,7 @@ const { tool } = Astro.props;
 			<p class="wl-msg" data-out="win"></p>
 			<div class="wl-row">
 				<button type="button" class="wl-btn" data-ex="riscCisc">مثال: CISC مقابل RISC</button>
-				<button type="button" class="wl-btn" data-ex="ghz">مثال: التردد مش كل شي</button>
+				<button type="button" class="wl-btn" data-ex="ghz">مثال: التردد ليس كل شيء</button>
 			</div>
 		</div>
 	) : (
@@ -65,7 +65,7 @@ const { tool } = Astro.props;
 			if (!Number.isFinite(tA) || !Number.isFinite(tB)) return;
 			const fast = tA < tB ? 'A' : 'B';
 			const ratio = Math.max(tA, tB) / Math.min(tA, tB);
-			w.innerHTML = Math.abs(tA - tB) < 1e-12 ? 'التنين نفس السرعة.' : `المعالج ${fast} أسرع بـ <bdi dir="ltr">${ratio.toFixed(2)}×</bdi>`;
+			w.innerHTML = Math.abs(tA - tB) < 1e-12 ? 'لهما السرعة نفسها.' : `المعالج ${fast} أسرع بـ <bdi dir="ltr">${ratio.toFixed(2)}×</bdi>`;
 			w.className = 'wl-msg wl-good';
 		}
 		root.querySelectorAll('input').forEach((i) => i.addEventListener('input', run));

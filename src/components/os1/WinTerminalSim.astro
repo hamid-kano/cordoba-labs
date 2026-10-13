@@ -8,13 +8,13 @@
 	<div class="os-term os-term-win" dir="ltr" data-out="screen" aria-live="polite"></div>
 	<form class="os-term-line os-term-win" dir="ltr" data-form>
 		<span class="os-term-prompt" data-out="prompt"></span>
-		<input class="os-term-in" data-in="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="اكتب أمر" />
+		<input class="os-term-in" data-in="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="اكتب أمراً" />
 	</form>
 	<div class="wl-row">
 		<button type="button" class="wl-btn" data-act="help">help</button>
-		<button type="button" class="wl-btn" data-act="reset">من الأول</button>
+		<button type="button" class="wl-btn" data-act="reset">من البداية</button>
 	</div>
-	<p class="os-hint">اكتب الأمر واكبس Enter. السهم لفوق بيرجّع الأمر يلي قبله. هاد نظام ملفات تدريبي، ما بيأثر على جهازك.</p>
+	<p class="os-hint">اكتب الأمر واضغط Enter. السهم إلى الأعلى يعيد الأمر السابق. هذا نظام ملفات تدريبي، ولا يؤثر في جهازك.</p>
 </div>
 
 <script>
@@ -117,30 +117,30 @@
 	};
 
 	const MISSIONS: { text: string; check: (s: State) => boolean }[] = [
-		{ text: 'اعرف وين إنت: اكتب <code>cd</code> لحاله', check: (s) => s.last.toLowerCase() === 'cd' },
-		{ text: 'شوف شو في حواليك: <code>dir</code>', check: (s) => /^dir\b/i.test(s.last) },
-		{ text: 'فوت على مجلد <code>Documents</code>', check: (s) => s.cwd.toLowerCase() === `${HOME}\\Documents`.toLowerCase() },
-		{ text: 'اعمل مجلد اسمه <code>os1</code> جوّا Documents', check: (s) => get(s, `${HOME}\\Documents\\os1`)?.type === 'dir' },
-		{ text: 'جوّا <code>os1</code> اعمل ملف <code>notes.txt</code> فيه كلمة hello', check: (s) => { const f = get(s, `${HOME}\\Documents\\os1\\notes.txt`); return f?.type === 'file' && /hello/i.test(f.content); } },
+		{ text: 'اعرف أين أنت: اكتب <code>cd</code> وحده', check: (s) => s.last.toLowerCase() === 'cd' },
+		{ text: 'اعرض ما حولك: <code>dir</code>', check: (s) => /^dir\b/i.test(s.last) },
+		{ text: 'ادخل إلى مجلد <code>Documents</code>', check: (s) => s.cwd.toLowerCase() === `${HOME}\\Documents`.toLowerCase() },
+		{ text: 'أنشئ مجلداً اسمه <code>os1</code> داخل Documents', check: (s) => get(s, `${HOME}\\Documents\\os1`)?.type === 'dir' },
+		{ text: 'داخل <code>os1</code> أنشئ ملفاً <code>notes.txt</code> فيه كلمة hello', check: (s) => { const f = get(s, `${HOME}\\Documents\\os1\\notes.txt`); return f?.type === 'file' && /hello/i.test(f.content); } },
 		{ text: 'اعرض محتوى الملف بـ <code>type</code>', check: (s) => /^type\s+.*notes\.txt/i.test(s.last) },
-		{ text: 'انسخه لـ <code>backup.txt</code> بنفس المجلد', check: (s) => { s.flags.backup ||= get(s, `${HOME}\\Documents\\os1\\backup.txt`)?.type === 'file'; return s.flags.backup; } },
+		{ text: 'انسخه إلى <code>backup.txt</code> في المجلد نفسه', check: (s) => { s.flags.backup ||= get(s, `${HOME}\\Documents\\os1\\backup.txt`)?.type === 'file'; return s.flags.backup; } },
 		{ text: 'احذف <code>backup.txt</code>', check: (s) => !!s.flags.backup && !get(s, `${HOME}\\Documents\\os1\\backup.txt`) },
-		{ text: 'ارجع لمجلدك الرئيسي: <code>cd ..\\..</code>', check: (s) => s.cwd.toLowerCase() === HOME.toLowerCase() && s.done.has('0:7') },
+		{ text: 'عُد إلى مجلدك الرئيسي: <code>cd ..\\..</code>', check: (s) => s.cwd.toLowerCase() === HOME.toLowerCase() && s.done.has('0:7') },
 	];
 	const SYS_MISSIONS: { text: string; check: (s: State) => boolean }[] = [
-		{ text: 'شوف كل البرامج الشغّالة: <code>tasklist</code>', check: (s) => /^tasklist$/i.test(s.last) },
-		{ text: 'دوّر على chrome بس: <code>tasklist | find "chrome"</code>', check: (s) => /^tasklist\s*\|\s*find(str)?\s.*chrome/i.test(s.last) },
-		{ text: 'برنامج notepad معلّق. سكّره: <code>taskkill /im notepad.exe</code>', check: (s) => !s.procs.some((p) => p.name === 'notepad.exe') },
-		{ text: 'اعرف عنوان IP تبعك: <code>ipconfig</code>', check: (s) => /^ipconfig/i.test(s.last) },
+		{ text: 'اعرض كل البرامج العاملة: <code>tasklist</code>', check: (s) => /^tasklist$/i.test(s.last) },
+		{ text: 'ابحث عن chrome فقط: <code>tasklist | find "chrome"</code>', check: (s) => /^tasklist\s*\|\s*find(str)?\s.*chrome/i.test(s.last) },
+		{ text: 'برنامج notepad معلّق. أغلقه: <code>taskkill /im notepad.exe</code>', check: (s) => !s.procs.some((p) => p.name === 'notepad.exe') },
+		{ text: 'اعرف عنوان IP الخاص بك: <code>ipconfig</code>', check: (s) => /^ipconfig/i.test(s.last) },
 		{ text: 'جرّب الاتصال بالراوتر: <code>ping 192.168.1.1</code>', check: (s) => /^ping\s+192\.168\.1\.1\b/.test(s.last) },
 		{ text: 'اعرف معلومات جهازك: <code>systeminfo</code>', check: (s) => /^systeminfo/i.test(s.last) },
 		{ text: 'اعرض اسمك من متغير النظام: <code>echo %USERNAME%</code>', check: (s) => /^echo\s+%username%/i.test(s.last) },
-		{ text: 'خبّي ملف <code>notes.txt</code> بمجلدك الرئيسي: <code>attrib +h notes.txt</code>', check: (s) => !!get(s, `${HOME}\\notes.txt`)?.hidden },
-		{ text: 'اعمل نسخة احتياطية لمجلد Documents: <code>xcopy Documents Backup /e /i</code>', check: (s) => get(s, `${HOME}\\Backup\\cv.txt`)?.type === 'file' },
+		{ text: 'أخفِ الملف <code>notes.txt</code> في مجلدك الرئيسي: <code>attrib +h notes.txt</code>', check: (s) => !!get(s, `${HOME}\\notes.txt`)?.hidden },
+		{ text: 'أنشئ نسخة احتياطية لمجلد Documents: <code>xcopy Documents Backup /e /i</code>', check: (s) => get(s, `${HOME}\\Backup\\cv.txt`)?.type === 'file' },
 	];
 	const SETS = [
-		{ title: 'الملفات', list: MISSIONS, end: 'جرّب <code>tree /f</code> لتشوف شغلك.' },
-		{ title: 'النظام والشبكة', list: SYS_MISSIONS, end: 'جرّب <code>dir /a</code> لتشوف الملف المخفي.' },
+		{ title: 'الملفات', list: MISSIONS, end: 'جرّب <code>tree /f</code> لترى عملك.' },
+		{ title: 'النظام والشبكة', list: SYS_MISSIONS, end: 'جرّب <code>dir /a</code> لترى الملف المخفي.' },
 	];
 	const pad = (x: string | number, n: number, left = false) => (left ? String(x).padEnd(n) : String(x).padStart(n));
 	const kb = (n: number) => `${n.toLocaleString('en-US')} K`;
@@ -163,7 +163,7 @@
 		const pipe = splitPipe(line);
 		if (pipe) {
 			const fm = pipe[1].match(/^(find|findstr)\s+(\/i\s+)?"?([^"]*)"?\s*$/i);
-			if (!fm) return 'هون الـ | بيشتغل مع find أو findstr بس، متل: tasklist | find "chrome"';
+			if (!fm) return 'هنا يعمل الـ | مع find أو findstr فقط، مثل: tasklist | find "chrome"';
 			const out = run(s, pipe[0]);
 			const ci = !!fm[2] || fm[1].toLowerCase() === 'findstr';
 			const needle = ci ? fm[3].toLowerCase() : fm[3];
@@ -194,30 +194,30 @@
 			case 'help':
 				return [
 					'-- الملفات --',
-					'CD        وين أنا؟ أو فوت لمجلد (cd .. لورا)',
-					'DIR       شو في بالمجلد (dir /a مع المخفي)',
-					'MKDIR     اعمل مجلد',
-					'ECHO > f  اكتب نص بملف (>> بيضيف)',
+					'CD        أين أنا؟ أو ادخل إلى مجلد (cd .. للخلف)',
+					'DIR       محتويات المجلد (dir /a مع المخفي)',
+					'MKDIR     أنشئ مجلداً',
+					'ECHO > f  اكتب نصاً في ملف (>> يضيف)',
 					'TYPE      اعرض محتوى ملف',
-					'COPY      انسخ ملف',
-					'XCOPY     انسخ مجلد كامل (xcopy a b /e /i)',
+					'COPY      انسخ ملفاً',
+					'XCOPY     انسخ مجلداً كاملاً (xcopy a b /e /i)',
 					'MOVE      انقل',
 					'REN       غيّر الاسم',
-					'DEL       احذف ملف',
-					'RMDIR     احذف مجلد فاضي (rmdir /s لمجلد فيه شي)',
+					'DEL       احذف ملفاً',
+					'RMDIR     احذف مجلداً فارغاً (rmdir /s لمجلد فيه شيء)',
 					'TREE      شجرة المجلدات (tree /f مع الملفات)',
-					'ATTRIB    خبّي ملف (+h) أو احميه من التعديل (+r)',
-					'FIND      دوّر على كلمة جوّا ملف',
+					'ATTRIB    أخفِ ملفاً (+h) أو احمه من التعديل (+r)',
+					'FIND      ابحث عن كلمة داخل ملف',
 					'FC        قارن ملفين',
 					'-- النظام والشبكة --',
-					'TASKLIST  البرامج الشغّالة',
-					'TASKKILL  سكّر برنامج (taskkill /im اسم)',
-					'IPCONFIG  عنوان IP تبعك (ipconfig /all للتفاصيل)',
+					'TASKLIST  البرامج العاملة',
+					'TASKKILL  أغلق برنامجاً (taskkill /im اسم)',
+					'IPCONFIG  عنوان IP الخاص بك (ipconfig /all للتفاصيل)',
 					'PING      جرّب الاتصال بجهاز',
 					'SYSTEMINFO معلومات الجهاز',
 					'SET       متغيرات النظام (echo %USERNAME%)',
-					'CLS       نظّف الشاشة',
-					'PIPE |    مرّر النتيجة لـ find: tasklist | find "chrome"',
+					'CLS       امسح الشاشة',
+					'PIPE |    مرّر النتيجة إلى find: tasklist | find "chrome"',
 				].join('\n');
 			case 'tasklist': {
 				const head = [`${pad('Image Name', 26, true)}${pad('PID', 8)}${pad('Mem Usage', 14)}`, `${'='.repeat(25)} ${'='.repeat(7)} ${'='.repeat(13)}`];
@@ -254,7 +254,7 @@
 			}
 			case 'ping': {
 				const host = (args.find((a) => !a.startsWith('-') && !a.startsWith('/')) ?? '').toLowerCase();
-				if (!host) return 'اكتب اسم أو عنوان الجهاز: ping google.com';
+				if (!host) return 'اكتب اسم الجهاز أو عنوانه: ping google.com';
 				const known = HOSTS[host];
 				const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(host);
 				if (!known && !isIp) return `Ping request could not find host ${esc(host)}. Please check the name and try again.`;
@@ -369,7 +369,7 @@
 			case 'more':
 				return run(s, 'type ' + rest);
 			case 'exit':
-				return 'هون ما فيك تسكّر الطرفية 🙂 اكبس «من الأول» لتبلّش من جديد.';
+				return 'لا يمكنك إغلاق الطرفية هنا 🙂 اضغط «من البداية» لتبدأ من جديد.';
 			case 'echo':
 				return esc(rest) || 'ECHO is on.';
 			case 'whoami':
@@ -379,7 +379,7 @@
 			case 'ver':
 				return 'Microsoft Windows [Version 10.0.26100]';
 			case 'date':
-				return rest.toLowerCase() === '/t' ? new Date().toLocaleDateString('en-GB') : 'اكتب date /t لتشوف التاريخ بدون ما تغيّره';
+				return rest.toLowerCase() === '/t' ? new Date().toLocaleDateString('en-GB') : 'اكتب date /t لترى التاريخ دون أن تغيّره';
 			case 'cd':
 			case 'chdir': {
 				if (!rest) return realPath(s, s.cwd);
@@ -436,7 +436,7 @@
 				const src = P(args[0]);
 				const n = get(s, src);
 				if (!n) return 'The system cannot find the file specified.';
-				if (cmd === 'copy' && n.type === 'dir') return 'لنسخ مجلد بويندوز منستخدم xcopy أو robocopy (مش مدعوم هون)';
+				if (cmd === 'copy' && n.type === 'dir') return 'لنسخ مجلد في ويندوز نستخدم xcopy أو robocopy (غير مدعوم هنا)';
 				let dst = P(args[1]);
 				if (get(s, dst)?.type === 'dir') dst = dst + '\\' + n.name;
 				const { dir, name } = split(dst);
@@ -467,8 +467,8 @@
 				const path = P(args[0]);
 				const n = get(s, path);
 				if (!n) return `Could Not Find ${esc(path)}`;
-				if (n.type === 'dir') return 'del للملفات. للمجلد استخدم rmdir';
-				if (n.readonly) return `Access is denied.\nالملف محمي (attrib +r). شيل الحماية بـ attrib -r ${n.name}`;
+				if (n.type === 'dir') return 'del للملفات. وللمجلد استخدم rmdir';
+				if (n.readonly) return `Access is denied.\nالملف محمي (attrib +r). أزل الحماية بـ attrib -r ${n.name}`;
 				const p = get(s, split(path).dir)!;
 				if (p.type === 'dir') p.children.splice(p.children.indexOf(n), 1);
 				return '';
@@ -503,7 +503,7 @@
 				return lines.join('\n');
 			}
 			default:
-				if (LINUX[cmd]) return `«${cmd}» أمر لينكس. بويندوز اكتب ${LINUX[cmd]}`;
+				if (LINUX[cmd]) return `«${cmd}» أمر لينكس. في ويندوز اكتب ${LINUX[cmd]}`;
 				return `'${esc(m?.[1] ?? '')}' is not recognized as an internal or external command.`;
 		}
 	}
@@ -525,7 +525,7 @@
 		const prompt = () => `${s.cwd}>`;
 		function reset() {
 			s = { root: initialFs(), cwd: HOME, last: '', history: [], done: new Set(), flags: {}, procs: initialProcs(), set: lastSet };
-			screen.innerHTML = '<div>Microsoft Windows [Version 10.0.26100]</div><div dir="rtl" class="os-hint-t">هاد cmd تدريبي. ابدأ بالمهمة الأولى، أو اكتب <bdi dir="ltr">help</bdi>.</div><div>&nbsp;</div>';
+			screen.innerHTML = '<div>Microsoft Windows [Version 10.0.26100]</div><div dir="rtl" class="os-hint-t">هذا cmd تدريبي. ابدأ بالمهمة الأولى، أو اكتب <bdi dir="ltr">help</bdi>.</div><div>&nbsp;</div>';
 			paint();
 		}
 		function paint() {
@@ -547,7 +547,7 @@
 				`<div class="wl-row" role="group" aria-label="مجموعة المهمات">${tabs}</div><ol>` +
 				set.list.map((m, i) => `<li class="${s.done.has(key(i)) ? 'done' : i === first ? 'now' : ''}">${s.done.has(key(i)) ? '✔ ' : ''}${m.text}</li>`).join('') +
 				'</ol>' +
-				(doneN === set.list.length ? `<p class="wl-msg wl-good">🎉 خلّصت مهمات «${set.title}»! ${set.end}${s.set < SETS.length - 1 ? ' وبعدين انتقل للمجموعة الجاية.' : ''}</p>` : '');
+				(doneN === set.list.length ? `<p class="wl-msg wl-good">🎉 أنهيت مهمات «${set.title}»! ${set.end}${s.set < SETS.length - 1 ? ' ثم انتقل إلى المجموعة التالية.' : ''}</p>` : '');
 			box.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) =>
 				b.addEventListener('click', () => {
 					s.set = lastSet = +b.dataset.set!;

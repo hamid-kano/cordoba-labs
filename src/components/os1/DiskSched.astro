@@ -12,12 +12,12 @@
 	</div>
 	<div class="wl-grid">
 		<label class="wl-label"><span>الطلبات بالترتيب (أرقام المسارات)</span><input class="wl-input" data-in="q" value="98 183 37 122 14 124 65 67" /></label>
-		<label class="wl-label"><span>مكان الرأس هلق</span><input class="wl-input" type="number" data-in="head" value="53" /></label>
-		<label class="wl-label"><span>آخر مسار بالقرص</span><input class="wl-input" type="number" data-in="max" value="199" /></label>
-		<label class="wl-label"><span>الرأس ماشي باتجاه</span>
+		<label class="wl-label"><span>مكان الرأس الآن</span><input class="wl-input" type="number" data-in="head" value="53" /></label>
+		<label class="wl-label"><span>آخر مسار في القرص</span><input class="wl-input" type="number" data-in="max" value="199" /></label>
+		<label class="wl-label"><span>يتحرك الرأس باتجاه</span>
 			<select class="wl-select" data-in="dir">
-				<option value="down">الصفر (لتحت)</option>
-				<option value="up">آخر مسار (لفوق)</option>
+				<option value="down">الصفر (إلى الأسفل)</option>
+				<option value="up">آخر مسار (إلى الأعلى)</option>
 			</select>
 		</label>
 	</div>
@@ -33,7 +33,7 @@
 	<div class="wl-out"><span>ترتيب الخدمة</span><strong data-out="order"></strong></div>
 	<figure class="ai-chart">
 		<svg role="img" aria-label="حركة رأس القرص" data-out="chart"></svg>
-		<figcaption>كل سطر خطوة: الخط بيبيّن لوين تحرك الرأس. الخط المنقّط هو القفزة الراجعة.</figcaption>
+		<figcaption>كل سطر خطوة: يبيّن الخط إلى أين تحرك الرأس. والخط المنقّط هو قفزة العودة.</figcaption>
 	</figure>
 	<div class="wl-grid">
 		<div class="wl-out"><span>مجموع حركة الرأس</span><strong data-out="total"></strong></div>
@@ -41,7 +41,7 @@
 	</div>
 	<p data-out="calc" class="os-calc"></p>
 	<details class="answer">
-		<summary>قارن كل الخوارزميات على نفس الطلبات</summary>
+		<summary>قارن كل الخوارزميات على الطلبات نفسها</summary>
 		<div style="overflow-x:auto"><table class="wl-table" data-out="cmp"></table></div>
 	</details>
 </div>
@@ -56,12 +56,12 @@
 	};
 	const NAMES: Record<DiskAlgo, string> = { fcfs: 'FCFS', sstf: 'SSTF', scan: 'SCAN', cscan: 'C-SCAN', look: 'LOOK', clook: 'C-LOOK' };
 	const DESC: Record<DiskAlgo, string> = {
-		fcfs: 'FCFS: مين أجا أول بيتخدم أول، متل دور الفرن. عادل بس الرأس بيروح وبيرجع كتير.',
-		sstf: 'SSTF: كل مرة بيروح للطلب الأقرب. حركة قليلة، بس الطلب البعيد ممكن يستنى كتير.',
-		scan: 'SCAN (المصعد): بيكمّل باتجاهه لآخر القرص، وبعدين بيرجع وبيخدم الباقي.',
-		cscan: 'C-SCAN: بيمشي باتجاه واحد لآخر القرص، وبيقفز للطرف التاني بدون ما يخدم، وبيكمّل بنفس الاتجاه.',
-		look: 'LOOK: متل SCAN، بس بيرجع عند آخر طلب بدل ما يوصل لآخر القرص.',
-		clook: 'C-LOOK: متل C-SCAN، بس بيقفز من آخر طلب لأول طلب بالطرف التاني.',
+		fcfs: 'FCFS: من يأتي أولاً يُخدم أولاً، مثل دور الفرن. عادل، لكن الرأس يذهب ويعود كثيراً.',
+		sstf: 'SSTF: يذهب في كل مرة إلى الطلب الأقرب. حركة قليلة، لكن الطلب البعيد قد ينتظر طويلاً.',
+		scan: 'SCAN (المصعد): يكمل في اتجاهه حتى آخر القرص، ثم يعود ويخدم الباقي.',
+		cscan: 'C-SCAN: يسير باتجاه واحد حتى آخر القرص، ويقفز إلى الطرف الآخر دون أن يخدم، ويكمل في الاتجاه نفسه.',
+		look: 'LOOK: مثل SCAN، لكنه يعود عند آخر طلب بدل أن يصل إلى آخر القرص.',
+		clook: 'C-LOOK: مثل C-SCAN، لكنه يقفز من آخر طلب إلى أول طلب في الطرف الآخر.',
 	};
 
 	document.querySelectorAll<HTMLElement>('[data-disk-sched]').forEach((root) => {
@@ -89,7 +89,7 @@
 			out('total').textContent = `${r.total}`;
 			out('avg').textContent = q.length ? (r.total / q.length).toFixed(2) : '–';
 			const steps = r.path.slice(1).map((c, i) => `|${c} − ${r.path[i]}|`);
-			out('calc').innerHTML = r.path.length > 1 ? `الحساب${r.jump ? ` (منها القفزة الراجعة <bdi dir="ltr">${r.jump}</bdi>)` : ''}:<span class="os-calc-expr" dir="ltr">${steps.join(' + ')} = ${r.total}</span>` : '';
+			out('calc').innerHTML = r.path.length > 1 ? `الحساب${r.jump ? ` (منها قفزة العودة <bdi dir="ltr">${r.jump}</bdi>)` : ''}:<span class="os-calc-expr" dir="ltr">${steps.join(' + ')} = ${r.total}</span>` : '';
 			draw(r.path, max, algo === 'cscan' || algo === 'clook' ? r.jump : 0, r.order.length ? new Set(r.order) : new Set());
 			// المقارنة
 			let rows = '<thead><tr><th>الخوارزمية</th><th>مجموع الحركة</th></tr></thead><tbody>';

@@ -8,13 +8,13 @@
 	<div class="os-term" dir="ltr" data-out="screen" aria-live="polite"></div>
 	<form class="os-term-line" dir="ltr" data-form>
 		<span class="os-term-prompt" data-out="prompt"></span>
-		<input class="os-term-in" data-in="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="اكتب أمر" />
+		<input class="os-term-in" data-in="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="اكتب أمراً" />
 	</form>
 	<div class="wl-row">
 		<button type="button" class="wl-btn" data-act="help">help</button>
-		<button type="button" class="wl-btn" data-act="reset">من الأول</button>
+		<button type="button" class="wl-btn" data-act="reset">من البداية</button>
 	</div>
-	<p class="os-hint">اكتب الأمر واكبس Enter. السهم لفوق بيرجّع الأمر يلي قبله. هاد نظام ملفات تدريبي، ما بيأثر على جهازك.</p>
+	<p class="os-hint">اكتب الأمر واضغط Enter. السهم إلى الأعلى يعيد الأمر السابق. هذا نظام ملفات تدريبي، ولا يؤثر في جهازك.</p>
 </div>
 
 <script>
@@ -38,15 +38,15 @@
 	}
 
 	const MISSIONS: { text: string; check: (s: State) => boolean }[] = [
-		{ text: 'اعرف وين إنت: <code>pwd</code>', check: (s) => s.last === 'pwd' },
-		{ text: 'شوف شو في حواليك: <code>ls</code>', check: (s) => s.last.startsWith('ls') },
-		{ text: 'فوت على مجلد <code>Documents</code>', check: (s) => s.cwd === `${HOME}/Documents` },
-		{ text: 'اعمل مجلد اسمه <code>os1</code> جوّا Documents', check: (s) => get(s, `${HOME}/Documents/os1`)?.type === 'dir' },
-		{ text: 'جوّا <code>os1</code> اعمل ملف <code>notes.txt</code> فيه كلمة hello', check: (s) => { const f = get(s, `${HOME}/Documents/os1/notes.txt`); return f?.type === 'file' && /hello/i.test(f.content); } },
+		{ text: 'اعرف أين أنت: <code>pwd</code>', check: (s) => s.last === 'pwd' },
+		{ text: 'اعرض ما حولك: <code>ls</code>', check: (s) => s.last.startsWith('ls') },
+		{ text: 'ادخل إلى مجلد <code>Documents</code>', check: (s) => s.cwd === `${HOME}/Documents` },
+		{ text: 'أنشئ مجلداً اسمه <code>os1</code> داخل Documents', check: (s) => get(s, `${HOME}/Documents/os1`)?.type === 'dir' },
+		{ text: 'داخل <code>os1</code> أنشئ ملفاً <code>notes.txt</code> فيه كلمة hello', check: (s) => { const f = get(s, `${HOME}/Documents/os1/notes.txt`); return f?.type === 'file' && /hello/i.test(f.content); } },
 		{ text: 'اعرض محتوى الملف بـ <code>cat</code>', check: (s) => /^cat\s+.*notes\.txt/.test(s.last) },
-		{ text: 'انسخه لـ <code>backup.txt</code> بنفس المجلد', check: (s) => { s.flags.backup ||= get(s, `${HOME}/Documents/os1/backup.txt`)?.type === 'file'; return s.flags.backup; } },
+		{ text: 'انسخه إلى <code>backup.txt</code> في المجلد نفسه', check: (s) => { s.flags.backup ||= get(s, `${HOME}/Documents/os1/backup.txt`)?.type === 'file'; return s.flags.backup; } },
 		{ text: 'احذف <code>backup.txt</code>', check: (s) => !!s.flags.backup && !get(s, `${HOME}/Documents/os1/backup.txt`) },
-		{ text: 'ارجع للمجلد الرئيسي: <code>cd ~</code>', check: (s) => s.cwd === HOME && s.done.has(7) },
+		{ text: 'عُد إلى المجلد الرئيسي: <code>cd ~</code>', check: (s) => s.cwd === HOME && s.done.has(7) },
 	];
 
 	interface State { root: Node; cwd: string; last: string; history: string[]; done: Set<number>; flags: Record<string, boolean> }
@@ -83,21 +83,21 @@
 		const redir = line.match(/^echo\s+(.*?)\s*(>>?)\s*(\S+)$/);
 		const [cmd, ...args] = line.trim().split(/\s+/);
 		const P = (p: string) => norm(s.cwd, p);
-		const need = (n: number) => (args.length < n ? `${cmd}: ناقص اسم` : '');
+		const need = (n: number) => (args.length < n ? `${cmd}: ينقص اسم` : '');
 		if (redir) {
 			const path = P(redir[3]);
 			const { dir, name } = parent(path);
 			const d = get(s, dir);
-			if (d?.type !== 'dir') return `echo: المجلد مش موجود`;
+			if (d?.type !== 'dir') return `echo: المجلد غير موجود`;
 			const text = redir[1].replace(/^["']|["']$/g, '') + '\n';
 			const old = d.children[name];
-			if (old?.type === 'dir') return `echo: ${redir[3]} مجلد مش ملف`;
+			if (old?.type === 'dir') return `echo: ${redir[3]} مجلد وليس ملفاً`;
 			d.children[name] = { type: 'file', content: redir[2] === '>>' && old?.type === 'file' ? old.content + text : text };
 			return '';
 		}
 		switch (cmd) {
 			case 'help':
-				return ['pwd            وين أنا؟', 'ls [-l] [مجلد]  شو في بالمجلد', 'cd مجلد         فوت لمجلد (.. لورا، ~ للرئيسي)', 'mkdir اسم       اعمل مجلد', 'touch اسم       اعمل ملف فاضي', 'echo نص > ملف   اكتب نص بملف (>> بيضيف)', 'cat ملف         اعرض محتوى ملف', 'cp ملف1 ملف2    انسخ', 'mv قديم جديد    انقل أو غيّر الاسم', 'rm ملف          احذف ملف (rm -r لمجلد)', 'rmdir مجلد      احذف مجلد فاضي', 'tree            شجرة المجلدات', 'whoami، date، history، clear'].join('\n');
+				return ['pwd            أين أنا؟', 'ls [-l] [مجلد]  محتويات المجلد', 'cd مجلد         ادخل إلى مجلد (.. للخلف، ~ للرئيسي)', 'mkdir اسم       أنشئ مجلداً', 'touch اسم       أنشئ ملفاً فارغاً', 'echo نص > ملف   اكتب نصاً في ملف (>> يضيف)', 'cat ملف         اعرض محتوى ملف', 'cp ملف1 ملف2    انسخ', 'mv قديم جديد    انقل أو غيّر الاسم', 'rm ملف          احذف ملفاً (rm -r لمجلد)', 'rmdir مجلد      احذف مجلداً فارغاً', 'tree            شجرة المجلدات', 'whoami، date، history، clear'].join('\n');
 			case 'pwd':
 				return s.cwd;
 			case 'whoami':
@@ -110,7 +110,7 @@
 				const long = args[0] === '-l';
 				const target = P(args.find((a) => a !== '-l') ?? '.');
 				const n = get(s, target);
-				if (!n) return `ls: ما في شي اسمه ${args.find((a) => a !== '-l')}`;
+				if (!n) return `ls: لا يوجد شيء اسمه ${args.find((a) => a !== '-l')}`;
 				if (n.type === 'file') return parent(target).name;
 				const names = Object.keys(n.children).sort();
 				if (!long) return names.map((x) => (n.children[x].type === 'dir' ? `<b class="os-dir">${esc(x)}/</b>` : esc(x))).join('  ');
@@ -124,8 +124,8 @@
 			case 'cd': {
 				const target = P(args[0] ?? '~');
 				const n = get(s, target);
-				if (!n) return `cd: ما في مجلد اسمه ${args[0]}`;
-				if (n.type !== 'dir') return `cd: ${args[0]} ملف مش مجلد`;
+				if (!n) return `cd: لا يوجد مجلد اسمه ${args[0]}`;
+				if (n.type !== 'dir') return `cd: ${args[0]} ملف وليس مجلداً`;
 				s.cwd = target;
 				return '';
 			}
@@ -135,7 +135,7 @@
 				for (const a of args) {
 					const { dir, name } = parent(P(a));
 					const d = get(s, dir);
-					if (d?.type !== 'dir') return `${cmd}: المجلد ${dir} مش موجود`;
+					if (d?.type !== 'dir') return `${cmd}: المجلد ${dir} غير موجود`;
 					if (d.children[name]) {
 						if (cmd === 'mkdir') return `mkdir: ${a} موجود أصلاً`;
 						continue;
@@ -147,7 +147,7 @@
 			case 'cat': {
 				if (need(1)) return need(1);
 				const n = get(s, P(args[0]));
-				if (!n) return `cat: ما في ملف اسمه ${args[0]}`;
+				if (!n) return `cat: لا يوجد ملف اسمه ${args[0]}`;
 				if (n.type === 'dir') return `cat: ${args[0]} مجلد`;
 				return esc(n.content.replace(/\n$/, ''));
 			}
@@ -156,13 +156,13 @@
 				if (need(2)) return need(2);
 				const src = P(args[0]);
 				const n = get(s, src);
-				if (!n) return `${cmd}: ما في شي اسمه ${args[0]}`;
-				if (cmd === 'cp' && n.type === 'dir') return 'cp: لنسخ مجلد بدك cp -r (مش مدعوم هون)';
+				if (!n) return `${cmd}: لا يوجد شيء اسمه ${args[0]}`;
+				if (cmd === 'cp' && n.type === 'dir') return 'cp: لنسخ مجلد تحتاج cp -r (غير مدعوم هنا)';
 				let dst = P(args[1]);
 				if (get(s, dst)?.type === 'dir') dst = `${dst}/${parent(src).name}`;
 				const { dir, name } = parent(dst);
 				const d = get(s, dir);
-				if (d?.type !== 'dir') return `${cmd}: المجلد ${dir} مش موجود`;
+				if (d?.type !== 'dir') return `${cmd}: المجلد ${dir} غير موجود`;
 				d.children[name] = cmd === 'cp' ? JSON.parse(JSON.stringify(n)) : n;
 				if (cmd === 'mv') {
 					const p = parent(src);
@@ -175,13 +175,13 @@
 			case 'rmdir': {
 				const rec = args[0] === '-r';
 				const name = args.find((a) => a !== '-r');
-				if (!name) return `${cmd}: ناقص اسم`;
+				if (!name) return `${cmd}: ينقص اسم`;
 				const path = P(name);
 				const n = get(s, path);
-				if (!n) return `${cmd}: ما في شي اسمه ${name}`;
-				if (path === '/' || s.cwd.startsWith(path)) return `${cmd}: ما فيك تحذف المجلد يلي إنت جوّاه`;
+				if (!n) return `${cmd}: لا يوجد شيء اسمه ${name}`;
+				if (path === '/' || s.cwd.startsWith(path)) return `${cmd}: لا يمكنك حذف المجلد الذي أنت داخله`;
 				if (cmd === 'rm' && n.type === 'dir' && !rec) return `rm: ${name} مجلد. استخدم rm -r أو rmdir`;
-				if (cmd === 'rmdir' && (n.type !== 'dir' || Object.keys(n.children).length)) return `rmdir: ${name} مش مجلد فاضي`;
+				if (cmd === 'rmdir' && (n.type !== 'dir' || Object.keys(n.children).length)) return `rmdir: ${name} ليس مجلداً فارغاً`;
 				const p = parent(path);
 				const d = get(s, p.dir);
 				if (d?.type === 'dir') delete d.children[p.name];
@@ -203,11 +203,11 @@
 				return lines.join('\n');
 			}
 			case 'dir':
-				return 'dir هو أمر ويندوز. بلينكس منكتب ls';
+				return 'dir أمر ويندوز. في لينكس نكتب ls';
 			case 'cls':
-				return 'cls هو أمر ويندوز. بلينكس منكتب clear';
+				return 'cls أمر ويندوز. في لينكس نكتب clear';
 			default:
-				return `${esc(cmd)}: الأمر مش معروف. اكتب help لتشوف الأوامر`;
+				return `${esc(cmd)}: الأمر غير معروف. اكتب help لترى الأوامر`;
 		}
 	}
 
@@ -219,7 +219,7 @@
 		const prompt = () => `student@lab:${s.cwd.replace(HOME, '~')}$`;
 		function reset() {
 			s = { root: initialFs(), cwd: HOME, last: '', history: [], done: new Set(), flags: {} };
-			screen.innerHTML = '<div dir="rtl" class="os-hint-t">أهلاً! هاد Linux تدريبي. ابدأ بالمهمة الأولى، أو اكتب <bdi dir="ltr">help</bdi>.</div>';
+			screen.innerHTML = '<div dir="rtl" class="os-hint-t">أهلاً! هذا Linux تدريبي. ابدأ بالمهمة الأولى، أو اكتب <bdi dir="ltr">help</bdi>.</div>';
 			paint();
 		}
 		function paint() {
@@ -232,7 +232,7 @@
 			root.querySelector('[data-out="missions"]')!.innerHTML =
 				`<strong>المهمات (${s.done.size}/${MISSIONS.length})</strong><ol>` +
 				MISSIONS.map((m, i) => `<li class="${s.done.has(i) ? 'done' : i === first ? 'now' : ''}">${s.done.has(i) ? '✔ ' : ''}${m.text}</li>`).join('') +
-				'</ol>' + (s.done.size === MISSIONS.length ? '<p class="wl-msg wl-good">🎉 خلّصت كل المهمات! جرّب <code>tree</code> لتشوف شغلك.</p>' : '');
+				'</ol>' + (s.done.size === MISSIONS.length ? '<p class="wl-msg wl-good">🎉 أنهيت كل المهمات! جرّب <code>tree</code> لترى عملك.</p>' : '');
 			screen.scrollTop = screen.scrollHeight;
 		}
 		root.querySelector('[data-form]')!.addEventListener('submit', (e) => {

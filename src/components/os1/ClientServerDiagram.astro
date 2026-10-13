@@ -3,7 +3,7 @@
 ---
 
 <figure class="wl-fig">
-	<svg class="d-big" viewBox="0 0 620 260" role="img" aria-label="الزبون بيبعت طلب عبر الشبكة للخادم، والخادم بيقرأ من قاعدة البيانات وبيرجع رد بصيغة JSON">
+	<svg class="d-big" viewBox="0 0 620 260" role="img" aria-label="يرسل الزبون طلباً عبر الشبكة إلى الخادم، فيقرأ الخادم من قاعدة البيانات ويعيد رداً بصيغة JSON">
 		<defs>
 			<marker id="cs-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
 				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
@@ -12,7 +12,7 @@
 		<!-- الزبون -->
 		<rect x="20" y="70" width="120" height="110" rx="12" class="d-box"></rect>
 		<text x="80" y="118" class="d-t d-b">الزبون</text>
-		<text x="80" y="142" class="d-s">موبايلك أو</text>
+		<text x="80" y="142" class="d-s">هاتفك أو</text>
 		<text x="80" y="160" class="d-s">المتصفح</text>
 		<!-- الشبكة -->
 		<path d="M140 100 H300" class="d-line d-blue" marker-end="url(#cs-ar)"></path>
@@ -20,15 +20,15 @@
 		<text x="220" y="122" class="d-s">أولاً: الطلب</text>
 		<path d="M300 160 H140" class="d-line d-green" marker-end="url(#cs-ar)"></path>
 		<text x="220" y="150" class="d-s d-ltr d-b">200 OK + JSON</text>
-		<text x="220" y="182" class="d-s">تالتاً: الرد</text>
+		<text x="220" y="182" class="d-s">ثالثاً: الرد</text>
 		<!-- الخادم -->
 		<rect x="300" y="70" width="140" height="110" rx="12" class="d-box"></rect>
 		<text x="370" y="118" class="d-t d-b">الخادم</text>
-		<text x="370" y="142" class="d-s">بيفهم الطلب</text>
-		<text x="370" y="160" class="d-s">وبيجهّز الرد</text>
+		<text x="370" y="142" class="d-s">يفهم الطلب</text>
+		<text x="370" y="160" class="d-s">ويجهّز الرد</text>
 		<!-- قاعدة البيانات -->
 		<path d="M440 125 H490" class="d-line" marker-start="url(#cs-ar)" marker-end="url(#cs-ar)"></path>
-		<text x="465" y="108" class="d-s">تانياً</text>
+		<text x="465" y="108" class="d-s">ثانياً</text>
 		<ellipse cx="550" cy="85" rx="55" ry="14" class="d-box2 d-orange"></ellipse>
 		<path d="M495 85 V165 A55 14 0 0 0 605 165 V85" class="d-box2 d-orange"></path>
 		<text x="550" y="132" class="d-s d-b">قاعدة</text>
@@ -36,6 +36,6 @@
 		<text x="310" y="232" class="d-s">الطلب والرد بلغة متفق عليها (HTTP)، والبيانات بصيغة يفهمها أي برنامج (JSON).</text>
 	</svg>
 	<figcaption>
-		هيك بيشتغل أغلب الإنترنت: <strong>الزبون</strong> بيطلب، و<strong>الخادم</strong> بيجيب البيانات وبيرد. ولما الخادم بيقدّم بياناته لأي برنامج بهالطريقة، منسميه <strong>خدمة ويب</strong>.
+		هكذا يعمل أغلب الإنترنت: يطلب <strong>الزبون</strong>، فيجلب <strong>الخادم</strong> البيانات ويرد. وعندما يقدّم الخادم بياناته لأي برنامج بهذه الطريقة، نسمّيه <strong>خدمة ويب</strong>.
 	</figcaption>
 </figure>

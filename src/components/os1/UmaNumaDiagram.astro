@@ -5,7 +5,7 @@ const cpus = [0, 1, 2, 3];
 
 <div class="ai-two">
 	<figure class="wl-fig">
-		<svg class="d-big" viewBox="0 0 320 250" role="img" aria-label="UMA: أربع معالجات موصولة بناقل واحد مع ذاكرة وحدة مشتركة، والوقت للوصول للذاكرة نفسه للكل">
+		<svg class="d-big" viewBox="0 0 320 250" role="img" aria-label="UMA: أربعة معالجات موصولة بناقل واحد مع ذاكرة واحدة مشتركة، وزمن الوصول إلى الذاكرة نفسه للجميع">
 			<text x="160" y="24" class="d-t d-b d-ltr">UMA</text>
 			{cpus.map((i) => (
 				<g>
@@ -18,12 +18,12 @@ const cpus = [0, 1, 2, 3];
 			<text x="160" y="152" class="d-s">ناقل واحد مشترك</text>
 			<line x1="160" y1="130" x2="160" y2="180" class="d-line"></line>
 			<rect x="70" y="180" width="180" height="50" rx="8" class="d-box2 d-orange"></rect>
-			<text x="160" y="210" class="d-t d-b">ذاكرة وحدة</text>
+			<text x="160" y="210" class="d-t d-b">ذاكرة واحدة</text>
 		</svg>
-		<figcaption><strong>UMA:</strong> كل المعالجات بتوصل للذاكرة بنفس الوقت تماماً. بسيطة، بس الناقل بيصير زحمة إذا كترت المعالجات.</figcaption>
+		<figcaption><strong>UMA:</strong> تصل كل المعالجات إلى الذاكرة في الزمن نفسه تماماً. بسيطة، لكن الناقل يزدحم إذا كثرت المعالجات.</figcaption>
 	</figure>
 	<figure class="wl-fig">
-		<svg class="d-big" viewBox="0 0 320 250" role="img" aria-label="NUMA: كل معالجين إلهن ذاكرة قريبة، وبيقدروا يوصلوا لذاكرة الجيران بس أبطأ">
+		<svg class="d-big" viewBox="0 0 320 250" role="img" aria-label="NUMA: لكل معالجين ذاكرة قريبة، ويمكنهما الوصول إلى ذاكرة الجيران لكن بشكل أبطأ">
 			<text x="160" y="24" class="d-t d-b d-ltr">NUMA</text>
 			{[0, 1].map((n) => (
 				<g>
@@ -41,7 +41,7 @@ const cpus = [0, 1, 2, 3];
 			<text x="160" y="212" class="d-s">ذاكرة الجار:</text>
 			<text x="160" y="230" class="d-s">أبطأ</text>
 		</svg>
-		<figcaption><strong>NUMA:</strong> كل مجموعة معالجات إلها ذاكرة قريبة سريعة، وبتقدر توصل لذاكرة الجيران بس أبطأ. بتتوسّع لمعالجات أكتر.</figcaption>
+		<figcaption><strong>NUMA:</strong> لكل مجموعة معالجات ذاكرة قريبة سريعة، ويمكنها الوصول إلى ذاكرة الجيران لكن بشكل أبطأ. وتتوسّع لمعالجات أكثر.</figcaption>
 	</figure>
 </div>
 

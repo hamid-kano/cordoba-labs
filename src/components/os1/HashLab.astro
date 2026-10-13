@@ -4,14 +4,14 @@
 
 <div class="not-content wl-box" data-hash-lab>
 	<h4>جرّب البصمة (SHA-256)</h4>
-	<label class="wl-label"><span>اكتب أي نص (متل محتوى ملف):</span>
+	<label class="wl-label"><span>اكتب أي نص (مثل محتوى ملف):</span>
 		<textarea class="wl-input os-text" rows="3" data-in="t">علامة الطالب أحمد: 85</textarea>
 	</label>
 	<div class="wl-out"><span>البصمة</span><strong class="os-hash" data-out="h"></strong></div>
 	<p class="wl-msg" data-out="cmp"></p>
 	<div class="wl-row">
-		<button type="button" class="wl-btn" data-act="save">📌 احفظ البصمة هلق</button>
-		<button type="button" class="wl-btn" data-act="tamper">غيّر حرف واحد</button>
+		<button type="button" class="wl-btn" data-act="save">📌 احفظ البصمة الآن</button>
+		<button type="button" class="wl-btn" data-act="tamper">غيّر حرفاً واحداً</button>
 	</div>
 </div>
 
@@ -25,19 +25,19 @@
 		let current = '';
 		async function run() {
 			if (!crypto?.subtle) {
-				h.textContent = 'المتصفح ما بيدعم الحساب هون';
+				h.textContent = 'المتصفح لا يدعم الحساب هنا';
 				return;
 			}
 			current = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t.value)));
 			h.textContent = current;
-			if (!saved) cmp.textContent = 'احفظ البصمة، وبعدين غيّر النص ولو حرف، وشوف شو بيصير.';
+			if (!saved) cmp.textContent = 'احفظ البصمة، ثم غيّر النص ولو بحرف، ولاحظ ما يحدث.';
 			else if (saved === current) {
-				cmp.textContent = '✔ نفس البصمة المحفوظة: الملف ما تغيّر.';
+				cmp.textContent = '✔ البصمة نفسها المحفوظة: الملف لم يتغيّر.';
 				cmp.className = 'wl-msg wl-good';
 			} else {
 				let same = 0;
 				for (let i = 0; i < 64; i++) if (saved[i] === current[i]) same++;
-				cmp.textContent = `✘ البصمة تغيّرت: الملف انعدّل! (بس ${same} من 64 خانة بقيت متل ما هي)`;
+				cmp.textContent = `✘ تغيّرت البصمة: عُدّل الملف! (بقيت ${same} خانات فقط من 64 كما هي)`;
 				cmp.className = 'wl-msg wl-bad';
 			}
 		}

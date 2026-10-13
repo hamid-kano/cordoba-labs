@@ -3,7 +3,7 @@
 ---
 
 <div class="not-content wl-box" data-file-alloc>
-	<h4>كيف بينحفظ الملف على القرص؟</h4>
+	<h4>كيف يُحفظ الملف على القرص؟</h4>
 	<div class="wl-row" role="group" aria-label="الطريقة">
 		<span>الطريقة:</span>
 		<button type="button" class="wl-btn" data-method="cont" aria-pressed="true">متجاور</button>
@@ -12,8 +12,8 @@
 	</div>
 	<ol class="os-steps" data-out="steps"></ol>
 	<div class="wl-row">
-		<button type="button" class="wl-btn primary" data-act="next">الخطوة الجاية ←</button>
-		<button type="button" class="wl-btn" data-act="reset">من الأول</button>
+		<button type="button" class="wl-btn primary" data-act="next">الخطوة التالية ←</button>
+		<button type="button" class="wl-btn" data-act="reset">من البداية</button>
 	</div>
 	<p class="wl-msg" data-out="msg"></p>
 	<div class="os-blocks" data-out="grid"></div>
@@ -57,7 +57,7 @@
 					s.idx[b] = false;
 				}
 				s.files.delete(st.f);
-				s.msg = `انحذف ${st.f}، وصار مكانه فاضي.`;
+				s.msg = `حُذف ${st.f}، وأصبح مكانه فارغاً.`;
 				s.ok = true;
 				continue;
 			}
@@ -67,7 +67,7 @@
 				let start = -1;
 				for (let i = 0; i + size <= N && start < 0; i++) if (s.owner.slice(i, i + size).every((o) => !o)) start = i;
 				if (start < 0) {
-					s.msg = `ما في ${size} كتل فاضية ورا بعض لـ ${st.f}، مع إنه في ${fr.length} كتل فاضية! هاد هو التجزؤ الخارجي.`;
+					s.msg = `لا توجد ${size} كتل متتالية فارغة لـ ${st.f}، مع أنه توجد ${fr.length} كتل فارغة! وهذا هو التجزؤ الخارجي.`;
 					s.ok = false;
 					continue;
 				}
@@ -77,7 +77,7 @@
 			} else {
 				const need = size + (method === 'index' ? 1 : 0);
 				if (fr.length < need) {
-					s.msg = `ما في مكان كفاية لـ ${st.f}: بدو ${need} كتل، والفاضي ${fr.length}.`;
+					s.msg = `لا يوجد مكان كافٍ لـ ${st.f}: يحتاج ${need} كتل، والفارغ ${fr.length}.`;
 					s.ok = false;
 					continue;
 				}
@@ -97,7 +97,7 @@
 					s.files.set(st.f, { blocks, index });
 				}
 			}
-			s.msg = `انحفظ ${st.f} ✔`;
+			s.msg = `حُفظ ${st.f} ✔`;
 			s.ok = true;
 		}
 		return s;
@@ -112,7 +112,7 @@
 			const s = simulate(method, step);
 			out('steps').innerHTML = STEPS.map((x, i) => `<li class="${i < step ? 'done' : i === step ? 'now' : ''}">${label(x)}</li>`).join('');
 			const m = out('msg');
-			m.textContent = step === 0 ? 'القرص فاضي: 24 كتلة. اكبس «الخطوة الجاية».' : s.msg;
+			m.textContent = step === 0 ? 'القرص فارغ: 24 كتلة. اضغط «الخطوة التالية».' : s.msg;
 			m.className = 'wl-msg ' + (step === 0 ? '' : s.ok ? 'wl-good' : 'wl-bad');
 			out('grid').innerHTML = s.owner
 				.map((o, i) => {
@@ -130,7 +130,7 @@
 			}
 			out('dir').innerHTML = s.files.size ? head + body + '</tbody>' : '';
 			const freeN = s.owner.filter((o) => !o).length;
-			out('free').textContent = `الكتل الفاضية: ${freeN} من ${N}. فوق: جدول المجلد (شو بيحفظ نظام الملفات عن كل ملف).`;
+			out('free').textContent = `الكتل الفارغة: ${freeN} من ${N}. في الأعلى: جدول المجلد (ما يحفظه نظام الملفات عن كل ملف).`;
 			(root.querySelector('[data-act="next"]') as HTMLButtonElement).disabled = step >= STEPS.length;
 		}
 		root.querySelectorAll<HTMLButtonElement>('[data-method]').forEach((b) =>

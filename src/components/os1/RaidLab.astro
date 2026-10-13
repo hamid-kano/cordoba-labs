@@ -16,7 +16,7 @@
 		<span>عدد الأقراص:</span>
 		<button type="button" class="wl-btn" data-n="-1" aria-label="قرص أقل">−</button>
 		<strong data-out="n" class="wl-mono"></strong>
-		<button type="button" class="wl-btn" data-n="1" aria-label="قرص زيادة">+</button>
+		<button type="button" class="wl-btn" data-n="1" aria-label="قرص إضافي">+</button>
 		<span>حجم كل قرص:</span>
 		<select class="wl-select" data-in="size">
 			<option value="1">1 TB</option>
@@ -26,13 +26,13 @@
 	</div>
 	<p class="wl-msg" data-out="note"></p>
 	<div class="os-disks" data-out="disks"></div>
-	<p class="os-hint">اكبس على أي قرص لتخرّبه (أو تصلّحه).</p>
+	<p class="os-hint">اضغط على أي قرص لتعطّله (أو تصلحه).</p>
 	<p class="wl-msg" data-out="status"></p>
 	<div class="wl-grid">
 		<div class="wl-out"><span>المساحة الكلية</span><strong data-out="raw"></strong></div>
-		<div class="wl-out"><span>المساحة يلي فيك تستخدمها</span><strong data-out="usable"></strong></div>
+		<div class="wl-out"><span>المساحة التي يمكنك استخدامها</span><strong data-out="usable"></strong></div>
 		<div class="wl-out"><span>نسبة الاستفادة</span><strong data-out="eff"></strong></div>
-		<div class="wl-out"><span>بيتحمّل خراب</span><strong data-out="tol"></strong></div>
+		<div class="wl-out"><span>يتحمّل تعطّل</span><strong data-out="tol"></strong></div>
 	</div>
 </div>
 
@@ -86,7 +86,7 @@
 			const size = +root.querySelector<HTMLSelectElement>('[data-in="size"]')!.value;
 			const info = raidInfo(level, n, size)!;
 			out('n').textContent = String(n);
-			out('note').textContent = info.ok ? info.note : `RAID ${level} بدو ${level === 10 ? 'عدد زوجي من الأقراص، 4 أو أكتر' : `${info.min} أقراص على الأقل`}.`;
+			out('note').textContent = info.ok ? info.note : `RAID ${level} يحتاج ${level === 10 ? 'عدداً زوجياً من الأقراص، 4 أو أكثر' : `${info.min} أقراص على الأقل`}.`;
 			const disks = layout();
 			const ok = alive();
 			out('disks').innerHTML = disks
@@ -107,7 +107,7 @@
 			);
 			const st = out('status');
 			st.className = 'wl-msg ' + (ok ? 'wl-good' : 'wl-bad');
-			st.textContent = failed.size === 0 ? 'كل الأقراص شغّالة.' : ok ? `خرب ${failed.size} وما زالت البيانات سليمة ✔ (بدّل القرص الخربان وبترجع البيانات عليه)` : 'راحت البيانات! ✘ هالمستوى ما بيتحمّل هالعدد من الأقراص الخربانة.';
+			st.textContent = failed.size === 0 ? 'كل الأقراص تعمل.' : ok ? `تعطّل ${failed.size} وما زالت البيانات سليمة ✔ (استبدل القرص المعطّل فتعود البيانات إليه)` : 'ضاعت البيانات! ✘ هذا المستوى لا يتحمّل هذا العدد من الأقراص المعطّلة.';
 			out('raw').textContent = `${n * size} TB`;
 			out('usable').textContent = info.ok ? `${info.usable} TB` : '–';
 			out('eff').textContent = info.ok ? `${Math.round((info.usable / (n * size)) * 100)}%` : '–';

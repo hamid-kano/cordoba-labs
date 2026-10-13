@@ -11,8 +11,8 @@
 	</div>
 	<div class="wl-grid">
 		<label class="wl-label"><span>حجم كل البيانات (GB)</span><input class="wl-input" type="number" min="1" value="100" data-in="full" /></label>
-		<label class="wl-label"><span>قديش بيتغيّر كل يوم (GB)</span><input class="wl-input" type="number" min="0" value="10" data-in="change" /></label>
-		<label class="wl-label"><span>الجهاز خرب بليلة يوم</span>
+		<label class="wl-label"><span>كم يتغيّر كل يوم (GB)</span><input class="wl-input" type="number" min="0" value="10" data-in="change" /></label>
+		<label class="wl-label"><span>تعطّل الجهاز ليلة يوم</span>
 			<select class="wl-select" data-in="day">
 				<option value="0">الجمعة</option><option value="1">السبت</option><option value="2">الأحد</option><option value="3">الاثنين</option>
 				<option value="4" selected>الثلاثاء</option><option value="5">الأربعاء</option><option value="6">الخميس</option>
@@ -22,9 +22,9 @@
 	<div class="os-week" data-out="week"></div>
 	<p class="wl-msg" data-out="msg"></p>
 	<div class="wl-grid">
-		<div class="wl-out"><span>مساحة النسخ بالأسبوع</span><strong data-out="space"></strong></div>
-		<div class="wl-out"><span>عدد النسخ يلي لازم نرجّعها</span><strong data-out="count"></strong></div>
-		<div class="wl-out"><span>حجم يلي لازم نرجّعه</span><strong data-out="restore"></strong></div>
+		<div class="wl-out"><span>مساحة النسخ في الأسبوع</span><strong data-out="space"></strong></div>
+		<div class="wl-out"><span>عدد النسخ التي يجب استعادتها</span><strong data-out="count"></strong></div>
+		<div class="wl-out"><span>الحجم الذي يجب استعادته</span><strong data-out="restore"></strong></div>
 	</div>
 </div>
 
@@ -54,7 +54,7 @@
 				return `<div class="os-day ${state}"><b>${d}</b><span class="t-${type}">${KIND_NAME[type]}</span><small dir="ltr">${size} GB</small></div>`;
 			}).join('');
 			const names = [...chain].map((i) => DAYS[i]).join(' + ');
-			out('msg').innerHTML = `لنرجّع بيانات ليلة ${DAYS[day]} منحتاج: <strong>${names}</strong>.`;
+			out('msg').innerHTML = `لاستعادة بيانات ليلة ${DAYS[day]} نحتاج إلى: <strong>${names}</strong>.`;
 			out('space').textContent = `${space} GB`;
 			out('count').textContent = String(chain.size);
 			out('restore').textContent = `${restore} GB`;
