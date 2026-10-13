@@ -21,7 +21,7 @@ const { tool } = Astro.props;
 {
 	tool === 'cdma' && (
 		<div class="not-content wl-box" data-cdma>
-			<h4>جرّب: مستخدمَين بنفس الوقت وبنفس التردد</h4>
+			<h4>جرّب: مستخدمان في الوقت نفسه وعلى التردد نفسه</h4>
 			<div class="wl-row">
 				<span>بت المستخدم 1:</span>
 				<button type="button" class="wl-btn" data-u="1" data-v="1">1</button>
@@ -43,7 +43,7 @@ const { tool } = Astro.props;
 		const o = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
 		function update() {
 			const data = v('data').slice(0, 8), code = v('code').slice(0, 8);
-			if (!data || !code) { o('t').innerHTML = ''; o('msg').textContent = 'اكتب أصفار وواحدات بس.'; return; }
+			if (!data || !code) { o('t').innerHTML = ''; o('msg').textContent = 'اكتب أصفاراً وواحدات فقط.'; return; }
 			const cell = (s: string, cls = '') => s.split('').map((c) => `<span class="sp-c ${cls} b${c}">${c}</span>`).join('');
 			const rows = [...data].map((b) => {
 				const tx = [...code].map((c) => String(+b ^ +c)).join('');
@@ -52,7 +52,7 @@ const { tool } = Astro.props;
 			});
 			o('t').innerHTML = `<thead><tr><th>البت</th><th>سلسلة النثر</th><th>المُرسَل = البت XOR السلسلة</th><th>عند المستقبل: المُرسَل XOR السلسلة</th><th>البت المسترجع</th></tr></thead><tbody>` +
 				rows.map((r) => `<tr><td>${cell(r.b)}</td><td>${cell(code)}</td><td>${cell(r.tx, 'tx')}</td><td>${cell(r.rx)}</td><td>${cell(r.out)}</td></tr>`).join('') + '</tbody>';
-			o('msg').textContent = `كل بت صار ${code.length} رقاقات، يعني الإشارة صارت أعرض بـ ${code.length} مرات. وعند المستقبل نفس العملية بترجّع البيانات: ${rows.map((r) => r.out).join('')}.`;
+			o('msg').textContent = `أصبح كل بت ${code.length} رقاقات، أي أن الإشارة أصبحت أعرض ${code.length} مرات. وعند المستقبل تعيد العملية نفسها البيانات: ${rows.map((r) => r.out).join('')}.`;
 		}
 		root.addEventListener('input', update);
 		update();
@@ -75,13 +75,13 @@ const { tool } = Astro.props;
 			o('t').innerHTML = `<tbody>
 				<tr><th>رمز المستخدم 1</th><td>${vec(c1)}</td></tr>
 				<tr><th>رمز المستخدم 2</th><td>${vec(c2)}</td></tr>
-				<tr><th>المستخدم 1 بيبعت (بته × رمزه)</th><td>${vec(s1)}</td></tr>
-				<tr><th>المستخدم 2 بيبعت (بته × رمزه)</th><td>${vec(s2)}</td></tr>
-				<tr class="hl"><th>بالقناة (الاتنين مجموعين)</th><td>${vec(ch)}</td></tr>
+				<tr><th>المستخدم 1 يرسل (بته × رمزه)</th><td>${vec(s1)}</td></tr>
+				<tr><th>المستخدم 2 يرسل (بته × رمزه)</th><td>${vec(s2)}</td></tr>
+				<tr class="hl"><th>في القناة (مجموع الاثنين)</th><td>${vec(ch)}</td></tr>
 				<tr><th>المستقبل 1: (القناة × رمز 1) ÷ 4</th><td><bdi dir="ltr"><b>${r1 > 0 ? '+1' : '−1'}</b></bdi> ← البت ${b(r1)}</td></tr>
 				<tr><th>المستقبل 2: (القناة × رمز 2) ÷ 4</th><td><bdi dir="ltr"><b>${r2 > 0 ? '+1' : '−1'}</b></bdi> ← البت ${b(r2)}</td></tr>
 			</tbody>`;
-			o('msg').textContent = `الاتنين بعتوا سوا وانخلطوا بالقناة، بس كل مستقبل طلّع بت صاحبه صح: ${b(d1)} و ${b(d2)}. السبب إنه الرمزين «متعامدين» (حاصل ضربهن صفر).`;
+			o('msg').textContent = `أرسل الاثنان معاً واختلطا في القناة، لكن كل مستقبل استخرج بت صاحبه بشكل صحيح: ${b(d1)} و ${b(d2)}. والسبب أن الرمزين «متعامدان» (حاصل ضربهما صفر).`;
 		}
 		root.querySelectorAll<HTMLButtonElement>('[data-u]').forEach((btn) =>
 			btn.addEventListener('click', () => { bits[btn.dataset.u!] = +btn.dataset.v!; update(); })

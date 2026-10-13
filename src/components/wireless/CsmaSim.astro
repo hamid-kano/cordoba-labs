@@ -3,7 +3,7 @@
 ---
 
 <div class="not-content wl-box" data-csma>
-	<h4>جرّب: جهازين بدهن يبعتوا بنفس اللحظة</h4>
+	<h4>جرّب: جهازان يريدان الإرسال في اللحظة نفسها</h4>
 	<div class="wl-row">
 		<button type="button" class="wl-btn primary" data-go>ابدأ</button>
 		<button type="button" class="wl-btn" data-step disabled>الخطوة التالية ⬅</button>
@@ -38,20 +38,20 @@
 		function round() {
 			const a = 1 + Math.floor(Math.random() * cw);
 			const b = 1 + Math.floor(Math.random() * cw);
-			queue.push(() => { showCount(a, b); say(`كل جهاز اختار رقم عشوائي بين 1 و ${cw} (وقت انتظار): A اختار <b>${a}</b>، و B اختار <b>${b}</b>.`); });
+			queue.push(() => { showCount(a, b); say(`اختار كل جهاز رقماً عشوائياً بين 1 و ${cw} (وقت انتظار): اختار A الرقم <b>${a}</b>، واختار B الرقم <b>${b}</b>.`); });
 			if (a === b) {
-				queue.push(() => { showCount(0, 0); say(`الاتنين خلص عدّهن بنفس اللحظة، فبعتوا سوا ← <b>تصادم!</b> الرسالتين خربوا.`, 'bad'); });
-				queue.push(() => { cw = Math.min(cw * 2, 64); say(`ما وصلهن إشعار استلام، فكبّروا مجال الأرقام لـ ${cw} وعادوا المحاولة.`); });
+				queue.push(() => { showCount(0, 0); say(`انتهى عدّ الاثنين في اللحظة نفسها، فأرسلا معاً ← <b>تصادم!</b> تلفت الرسالتان.`, 'bad'); });
+				queue.push(() => { cw = Math.min(cw * 2, 64); say(`لم يصلهما إشعار استلام، فكبّرا مجال الأرقام إلى ${cw} وأعادا المحاولة.`); });
 				round();
 				return;
 			}
 			const [w, l, wn, ln] = a < b ? ['A', 'B', a, b] : ['B', 'A', b, a];
-			queue.push(() => { showCount(w === 'A' ? 0 : ln - wn, w === 'B' ? 0 : ln - wn); say(`${w} خلص عدّه أول (بعد ${wn})، فبيحكي هو. و ${l} سمع إنه القناة صارت مشغولة، فوقّف عدّه عند ${ln - wn}.`); });
-			queue.push(() => say(`${w} ← RTS: «بدي ابعت، خلّوا القناة إلي».`));
-			queue.push(() => say(`المستقبل ← CTS: «تفضّل، والكل يستنى».`));
-			queue.push(() => say(`${w} ← DATA: بعت البيانات.`));
+			queue.push(() => { showCount(w === 'A' ? 0 : ln - wn, w === 'B' ? 0 : ln - wn); say(`انتهى عدّ ${w} أولاً (بعد ${wn})، فهو الذي يرسل. وسمع ${l} أن القناة أصبحت مشغولة، فأوقف عدّه عند ${ln - wn}.`); });
+			queue.push(() => say(`${w} ← RTS: «أريد أن أرسل، اتركوا القناة لي».`));
+			queue.push(() => say(`المستقبل ← CTS: «تفضّل، وليَنتظر الجميع».`));
+			queue.push(() => say(`${w} ← DATA: أرسل البيانات.`));
 			queue.push(() => say(`المستقبل ← ACK: «وصلت سليمة ✔».`, 'good'));
-			queue.push(() => { showCount(w === 'A' ? 0 : ln - wn, w === 'B' ? 0 : ln - wn); say(`هلق ${l} بيكمّل العد من ${ln - wn}، ولما يخلص بيبعت هو. هيك ما في تصادم.`, 'good'); });
+			queue.push(() => { showCount(w === 'A' ? 0 : ln - wn, w === 'B' ? 0 : ln - wn); say(`الآن يكمل ${l} العد من ${ln - wn}، وعندما ينتهي يرسل هو. وهكذا لا يحدث تصادم.`, 'good'); });
 		}
 
 		root.querySelector('[data-go]')!.addEventListener('click', () => {
@@ -59,8 +59,8 @@
 			queue = [];
 			cw = 8;
 			showCount(0, 0);
-			say('القناة مشغولة بجهاز تالت. A و B عم <b>يسمعوا</b> وبيستنوا لحتى تفضى (Carrier Sense).');
-			queue.push(() => say('القناة فضيت. الاتنين استنوا فترة قصيرة ثابتة (IFS).'));
+			say('القناة مشغولة بجهاز ثالث. A و B <b>يستمعان</b> وينتظران حتى تفرغ (Carrier Sense).');
+			queue.push(() => say('فرغت القناة. انتظر الاثنان فترة قصيرة ثابتة (IFS).'));
 			round();
 			stepBtn.disabled = false;
 		});

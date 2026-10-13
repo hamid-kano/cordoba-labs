@@ -1,15 +1,15 @@
 ---
 // أنواع الشبكات حسب الحجم: دوائر متداخلة
 const rings = [
-	{ r: 60, name: 'PAN', ar: 'شخصية', ex: 'موبايل + سماعة', cls: 'd-fgreen' },
-	{ r: 110, name: 'LAN', ar: 'محلية', ex: 'بيت، مختبر، شركة', cls: 'd-fblue' },
-	{ r: 160, name: 'MAN', ar: 'مدينة', ex: 'فروع بنك بمدينة', cls: 'd-forange' },
-	{ r: 210, name: 'WAN', ar: 'واسعة', ex: 'بين دول، والإنترنت', cls: 'd-fred' },
+	{ r: 60, name: 'PAN', ar: 'شخصية', ex: 'هاتف + سماعة', cls: 'd-fgreen' },
+	{ r: 110, name: 'LAN', ar: 'محلية', ex: 'منزل، مختبر، شركة', cls: 'd-fblue' },
+	{ r: 160, name: 'MAN', ar: 'مدينة', ex: 'فروع مصرف في مدينة', cls: 'd-forange' },
+	{ r: 210, name: 'WAN', ar: 'واسعة', ex: 'بين الدول، والإنترنت', cls: 'd-fred' },
 ];
 ---
 
 <figure class="wl-fig">
-	<svg viewBox="0 0 640 300" role="img" aria-label="أنواع الشبكات حسب الحجم: PAN جوّا LAN جوّا MAN جوّا WAN">
+	<svg viewBox="0 0 640 300" role="img" aria-label="أنواع الشبكات حسب الحجم: PAN داخل LAN داخل MAN داخل WAN">
 		{
 			[...rings].reverse().map((g) => (
 				<circle cx="250" cy="290" r={g.r * 1.3} class={g.cls} opacity="0.22" />
@@ -26,5 +26,5 @@ const rings = [
 			))
 		}
 	</svg>
-	<figcaption>كل شبكة أكبر بتحتوي الأصغر منها: الشخصية جوّا المحلية، والمحلية جوّا شبكة المدينة، وكلهن موصولين بالشبكة الواسعة.</figcaption>
+	<figcaption>كل شبكة أكبر تحتوي الأصغر منها: الشخصية داخل المحلية، والمحلية داخل شبكة المدينة، وكلها موصولة بالشبكة الواسعة.</figcaption>
 </figure>

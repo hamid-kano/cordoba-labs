@@ -9,8 +9,8 @@ const x0 = 70, w = 92, gap = 6;
 ---
 
 <figure class="wl-fig">
-	<svg viewBox="0 0 660 250" role="img" aria-label="عنوان IP من 4 أرقام: قسم للشبكة وقسم للجهاز، وحجم كل قسم بيعتمد على الفئة">
-		<text x={x0 + 2 * (w + gap)} y="18" class="d-s">4 أرقام، كل رقم من 0 لـ 255</text>
+	<svg viewBox="0 0 660 250" role="img" aria-label="عنوان IP من 4 أرقام: قسم للشبكة وقسم للجهاز، وحجم كل قسم يعتمد على الفئة">
+		<text x={x0 + 2 * (w + gap)} y="18" class="d-s">4 أرقام، كل رقم من 0 إلى 255</text>
 		<text x="560" y="18" class="d-s">أول رقم، والقناع</text>
 		{
 			rows.map((r, i) => {
@@ -32,11 +32,11 @@ const x0 = 70, w = 92, gap = 6;
 			})
 		}
 		<rect x="70" y="236" width="14" height="10" class="ipn" />
-		<text x="90" y="245" class="d-s d-end">الشبكة (متل اسم الشارع)</text>
+		<text x="90" y="245" class="d-s d-end">الشبكة (مثل اسم الشارع)</text>
 		<rect x="270" y="236" width="14" height="10" class="iph" />
-		<text x="290" y="245" class="d-s d-end">الجهاز (متل رقم البيت)</text>
+		<text x="290" y="245" class="d-s d-end">الجهاز (مثل رقم المنزل)</text>
 	</svg>
-	<figcaption>كل ما كان قسم الشبكة أصغر (الفئة A)، بيبقى مكان لأجهزة أكتر بكل شبكة. والقناع (Subnet Mask) هو يلي بيقول وين بيخلص قسم الشبكة: الـ 255 فوق قسم الشبكة، والـ 0 فوق قسم الجهاز.</figcaption>
+	<figcaption>كلما كان قسم الشبكة أصغر (الفئة A)، بقي مكان لأجهزة أكثر في كل شبكة. والقناع (Subnet Mask) هو الذي يحدد أين ينتهي قسم الشبكة: الـ 255 فوق قسم الشبكة، والـ 0 فوق قسم الجهاز.</figcaption>
 </figure>
 
 <style>

@@ -7,8 +7,8 @@
 
 <div class="pl-lab" data-pl-lab>
 	<div class="pl-presets">
-		<span>جرّب مثال جاهز:</span>
-		<button type="button" data-preset="wifi">راوتر بالبيت</button>
+		<span>جرّب مثالاً جاهزاً:</span>
+		<button type="button" data-preset="wifi">راوتر في المنزل</button>
 		<button type="button" data-preset="sens">مسألة الحساسية</button>
 		<button type="button" data-preset="sat">القمر الصناعي</button>
 		<button type="button" data-preset="cell2">خليوي (فضاء حر)</button>
@@ -40,7 +40,7 @@
 			<span>البيئة (n)</span>
 			<select data-in="n">
 				<option value="2" selected>فضاء حر (n = 2)</option>
-				<option value="3">داخل بناء (n = 3)</option>
+				<option value="3">داخل مبنى (n = 3)</option>
 				<option value="3.1">مدينة (n = 3.1)</option>
 				<option value="4">مدينة مزدحمة (n = 4)</option>
 			</select>
@@ -79,8 +79,8 @@
 	<p class="pl-verdict" data-out="verdict"></p>
 
 	<figure class="pl-chart">
-		<svg viewBox="0 0 320 170" role="img" aria-label="رسمة الإشارة الواصلة مقابل المسافة" data-out="chart"></svg>
-		<figcaption>الخط الأزرق: الإشارة الواصلة كلما بعدنا. الخط الأحمر المنقّط: الحساسية. النقطة: المسافة يلي اخترتها.</figcaption>
+		<svg viewBox="0 0 320 170" role="img" aria-label="رسم الإشارة الواصلة مقابل المسافة" data-out="chart"></svg>
+		<figcaption>الخط الأزرق: الإشارة الواصلة كلما ابتعدنا. الخط الأحمر المنقّط: الحساسية. النقطة: المسافة التي اخترتها.</figcaption>
 	</figure>
 </div>
 
@@ -135,10 +135,10 @@
 				v.textContent = '';
 				v.className = 'pl-verdict';
 			} else if (pr >= s) {
-				v.innerHTML = `✔ الإشارة بتوصل: ${bdi(pr, 'dBm')} أقوى من الحساسية ${bdi(s, 'dBm')}، بفرق ${bdi(pr - s, 'dB')}.`;
+				v.innerHTML = `✔ الإشارة تصل: ${bdi(pr, 'dBm')} أقوى من الحساسية ${bdi(s, 'dBm')}، بفرق ${bdi(pr - s, 'dB')}.`;
 				v.className = 'pl-verdict good';
 			} else {
-				v.innerHTML = `✘ الإشارة ما بتوصل: ${bdi(pr, 'dBm')} أضعف من الحساسية ${bdi(s, 'dBm')}، ناقصها ${bdi(s - pr, 'dB')}.`;
+				v.innerHTML = `✘ الإشارة لا تصل: ${bdi(pr, 'dBm')} أضعف من الحساسية ${bdi(s, 'dBm')}، وينقصها ${bdi(s - pr, 'dB')}.`;
 				v.className = 'pl-verdict bad';
 			}
 

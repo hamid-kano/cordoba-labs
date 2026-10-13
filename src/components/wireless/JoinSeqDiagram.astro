@@ -2,26 +2,26 @@
 // مراحل اتصال الموبايل بنقطة الوصول
 const msgs = [
 	{ dir: -1, t: 'Beacon: «أنا موجودة واسمي Cordoba-Lab»', c: 'd-orange', dash: true },
-	{ dir: 1, t: 'Probe Request: «مين حواليي؟»', c: 'd-blue' },
-	{ dir: -1, t: 'Probe Response: «أنا، وهي مواصفاتي»', c: 'd-blue' },
-	{ dir: 1, t: 'Authentication: «هاد أنا»', c: 'd-green' },
+	{ dir: 1, t: 'Probe Request: «من حولي؟»', c: 'd-blue' },
+	{ dir: -1, t: 'Probe Response: «أنا، وهذه مواصفاتي»', c: 'd-blue' },
+	{ dir: 1, t: 'Authentication: «هذا أنا»', c: 'd-green' },
 	{ dir: -1, t: 'Authentication: «أهلاً»', c: 'd-green' },
-	{ dir: 1, t: 'Association Request: «بدي انضم»', c: 'd-green' },
+	{ dir: 1, t: 'Association Request: «أريد الانضمام»', c: 'd-green' },
 	{ dir: -1, t: 'Association Response: «تفضّل»', c: 'd-green' },
-	{ dir: 0, t: 'التحقق من كلمة السر (WPA2)، وبعدين DHCP بيعطي IP', c: 'd-red' },
+	{ dir: 0, t: 'التحقق من كلمة السر (WPA2)، ثم يعطي DHCP عنوان IP', c: 'd-red' },
 ];
 const L = 120, R = 540, y0 = 70, dy = 34;
 ---
 
 <figure class="wl-fig">
-	<svg viewBox="0 0 660 360" role="img" aria-label="الرسائل بين الموبايل ونقطة الوصول لحتى يتصل">
+	<svg viewBox="0 0 660 360" role="img" aria-label="الرسائل بين الهاتف ونقطة الوصول حتى يتصل">
 		<defs>
 			<marker id="js-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
 				<path d="M0 0 L10 5 L0 10 z" class="d-arrow" />
 			</marker>
 		</defs>
 		<rect x={L - 60} y="14" width="120" height="36" rx="8" class="d-box2" />
-		<text x={L} y="38" class="d-t d-b">📱 الموبايل</text>
+		<text x={L} y="38" class="d-t d-b">📱 الهاتف</text>
 		<rect x={R - 70} y="14" width="140" height="36" rx="8" class="d-box" />
 		<text x={R} y="38" class="d-t d-b">📶 نقطة الوصول</text>
 		<line x1={L} y1="50" x2={L} y2="345" class="d-line d-dash" />
@@ -43,7 +43,7 @@ const L = 120, R = 540, y0 = 70, dy = 34;
 			})
 		}
 	</svg>
-	<figcaption>البرتقالي: إعلان دوري. الأزرق: البحث عن شبكة. الأخضر: التعارف والانضمام. وآخر شي التحقق من كلمة السر وأخذ عنوان IP.</figcaption>
+	<figcaption>البرتقالي: إعلان دوري. الأزرق: البحث عن شبكة. الأخضر: التعارف والانضمام. وفي النهاية التحقق من كلمة السر والحصول على عنوان IP.</figcaption>
 </figure>
 
 <style>

@@ -26,11 +26,11 @@
 		</section>
 
 		<section class="wj-panel wj-phone">
-			<h4>📱 الموبايل</h4>
-			<label class="wl-label">الشبكات يلي حواليه
+			<h4>📱 الهاتف</h4>
+			<label class="wl-label">الشبكات المحيطة به
 				<select class="wl-select" data-p="ssid"></select>
 			</label>
-			<label class="wl-label">كلمة السر يلي كتبها المستخدم<input class="wl-input" value="cordoba2026" data-p="pw" /></label>
+			<label class="wl-label">كلمة السر التي كتبها المستخدم<input class="wl-input" value="cordoba2026" data-p="pw" /></label>
 			<button type="button" class="wl-btn primary" data-connect>اتصل</button>
 		</section>
 	</div>
@@ -40,12 +40,12 @@
 
 <script>
 	const STEPS = [
-		{ k: 'beacon', t: 'Beacon: الراوتر عم يعلن عن حاله كل شوي: «أنا شبكة اسمي …»' },
-		{ k: 'probe', t: 'Probe Request و Response: الموبايل سأل «مين حواليي؟» والراوتر ردّ' },
-		{ k: 'auth', t: 'Authentication: الموبايل عرّف عن حاله للراوتر' },
-		{ k: 'assoc', t: 'Association: الموبايل طلب ينضم للشبكة، والراوتر وافق' },
+		{ k: 'beacon', t: 'Beacon: يعلن الراوتر عن نفسه كل فترة قصيرة: «أنا شبكة اسمي …»' },
+		{ k: 'probe', t: 'Probe Request و Response: سأل الهاتف «من حولي؟» فردّ الراوتر' },
+		{ k: 'auth', t: 'Authentication: عرّف الهاتف نفسه للراوتر' },
+		{ k: 'assoc', t: 'Association: طلب الهاتف الانضمام إلى الشبكة، فوافق الراوتر' },
 		{ k: 'key', t: 'التحقق من كلمة السر وتجهيز مفتاح التشفير' },
-		{ k: 'ip', t: 'DHCP: الراوتر أعطى الموبايل عنوان IP' },
+		{ k: 'ip', t: 'DHCP: أعطى الراوتر الهاتف عنوان IP' },
 	];
 	const OTHERS = ['Home-WiFi', 'Cafe_Free', 'TP-LINK_5G'];
 
@@ -62,17 +62,17 @@
 			pwRow.hidden = sec === 'open';
 			const el = r('rating') as unknown as HTMLElement;
 			const msgs: Record<string, [string, string]> = {
-				open: ['wl-bad', '✘ خطر: أي حدا بيقدر يتصل، وكل شي بينبعت بدون تشفير.'],
-				wep: ['wl-bad', '✘ ضعيفة: WEP بتنكسر بدقايق. ما تستخدمها.'],
-				wpa2: ['wl-good', '✔ منيحة: WPA2 بتشفّر كل شي.'],
+				open: ['wl-bad', '✘ خطر: يستطيع أي شخص أن يتصل، وكل شيء يُرسل بلا تشفير.'],
+				wep: ['wl-bad', '✘ ضعيفة: تُكسر WEP خلال دقائق. لا تستخدمها.'],
+				wpa2: ['wl-good', '✔ جيدة: WPA2 تشفّر كل شيء.'],
 				wpa3: ['wl-good', '✔ ممتازة: WPA3 هي الأقوى.'],
 			};
 			let [cls, text] = msgs[sec];
 			if ((sec === 'wpa2' || sec === 'wpa3') && pw.length < 8) {
 				cls = 'wl-bad';
-				text = '✘ كلمة السر لازم تكون 8 أحرف أو أكتر.';
+				text = '✘ يجب أن تكون كلمة السر 8 أحرف أو أكثر.';
 			} else if ((sec === 'wpa2' || sec === 'wpa3') && /^\d+$/.test(pw)) {
-				text += ' بس كلمة السر أرقام بس، سهلة تنحزر. خلط حروف وأرقام.';
+				text += ' لكن كلمة السر أرقام فقط، ويسهل تخمينها. امزج الحروف والأرقام.';
 			}
 			el.className = `wl-msg ${cls}`;
 			el.textContent = text;
@@ -97,12 +97,12 @@
 			const target = p('ssid').value;
 			if (target !== '__mine') {
 				result.className = 'wl-msg wl-bad';
-				result.textContent = 'هي شبكة جيران، وما منعرف كلمة سرها. اختار شبكتنا.';
+				result.textContent = 'هذه شبكة الجيران، ولا نعرف كلمة سرها. اختر شبكتنا.';
 				return;
 			}
 			if ((sec === 'wpa2' || sec === 'wpa3') && r('pw').value.length < 8) {
 				result.className = 'wl-msg wl-bad';
-				result.textContent = 'صلّح كلمة سر الراوتر أول (8 أحرف أو أكتر).';
+				result.textContent = 'أصلح كلمة سر الراوتر أولاً (8 أحرف أو أكثر).';
 				return;
 			}
 			const pwOk = sec === 'open' || p('pw').value === r('pw').value;
@@ -112,17 +112,17 @@
 					const li = document.createElement('li');
 					const fail = s.k === 'key' && !pwOk;
 					li.className = fail ? 'fail' : 'ok';
-					li.textContent = (fail ? '✘ ' : '✔ ') + s.t.replace('…', r('ssid').value || '(بدون اسم)') + (fail ? ' (كلمة السر غلط!)' : '');
+					li.textContent = (fail ? '✘ ' : '✔ ') + s.t.replace('…', r('ssid').value || '(بدون اسم)') + (fail ? ' (كلمة السر خاطئة!)' : '');
 					stepsEl.appendChild(li);
 					if (fail) {
 						result.className = 'wl-msg wl-bad';
-						result.textContent = 'الاتصال فشل: كلمة السر يلي كتبها المستخدم مش متل يلي بالراوتر.';
+						result.textContent = 'فشل الاتصال: كلمة السر التي كتبها المستخدم لا تطابق كلمة سر الراوتر.';
 						timers.forEach(clearTimeout);
 					} else if (i === list.length - 1) {
 						result.className = 'wl-msg wl-good';
 						result.textContent = sec === 'open'
-							? 'اتصل ✔ بس الشبكة مفتوحة: أي حدا جنبك بيقدر يشوف شو عم تبعت.'
-							: `اتصل ✔ وكل شي بينبعت مشفّر بـ ${sec.toUpperCase()}.`;
+							? 'تم الاتصال ✔ لكن الشبكة مفتوحة: يستطيع أي شخص قريب منك أن يرى ما ترسله.'
+							: `تم الاتصال ✔ وكل شيء يُرسل مشفّراً بـ ${sec.toUpperCase()}.`;
 					}
 				}, 500 * (i + 1)));
 			});

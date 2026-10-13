@@ -3,7 +3,7 @@
 ---
 
 <div class="not-content wl-box enc-sim" data-enc>
-	<h4>جرّب: الرسالة وهي نازلة بالطبقات</h4>
+	<h4>جرّب: الرسالة وهي تنزل عبر الطبقات</h4>
 	<div class="wl-grid">
 		<label class="wl-label">حجم الرسالة (byte)<input class="wl-input" type="number" min="1" value="1000" data-in="data" /></label>
 		<label class="wl-label">رأس طبقة النقل (byte)<input class="wl-input" type="number" min="0" value="20" data-in="h4" /></label>
@@ -21,11 +21,11 @@
 <script>
 	type Layer = { name: string; pdu: string; head?: { key: string; label: string; cls: string }; note: string };
 	const LAYERS: Layer[] = [
-		{ name: 'التطبيقات', pdu: 'Data', note: 'هون كتبت الرسالة (متل إيميل).' },
-		{ name: 'النقل', pdu: 'Segment (قطعة)', head: { key: 'h4', label: 'H4', cls: 'h4' }, note: 'طبقة النقل ضافت رأس فيه رقم المنفذ (Port) لتعرف لأي برنامج رايحة.' },
-		{ name: 'الشبكة', pdu: 'Packet (رزمة)', head: { key: 'h3', label: 'H3', cls: 'h3' }, note: 'طبقة الشبكة ضافت رأس فيه عنوان IP للمرسل والمستقبل.' },
-		{ name: 'ربط البيانات', pdu: 'Frame (إطار)', head: { key: 'h2', label: 'H2', cls: 'h2' }, note: 'طبقة ربط البيانات ضافت رأس فيه عنوان MAC.' },
-		{ name: 'الفيزيائية', pdu: 'Bits (بتات)', note: 'الطبقة الفيزيائية حوّلت كل شي لأصفار وواحدات، وبعتتها كإشارة (كهربائية أو ضوئية أو موجة راديو).' },
+		{ name: 'التطبيقات', pdu: 'Data', note: 'هنا كتبتَ الرسالة (مثل بريد إلكتروني).' },
+		{ name: 'النقل', pdu: 'Segment (قطعة)', head: { key: 'h4', label: 'H4', cls: 'h4' }, note: 'أضافت طبقة النقل رأساً فيه رقم المنفذ (Port) لتعرف إلى أي برنامج تذهب.' },
+		{ name: 'الشبكة', pdu: 'Packet (رزمة)', head: { key: 'h3', label: 'H3', cls: 'h3' }, note: 'أضافت طبقة الشبكة رأساً فيه عنوان IP للمرسل وللمستقبل.' },
+		{ name: 'ربط البيانات', pdu: 'Frame (إطار)', head: { key: 'h2', label: 'H2', cls: 'h2' }, note: 'أضافت طبقة ربط البيانات رأساً فيه عنوان MAC.' },
+		{ name: 'الفيزيائية', pdu: 'Bits (بتات)', note: 'حوّلت الطبقة الفيزيائية كل شيء إلى أصفار وواحدات، وأرسلتها إشارةً (كهربائية أو ضوئية أو موجة راديو).' },
 	];
 
 	document.querySelectorAll<HTMLElement>('[data-enc]').forEach((root) => {
@@ -59,7 +59,7 @@
 			});
 			const L = LAYERS[step];
 			msg.textContent = step === 3
-				? `${L.note} الحجم الكلي صار ${size} byte = ${data} + ${heads.map((h) => h.size).reverse().join(' + ')}.`
+				? `${L.note} أصبح الحجم الكلي ${size} byte = ${data} + ${heads.map((h) => h.size).reverse().join(' + ')}.`
 				: L.note;
 			next.disabled = step === LAYERS.length - 1;
 		}

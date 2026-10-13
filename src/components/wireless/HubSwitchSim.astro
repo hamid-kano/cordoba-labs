@@ -10,20 +10,20 @@ const cx = 320, cy = 155;
 ---
 
 <div class="not-content wl-box hs-sim" data-hs>
-	<h4>جرّب: مين بيستلم الرسالة؟</h4>
+	<h4>جرّب: من يستلم الرسالة؟</h4>
 	<div class="wl-row">
-		<span>الجهاز بالنص:</span>
+		<span>الجهاز في الوسط:</span>
 		<button type="button" class="wl-btn" data-mode="hub" aria-pressed="true">Hub</button>
 		<button type="button" class="wl-btn" data-mode="switch" aria-pressed="false">Switch</button>
 	</div>
 	<div class="wl-row">
 		<label class="wl-row">من <select class="wl-select" data-from>{pcs.map((p) => <option value={p.id}>{`PC${p.id}`}</option>)}</select></label>
-		<label class="wl-row">لـ <select class="wl-select" data-to>{pcs.map((p) => <option value={p.id} selected={p.id === 4}>{`PC${p.id}`}</option>)}</select></label>
-		<button type="button" class="wl-btn primary" data-send>ابعت الرسالة</button>
+		<label class="wl-row">إلى <select class="wl-select" data-to>{pcs.map((p) => <option value={p.id} selected={p.id === 4}>{`PC${p.id}`}</option>)}</select></label>
+		<button type="button" class="wl-btn primary" data-send>أرسل الرسالة</button>
 	</div>
 
 	<figure class="wl-fig" style="margin:0">
-		<svg viewBox="0 0 640 310" role="img" aria-label="أربع حواسيب موصولة بجهاز بالنص">
+		<svg viewBox="0 0 640 310" role="img" aria-label="أربعة حواسيب موصولة بجهاز في الوسط">
 			{pcs.map((p) => <line x1={cx} y1={cy} x2={p.x} y2={p.y} class="d-line hs-link" data-link={p.id} />)}
 			<rect x={cx - 60} y={cy - 26} width="120" height="52" rx="10" class="d-box" />
 			<text x={cx} y={cy + 6} class="d-t d-b d-ltr" data-center>Hub</text>
@@ -39,10 +39,10 @@ const cx = 320, cy = 155;
 			}
 		</svg>
 	</figure>
-	<p class="wl-msg" data-msg>اختار مين بيبعت ولمين، واكبس «ابعت الرسالة».</p>
+	<p class="wl-msg" data-msg>اختر المرسل والمستقبل، ثم اضغط «أرسل الرسالة».</p>
 
 	<div data-table hidden>
-		<strong>جدول العناوين جوّا السويتش:</strong>
+		<strong>جدول العناوين داخل السويتش:</strong>
 		<table class="wl-table" style="max-width:16rem">
 			<thead><tr><th>العنوان (MAC)</th><th>المنفذ</th></tr></thead>
 			<tbody>{pcs.map((p) => <tr><td class="wl-mono">{p.mac}</td><td>{p.id}</td></tr>)}</tbody>
@@ -76,8 +76,8 @@ const cx = 320, cy = 155;
 				$<HTMLElement>('[data-table]').hidden = mode !== 'switch';
 				reset();
 				msg.textContent = mode === 'hub'
-					? 'الـ Hub ما بيعرف مين وين، فبيبعت كل رسالة للكل.'
-					: 'الـ Switch عنده جدول بيعرف فيه كل جهاز على أي منفذ.';
+					? 'الـ Hub لا يعرف مكان كل جهاز، فيرسل كل رسالة إلى الجميع.'
+					: 'لدى الـ Switch جدول يعرف منه على أي منفذ يوجد كل جهاز.';
 			})
 		);
 
@@ -86,30 +86,30 @@ const cx = 320, cy = 155;
 			const to = +$<HTMLSelectElement>('[data-to]').value;
 			reset();
 			if (from === to) {
-				msg.textContent = 'اختار جهازين مختلفين.';
+				msg.textContent = 'اختر جهازين مختلفين.';
 				return;
 			}
 			links(from).classList.add('send');
-			status(from).textContent = 'بعت ✉';
-			msg.textContent = `PC${from} بعت الرسالة للجهاز يلي بالنص...`;
+			status(from).textContent = 'أرسل ✉';
+			msg.textContent = `أرسل PC${from} الرسالة إلى الجهاز الذي في الوسط...`;
 			timer = window.setTimeout(() => {
 				let wasted = 0;
 				for (let i = 1; i <= 4; i++) {
 					if (i === from) continue;
 					if (i === to) {
 						links(i).classList.add('recv');
-						status(i).textContent = '✔ إلي';
+						status(i).textContent = '✔ لي';
 						status(i).classList.add('wl-good');
 					} else if (mode === 'hub') {
 						links(i).classList.add('drop');
-						status(i).textContent = '✘ مش إلي';
+						status(i).textContent = '✘ ليست لي';
 						status(i).classList.add('wl-bad');
 						wasted++;
 					}
 				}
 				msg.textContent = mode === 'hub'
-					? `الـ Hub بعتها لكل الأجهزة. ${wasted} أجهزة وصلتهن رسالة مش إلهن ورموها. هيك الشبكة بتزدحم، وأي حدا بيقدر يتجسس.`
-					: `الـ Switch شاف بالجدول إنه PC${to} على المنفذ ${to}، فبعتها إله بس. ما حدا تاني شافها.`;
+					? `أرسلها الـ Hub إلى كل الأجهزة. ${wasted} أجهزة وصلتها رسالة ليست لها فرمتها. وهكذا تزدحم الشبكة، ويستطيع أي أحد أن يتجسس.`
+					: `رأى الـ Switch في الجدول أن PC${to} على المنفذ ${to}، فأرسلها إليه فقط. ولم يرها أحد غيره.`;
 			}, 700);
 		});
 	});

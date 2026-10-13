@@ -14,7 +14,7 @@ const clients = [
 ---
 
 <figure class="wl-fig">
-	<svg viewBox="0 0 660 290" role="img" aria-label="يمين: كل جهاز موصول بالكل. يسار: كل الأجهزة موصولة بمخدم بالنص">
+	<svg viewBox="0 0 660 290" role="img" aria-label="يمين: كل جهاز موصول بالجميع. يسار: كل الأجهزة موصولة بخادم في الوسط">
 		<!-- ند لند -->
 		{p2p.map((a, i) => p2p.slice(i + 1).map((b) => <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} class="d-line d-blue" />))}
 		{
@@ -32,7 +32,7 @@ const clients = [
 		<!-- زبون/مخدم -->
 		{clients.map((c) => <line x1="500" y1="150" x2={c.x} y2={c.y} class="d-line d-green" />)}
 		<rect x="450" y="124" width="100" height="52" rx="8" class="d-box" />
-		<text x="500" y="156" class="d-t d-b">المخدم</text>
+		<text x="500" y="156" class="d-t d-b">الخادم</text>
 		{
 			clients.map((c) => (
 				<g>
@@ -41,7 +41,7 @@ const clients = [
 				</g>
 			))
 		}
-		<text x="500" y="275" class="d-t d-b">زبون/مخدم (Client/Server)</text>
+		<text x="500" y="275" class="d-t d-b">زبون/خادم (Client/Server)</text>
 	</svg>
-	<figcaption>بـ«ند لند» كل جهاز بيحكي مع الكل وبيدير حاله. وبـ«زبون/مخدم» في جهاز رئيسي (المخدم) بيدير الشبكة وبيحميها.</figcaption>
+	<figcaption>في «ند لند» يتواصل كل جهاز مع الجميع ويدير نفسه. وفي «زبون/خادم» يوجد جهاز رئيسي (الخادم) يدير الشبكة ويحميها.</figcaption>
 </figure>

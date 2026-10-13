@@ -45,9 +45,9 @@ const bx = bits.map((b) => { const ww = (W * b.b) / 16; const x = acc2; acc2 += 
 				</g>
 			))
 		}
-		<text x="330" y="212" class="d-s">حقل التحكم بالإطار من جوّا: 16 بت</text>
+		<text x="330" y="212" class="d-s">حقل التحكم بالإطار من الداخل: 16 بت</text>
 	</svg>
-	<figcaption>الإطار فيه رأس (الحقول قبل Data)، وبعدين البيانات، وبالآخر CRC لاكتشاف الأخطاء. والحقل <strong>Type</strong> جوّا حقل التحكم بيقول نوع الإطار.</figcaption>
+	<figcaption>في الإطار رأس (الحقول قبل Data)، ثم البيانات، وفي النهاية CRC لاكتشاف الأخطاء. والحقل <strong>Type</strong> داخل حقل التحكم يحدد نوع الإطار.</figcaption>
 </figure>
 
 <style>

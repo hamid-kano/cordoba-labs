@@ -3,14 +3,14 @@
 ---
 
 <div class="not-content wl-box" data-dsr>
-	<h4>جرّب: N1 بدها تبعت لـ N8 (بروتوكول DSR)</h4>
+	<h4>جرّب: N1 تريد أن ترسل إلى N8 (بروتوكول DSR)</h4>
 	<div class="wl-row">
 		<button type="button" class="wl-btn" data-prev>⮕ رجوع</button>
 		<button type="button" class="wl-btn primary" data-next>الخطوة التالية ⬅</button>
 		<span data-count></span>
 	</div>
 	<figure class="wl-fig" style="margin:0">
-		<svg viewBox="0 0 660 400" role="img" aria-label="شبكة من 8 عقد، ورسائل طلب المسار عم تنتشر من N1" data-svg></svg>
+		<svg viewBox="0 0 660 400" role="img" aria-label="شبكة من 8 عقد، ورسائل طلب المسار تنتشر من N1" data-svg></svg>
 	</figure>
 	<p class="wl-msg" data-msg></p>
 	<div data-cache></div>
@@ -31,26 +31,26 @@
 	const R1 = ['N1', 'N2', 'N4', 'N8'], R2 = ['N1', 'N3', 'N7', 'N6', 'N8'];
 
 	const STEPS: Step[] = [
-		{ arrows: [], seen: ['N1'], msg: 'N1 بدها تبعت لـ N8، بس N8 بعيدة (مش جارتها)، و N1 ما بتعرف الطريق.' },
+		{ arrows: [], seen: ['N1'], msg: 'تريد N1 أن ترسل إلى N8، لكن N8 بعيدة (ليست جارتها)، و N1 لا تعرف الطريق.' },
 		{ arrows: [{ f: 'N1', t: 'N2', label: '(N1)', kind: 'req' }, { f: 'N1', t: 'N3', label: '(N1)', kind: 'req' }], seen: ['N1', 'N2', 'N3'],
-			msg: 'N1 بتبعت «طلب مسار» (Route Request) لجيرانها: N2 و N3. وجوّا الطلب: المرسل N1، ورقم الطلب 100، والهدف N8.' },
+			msg: 'ترسل N1 «طلب مسار» (Route Request) إلى جيرانها: N2 و N3. وداخل الطلب: المرسل N1، ورقم الطلب 100، والهدف N8.' },
 		{ arrows: [{ f: 'N2', t: 'N4', label: '(N1,N2)', kind: 'req' }, { f: 'N2', t: 'N5', label: '(N1,N2)', kind: 'req' }, { f: 'N3', t: 'N7', label: '(N1,N3)', kind: 'req' }],
-			seen: ['N1', 'N2', 'N3', 'N4', 'N5', 'N7'], msg: 'كل عقدة بتضيف اسمها للطلب وبتبعته لجيرانها. لاحظ كيف القائمة عم تطول.' },
+			seen: ['N1', 'N2', 'N3', 'N4', 'N5', 'N7'], msg: 'تضيف كل عقدة اسمها إلى الطلب وترسله إلى جيرانها. لاحظ كيف تطول القائمة.' },
 		{ arrows: [
 			{ f: 'N4', t: 'N8', label: '(N1,N2,N4)', kind: 'req' }, { f: 'N7', t: 'N6', label: '(N1,N3,N7)', kind: 'req' },
 			{ f: 'N5', t: 'N4', label: '✘', kind: 'drop' }, { f: 'N5', t: 'N6', label: '✘', kind: 'drop' }],
 			seen: ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8'],
-			msg: 'الطلب وصل لـ N8 من طريق N4 ← أول مسار! وطلبات N5 انرمت (✘)، لأنه N4 و N6 كانوا استلموا نفس الطلب من قبل.' },
+			msg: 'وصل الطلب إلى N8 عن طريق N4 ← أول مسار! ورُميت طلبات N5 (✘)، لأن N4 و N6 استلمتا الطلب نفسه من قبل.' },
 		{ arrows: [{ f: 'N6', t: 'N8', label: '(N1,N3,N7,N6)', kind: 'req' }], seen: ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8'],
-			msg: 'ووصل كمان من طريق N6 ← المسار التاني.' },
+			msg: 'ووصل أيضاً عن طريق N6 ← المسار الثاني.' },
 		{ arrows: [{ f: 'N8', t: 'N4', kind: 'rep' }, { f: 'N4', t: 'N2', kind: 'rep' }, { f: 'N2', t: 'N1', kind: 'rep' }, { f: 'N8', t: 'N6', kind: 'rep' }, { f: 'N6', t: 'N7', kind: 'rep' }, { f: 'N7', t: 'N3', kind: 'rep' }, { f: 'N3', t: 'N1', kind: 'rep' }],
 			seen: [], path: R1, cache: [{ route: R1.join(' → '), ok: true }, { route: R2.join(' → '), ok: false }],
-			msg: 'N8 بترد بـ «جواب المسار» (Route Reply) على كل طلب، وفيه المسار كامل. N1 بتحفظ المسارين، وبتختار الأقصر (3 قفزات).' },
+			msg: 'ترد N8 بـ «جواب المسار» (Route Reply) على كل طلب، وفيه المسار كاملاً. تحفظ N1 المسارين، وتختار الأقصر (3 قفزات).' },
 		{ arrows: [{ f: 'N4', t: 'N2', label: 'Route Error', kind: 'err' }, { f: 'N2', t: 'N1', label: 'Route Error', kind: 'err' }], seen: [], broken: true, path: [],
 			cache: [{ route: R1.join(' → '), ok: false }, { route: R2.join(' → '), ok: null }],
-			msg: 'الوصلة بين N4 و N8 انقطعت! N4 بتبعت «خطأ مسار» (Route Error) لـ N1، فـ N1 بتمسح المسار الأول.' },
+			msg: 'انقطعت الوصلة بين N4 و N8! ترسل N4 «خطأ مسار» (Route Error) إلى N1، فتحذف N1 المسار الأول.' },
 		{ arrows: [], seen: [], broken: true, path: R2, cache: [{ route: R2.join(' → '), ok: true }],
-			msg: 'N1 بتستخدم المسار التاني يلي كان محفوظ عندها، بدون ما تعيد البحث. هي «صيانة المسار».' },
+			msg: 'تستخدم N1 المسار الثاني الذي كان محفوظاً لديها، دون أن تعيد البحث. وهذه هي «صيانة المسار».' },
 	];
 
 	document.querySelectorAll<HTMLElement>('[data-dsr]').forEach((root) => {
@@ -91,7 +91,7 @@
 			msg.textContent = s.msg;
 			count.textContent = `${i + 1} / ${STEPS.length}`;
 			cache.innerHTML = s.cache
-				? `<strong>ذاكرة N1 (المسارات المحفوظة):</strong><table class="wl-table" style="margin-top:0.3rem"><tbody>${s.cache.map((c) => `<tr class="${c.ok === true ? 'hl' : c.ok === false && s.broken ? 'old' : ''}"><td class="wl-mono">${c.route}</td><td>${c.ok === true ? '✔ المستخدم' : c.ok === false && s.broken ? 'انمسح' : 'احتياط'}</td></tr>`).join('')}</tbody></table>`
+				? `<strong>ذاكرة N1 (المسارات المحفوظة):</strong><table class="wl-table" style="margin-top:0.3rem"><tbody>${s.cache.map((c) => `<tr class="${c.ok === true ? 'hl' : c.ok === false && s.broken ? 'old' : ''}"><td class="wl-mono">${c.route}</td><td>${c.ok === true ? '✔ المستخدم' : c.ok === false && s.broken ? 'حُذف' : 'احتياط'}</td></tr>`).join('')}</tbody></table>`
 				: '';
 			root.querySelector<HTMLButtonElement>('[data-prev]')!.disabled = i === 0;
 			root.querySelector<HTMLButtonElement>('[data-next]')!.disabled = i === STEPS.length - 1;

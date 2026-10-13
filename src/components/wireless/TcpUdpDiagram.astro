@@ -15,7 +15,7 @@ const udp = [
 ---
 
 <figure class="wl-fig">
-	<svg viewBox="0 0 660 260" role="img" aria-label="TCP: بعد كل قطعة في إشعار استلام. UDP: الرزم بتنبعت ورا بعض بدون إشعار">
+	<svg viewBox="0 0 660 260" role="img" aria-label="TCP: بعد كل قطعة يوجد إشعار استلام. UDP: تُرسل الرزم متتالية بدون إشعار">
 		<defs>
 			<marker id="tu-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
 				<path d="M0 0 L10 5 L0 10 z" class="d-arrow" />
@@ -35,7 +35,7 @@ const udp = [
 				</g>
 			))
 		}
-		<text x="165" y="245" class="d-t">دقيق بس أبطأ (متل البريد المسجّل)</text>
+		<text x="165" y="245" class="d-t">دقيق لكنه أبطأ (مثل البريد المسجّل)</text>
 
 		<line x1="330" y1="15" x2="330" y2="250" class="d-line d-dash" />
 
@@ -53,7 +53,7 @@ const udp = [
 				</g>
 			))
 		}
-		<text x="495" y="245" class="d-t">سريع بس ما في تأكيد (متل البث المباشر)</text>
+		<text x="495" y="245" class="d-t">سريع لكن بلا تأكيد (مثل البث المباشر)</text>
 	</svg>
-	<figcaption>TCP بيستنى إشعار استلام (ACK) بعد كل قطعة، فما بيضيع شي. UDP بيبعت ورا بعض بدون ما يستنى، فأسرع، بس ممكن يضيع شي.</figcaption>
+	<figcaption>ينتظر TCP إشعار استلام (ACK) بعد كل قطعة، فلا يضيع شيء. أما UDP فيرسل الرزم متتالية دون انتظار، فهو أسرع، لكن قد يضيع شيء.</figcaption>
 </figure>

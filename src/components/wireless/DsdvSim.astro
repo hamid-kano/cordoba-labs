@@ -30,26 +30,26 @@
 
 	const steps: { t: Tables; changed: string[]; old?: Record<string, Row>; msg: string; nodes: string[]; broken?: boolean }[] = [];
 	let t = clone(base);
-	steps.push({ t: clone(t), changed: [], nodes: ['A', 'B', 'C'], msg: 'كل عقدة عندها جدول: لكل هدف، مين العقدة التالية، وكم قفزة، والرقم التسلسلي.' });
+	steps.push({ t: clone(t), changed: [], nodes: ['A', 'B', 'C'], msg: 'لكل عقدة جدول: لكل هدف، ما العقدة التالية، وكم قفزة، والرقم التسلسلي.' });
 	['A', 'B', 'C'].forEach((n) => set(t, n, 'B', [...t[n].find((r) => r[0] === 'B')!.slice(0, 3), 'B-252'] as Row));
-	steps.push({ t: clone(t), changed: ['A:B', 'B:B', 'C:B'], nodes: ['A', 'B', 'C'], msg: 'B بتعلن عن جدولها (Full Dump)، وبتزيد رقمها التسلسلي 2: من 250 لـ 252. وجيرانها بيحدّثوا السطر تبعها.' });
+	steps.push({ t: clone(t), changed: ['A:B', 'B:B', 'C:B'], nodes: ['A', 'B', 'C'], msg: 'تعلن B عن جدولها (Full Dump)، وتزيد رقمها التسلسلي 2: من 250 إلى 252. ويحدّث جيرانها السطر الخاص بها.' });
 	set(t, 'C', 'D', ['D', 'D', '1', 'D-200']);
-	steps.push({ t: clone(t), changed: ['C:D'], nodes: ['A', 'B', 'C', 'D'], msg: 'عقدة جديدة D انضمت جنب C، وبعتت رقمها D-200. فـ C ضافت سطر جديد: D على بعد قفزة وحدة.' });
+	steps.push({ t: clone(t), changed: ['C:D'], nodes: ['A', 'B', 'C', 'D'], msg: 'انضمت عقدة جديدة D بجانب C، وأرسلت رقمها D-200. فأضافت C سطراً جديداً: D على بعد قفزة واحدة.' });
 	set(t, 'C', 'C', ['C', 'C', '0', 'C-402']);
 	set(t, 'B', 'B', ['B', 'B', '0', 'B-254']);
 	set(t, 'B', 'C', ['C', 'C', '1', 'C-402']);
 	set(t, 'B', 'D', ['D', 'C', '2', 'D-200']);
-	steps.push({ t: clone(t), changed: ['C:C', 'B:B', 'B:C', 'B:D'], nodes: ['A', 'B', 'C', 'D'], msg: 'C زادت رقمها لـ 402 وبعتت للجيران. B تعلّمت إنه D على بعد قفزتين (عن طريق C)، وزادت رقمها هي كمان لـ 254.' });
+	steps.push({ t: clone(t), changed: ['C:C', 'B:B', 'B:C', 'B:D'], nodes: ['A', 'B', 'C', 'D'], msg: 'زادت C رقمها إلى 402 وأرسلت إلى الجيران. فعرفت B أن D على بعد قفزتين (عن طريق C)، وزادت رقمها هي أيضاً إلى 254.' });
 	set(t, 'A', 'B', ['B', 'B', '1', 'B-254']);
 	set(t, 'A', 'C', ['C', 'B', '2', 'C-402']);
 	set(t, 'A', 'D', ['D', 'B', '3', 'D-200']);
-	steps.push({ t: clone(t), changed: ['A:B', 'A:C', 'A:D'], nodes: ['A', 'B', 'C', 'D'], msg: 'B بتبعت لـ A، فـ A بتعرف إنه D على بعد 3 قفزات (عن طريق B). هيك كل الشبكة صارت بتعرف D.' });
+	steps.push({ t: clone(t), changed: ['A:B', 'A:C', 'A:D'], nodes: ['A', 'B', 'C', 'D'], msg: 'ترسل B إلى A، فتعرف A أن D على بعد 3 قفزات (عن طريق B). وهكذا أصبحت الشبكة كلها تعرف D.' });
 	const old = { A: t.A.find((r) => r[0] === 'D')!, B: t.B.find((r) => r[0] === 'D')!, C: t.C.find((r) => r[0] === 'D')! };
 	set(t, 'C', 'D', ['D', 'D', '∞', 'D-201']);
 	set(t, 'B', 'D', ['D', 'C', '∞', 'D-201']);
 	set(t, 'A', 'D', ['D', 'B', '∞', 'D-201']);
 	steps.push({ t: clone(t), changed: ['A:D', 'B:D', 'C:D'], old: { 'A:D': old.A, 'B:D': old.B, 'C:D': old.C }, nodes: ['A', 'B', 'C', 'D'], broken: true,
-		msg: 'الوصلة بين C و D انقطعت! C بتزيد رقم D بـ 1 بس (201، رقم فردي = في مشكلة)، وبتحط عدد القفزات ∞. والخبر بيوصل لـ B و A. ورقم 201 أكبر من 200، فالكل بيصدّقه.' });
+		msg: 'انقطعت الوصلة بين C و D! تزيد C رقم D بمقدار 1 فقط (201، رقم فردي = توجد مشكلة)، وتجعل عدد القفزات ∞. ويصل الخبر إلى B و A. والرقم 201 أكبر من 200، فيصدّقه الجميع.' });
 
 	document.querySelectorAll<HTMLElement>('[data-dsdv]').forEach((root) => {
 		let i = 0;

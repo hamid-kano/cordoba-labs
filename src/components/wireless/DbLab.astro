@@ -52,12 +52,12 @@ const { tool } = Astro.props;
 		<div class="not-content wl-box" data-db-snr>
 			<h4>حاسبة الضجيج</h4>
 			<div class="wl-grid">
-				<label class="wl-label">نسبة الإشارة للضجيج على الدخل (dB)<input class="wl-input" type="number" step="any" value="40" data-in="sin" /></label>
+				<label class="wl-label">نسبة الإشارة إلى الضجيج على الدخل (dB)<input class="wl-input" type="number" step="any" value="40" data-in="sin" /></label>
 				<label class="wl-label">رقم الضجيج F للمستقبل (dB)<input class="wl-input" type="number" step="any" value="20" data-in="f" /></label>
 			</div>
 			<div class="wl-grid">
-				<div class="wl-out"><span>نسبة الإشارة للضجيج على الخرج</span><strong data-o="sout">–</strong></div>
-				<div class="wl-out"><span>يعني الإشارة أقوى من الضجيج بـ</span><strong data-o="ratio">–</strong></div>
+				<div class="wl-out"><span>نسبة الإشارة إلى الضجيج على الخرج</span><strong data-o="sout">–</strong></div>
+				<div class="wl-out"><span>أي أن الإشارة أقوى من الضجيج بـ</span><strong data-o="ratio">–</strong></div>
 			</div>
 			<p class="wl-msg" data-o="msg"></p>
 		</div>
@@ -86,10 +86,10 @@ const { tool } = Astro.props;
 			o('dbm').textContent = ok ? `${fmt(dbm)} dBm` : '–';
 			o('dbw').textContent = ok ? `${fmt(dbm - 30)} dBW` : '–';
 			o('msg').textContent = !ok
-				? 'الاستطاعة بالواط لازم تكون أكبر من صفر.'
+				? 'يجب أن تكون الاستطاعة بالواط أكبر من الصفر.'
 				: u.value === 'w' || u.value === 'mw'
-					? `منحوّل للـ mW ومنحسب 10 × log(${fmt(mw, 4)}) = ${fmt(dbm)} dBm. وللـ dBW منطرح 30.`
-					: `منرجع للـ mW بالعكس: 10^(${fmt(dbm)} ÷ 10) = ${fmt(mw, 4)} mW.`;
+					? `نحوّل إلى mW ونحسب 10 × log(${fmt(mw, 4)}) = ${fmt(dbm)} dBm. وللـ dBW نطرح 30.`
+					: `نعود إلى mW بالعكس: 10^(${fmt(dbm)} ÷ 10) = ${fmt(mw, 4)} mW.`;
 		}
 		root.addEventListener('input', update);
 		root.addEventListener('change', update);
@@ -128,7 +128,7 @@ const { tool } = Astro.props;
 				.map((p, i) => `<div class="ch-bar"><span class="v">${fmt(p.level, 1)}</span><i class="${i === 0 ? 'start' : i === pts.length - 1 ? 'end' : ''}" style="height:${Math.max((Math.abs(p.level) / max) * 100, 3)}%"></i><span class="l">${p.label}</span></div>`)
 				.join('');
 			const parts = stages.map((s) => `${s.sign > 0 ? '+' : '−'} ${fmt(s.v || 0)}`).join(' ');
-			msg.innerHTML = `المجموع: <bdi dir="ltr">${parts || '0'} = ${total >= 0 ? '+' : ''}${fmt(total)} dB</bdi>، فالخرج: <bdi dir="ltr">${fmt(start)} ${total >= 0 ? '+' : '−'} ${fmt(Math.abs(total))} = ${fmt(level)} dBm</bdi> (يعني <bdi dir="ltr">${fmt(10 ** (level / 10), 1)} mW</bdi>).`;
+			msg.innerHTML = `المجموع: <bdi dir="ltr">${parts || '0'} = ${total >= 0 ? '+' : ''}${fmt(total)} dB</bdi>، فالخرج: <bdi dir="ltr">${fmt(start)} ${total >= 0 ? '+' : '−'} ${fmt(Math.abs(total))} = ${fmt(level)} dBm</bdi> (أي <bdi dir="ltr">${fmt(10 ** (level / 10), 1)} mW</bdi>).`;
 		}
 		box.addEventListener('input', (e) => {
 			const t = e.target as HTMLInputElement;
@@ -165,8 +165,8 @@ const { tool } = Astro.props;
 				: sout >= 20
 					? 'الإشارة واضحة.'
 					: sout >= 10
-						? 'الإشارة مقبولة، بس الضجيج صار ملحوظ.'
-						: 'الإشارة ضعيفة كتير قدام الضجيج، وصعب نميّزها.';
+						? 'الإشارة مقبولة، لكن الضجيج أصبح ملحوظاً.'
+						: 'الإشارة ضعيفة جداً أمام الضجيج، ويصعب تمييزها.';
 		}
 		root.addEventListener('input', update);
 		update();

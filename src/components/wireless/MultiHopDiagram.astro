@@ -12,7 +12,7 @@ const hops = [['N1', 'N2'], ['N2', 'N3'], ['N3', 'N5']];
 ---
 
 <figure class="wl-fig">
-	<svg viewBox="0 0 660 310" role="img" aria-label="كل عقدة إلها دائرة مدى، و N1 بتوصل لـ N5 بالقفز عن طريق N2 و N3">
+	<svg viewBox="0 0 660 310" role="img" aria-label="لكل عقدة دائرة مدى، و N1 تصل إلى N5 بالقفز عن طريق N2 و N3">
 		<defs>
 			<marker id="mh-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
 				<path d="M0 0 L10 5 L0 10 z" class="d-fred" />
@@ -34,12 +34,12 @@ const hops = [['N1', 'N2'], ['N2', 'N3'], ['N3', 'N5']];
 				</g>
 			))
 		}
-		<text x="580" y="200" class="d-t d-b">N1 ما بتوصل</text>
-		<text x="580" y="220" class="d-t d-b">لـ N5 مباشرة،</text>
-		<text x="580" y="240" class="d-t d-b">فبتقفز:</text>
+		<text x="580" y="200" class="d-t d-b">N1 لا تصل</text>
+		<text x="580" y="220" class="d-t d-b">إلى N5 مباشرة،</text>
+		<text x="580" y="240" class="d-t d-b">فتقفز:</text>
 		<text x="580" y="265" class="d-s d-b d-ltr">N1 → N2 → N3 → N5</text>
 	</svg>
-	<figcaption>كل دائرة هي مدى عقدة: العقدة بتحكي بس مع يلي جوّا دائرتها. لحتى توصل الرسالة لعقدة بعيدة، العقد يلي بالنص بتلعب دور <strong>موجّه</strong> وبتمرّرها. وإذا N4 طلعت من الشبكة، ما بتأثر، لأنه في طريق تاني.</figcaption>
+	<figcaption>كل دائرة هي مدى عقدة: تتواصل العقدة فقط مع من داخل دائرتها. ولكي تصل الرسالة إلى عقدة بعيدة، تقوم العقد التي في الوسط بدور <strong>الموجّه</strong> وتمرّرها. وإذا خرجت N4 من الشبكة فلا يؤثر ذلك، لأنه يوجد طريق آخر.</figcaption>
 </figure>
 
 <style>

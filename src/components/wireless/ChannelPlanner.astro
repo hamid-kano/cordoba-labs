@@ -19,10 +19,10 @@ const aps = [
 				</label>
 			))
 		}
-		<button type="button" class="wl-btn" data-best>الحل الصح</button>
+		<button type="button" class="wl-btn" data-best>الحل الصحيح</button>
 	</div>
 	<figure class="wl-fig" style="margin:0">
-		<svg viewBox="0 0 660 200" role="img" aria-label="قنوات 2.4 GHz وكيف بتتداخل" data-svg></svg>
+		<svg viewBox="0 0 660 200" role="img" aria-label="قنوات 2.4 GHz وكيف تتداخل" data-svg></svg>
 	</figure>
 	<p class="wl-msg" data-msg></p>
 </div>
@@ -56,8 +56,8 @@ const aps = [
 					if (Math.abs(chs[i] - chs[j]) < 5) clashes.push(`AP${i + 1} و AP${j + 1}`);
 			msg.className = 'wl-msg ' + (clashes.length ? 'wl-bad' : 'wl-good');
 			msg.textContent = clashes.length
-				? `✘ في تداخل بين: ${clashes.join('، ')}. القنوات لازم يكون الفرق بينها 5 أو أكتر.`
-				: '✔ ما في تداخل! كل نقطة وصول عندها حيّز لحالها.';
+				? `✘ يوجد تداخل بين: ${clashes.join('، ')}. يجب أن يكون الفرق بين القنوات 5 أو أكثر.`
+				: '✔ لا يوجد تداخل! لكل نقطة وصول حيّز خاص بها.';
 		}
 		sels.forEach((s) => s.addEventListener('change', draw));
 		root.querySelector('[data-best]')!.addEventListener('click', () => {

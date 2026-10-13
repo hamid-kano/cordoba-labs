@@ -32,7 +32,7 @@ const dev = (x: number, y: number, label = '💻') => ({ x, y, label });
 							<rect x={cx - 22} y="124" width="44" height="32" rx="6" class="d-box" />
 							<text x={cx} y="146" class="d-t d-b d-ltr">AP</text>
 							{ds.map((d) => <text x={d.x} y={d.y + 8} class="md-ico">{d.label}</text>)}
-							<text x={cx} y="258" class="d-t d-b d-ltr">BSS</text><text x={cx} y="280" class="d-s">نقطة وصول وحدة</text>
+							<text x={cx} y="258" class="d-t d-b d-ltr">BSS</text><text x={cx} y="280" class="d-s">نقطة وصول واحدة</text>
 						</g>
 					);
 				}
@@ -52,16 +52,16 @@ const dev = (x: number, y: number, label = '💻') => ({ x, y, label });
 						<text x={a1 - 30} y="200" class="md-ico">📱</text>
 						<path d={`M ${a1 - 10} 205 Q ${cx} 235 ${a2 + 20} 205`} class="d-line d-orange d-dash" />
 						<text x={a2 + 30} y="200" class="md-ico">📱</text>
-						<text x={cx} y="258" class="d-t d-b d-ltr">ESS</text><text x={cx} y="280" class="d-s">كذا نقطة وصول</text>
+						<text x={cx} y="258" class="d-t d-b d-ltr">ESS</text><text x={cx} y="280" class="d-s">عدة نقاط وصول</text>
 					</g>
 				);
 			})
 		}
 	</svg>
 	<figcaption>
-		{show.includes('adhoc') && <span><strong>Ad-hoc:</strong> الأجهزة بتحكي مع بعض مباشرة بدون نقطة وصول. </span>}
-		{show.includes('bss') && <span><strong>BSS:</strong> كل الأجهزة بتحكي عن طريق نقطة وصول وحدة. </span>}
-		{show.includes('ess') && <span><strong>ESS:</strong> كذا نقطة وصول موصولين ببعض، والموبايل بيتنقّل بيناتهن بدون ما ينقطع (التجوال، Roaming).</span>}
+		{show.includes('adhoc') && <span><strong>Ad-hoc:</strong> تتواصل الأجهزة مباشرة دون نقطة وصول. </span>}
+		{show.includes('bss') && <span><strong>BSS:</strong> تتواصل كل الأجهزة عن طريق نقطة وصول واحدة. </span>}
+		{show.includes('ess') && <span><strong>ESS:</strong> عدة نقاط وصول متصلة ببعضها، وينتقل الهاتف بينها دون انقطاع (التجوال، Roaming).</span>}
 	</figcaption>
 </figure>
 

@@ -24,7 +24,7 @@ const prefixes = Array.from({ length: 23 }, (_, i) => i + 8); // 8..30
 			<div class="wl-out"><span>الفئة (Class)</span><strong data-o="cls">–</strong></div>
 			<div class="wl-out"><span>القناع (Subnet Mask)</span><strong data-o="mask">–</strong></div>
 			<div class="wl-out"><span>عدد الشبكات الفرعية</span><strong data-o="nets">–</strong></div>
-			<div class="wl-out"><span>عدد الأجهزة بكل شبكة</span><strong data-o="hosts">–</strong></div>
+			<div class="wl-out"><span>عدد الأجهزة في كل شبكة</span><strong data-o="hosts">–</strong></div>
 		</div>
 		<div class="sub-bin" data-o="bin"></div>
 		<p data-o="kind"></p>
@@ -44,12 +44,12 @@ const prefixes = Array.from({ length: 23 }, (_, i) => i + 8); // 8..30
 
 	function classOf(first: number) {
 		if (first >= 1 && first <= 126) return { c: 'A', def: 8, note: '' };
-		if (first === 127) return { c: 'A', def: 8, note: '127 محجوزة لاختبار الجهاز نفسه (loopback)، ما بتنستخدم بالشبكة.' };
+		if (first === 127) return { c: 'A', def: 8, note: '127 محجوز لاختبار الجهاز نفسه (loopback)، ولا يُستخدم في الشبكة.' };
 		if (first >= 128 && first <= 191) return { c: 'B', def: 16, note: '' };
 		if (first >= 192 && first <= 223) return { c: 'C', def: 24, note: '' };
-		if (first >= 224 && first <= 239) return { c: 'D', def: 0, note: 'الفئة D للبث لمجموعة أجهزة (Multicast)، ما بتنقسم لشبكات.' };
-		if (first >= 240) return { c: 'E', def: 0, note: 'الفئة E للتجارب والمستقبل، ما بتنستخدم.' };
-		return { c: '–', def: 0, note: 'أول رقم 0 ما بينفع لعنوان جهاز.' };
+		if (first >= 224 && first <= 239) return { c: 'D', def: 0, note: 'الفئة D للبث لمجموعة أجهزة (Multicast)، ولا تُقسم إلى شبكات.' };
+		if (first >= 240) return { c: 'E', def: 0, note: 'الفئة E للتجارب وللمستقبل، ولا تُستخدم.' };
+		return { c: '–', def: 0, note: 'لا يصلح أن يكون أول رقم 0 في عنوان جهاز.' };
 	}
 
 	function isPrivate(o: number[]) {
@@ -68,7 +68,7 @@ const prefixes = Array.from({ length: 23 }, (_, i) => i + 8); // 8..30
 			const oct = parts.map((x) => Number(x));
 			if (parts.length !== 4 || oct.some((x, i) => parts[i] === '' || !Number.isInteger(x) || x < 0 || x > 255)) {
 				err.hidden = false;
-				err.textContent = 'العنوان لازم يكون 4 أرقام بينهن نقاط، وكل رقم من 0 لـ 255. مثال: 192.168.1.10';
+				err.textContent = 'يجب أن يكون العنوان 4 أرقام بينها نقاط، وكل رقم من 0 إلى 255. مثال: 192.168.1.10';
 				res.hidden = true;
 				return;
 			}
@@ -99,13 +99,13 @@ const prefixes = Array.from({ length: 23 }, (_, i) => i + 8); // 8..30
 				const size = 2 ** (32 - p);
 				const show = Math.min(count, 8);
 				subnets = Array.from({ length: show }, (_, i) => (base + i * size) >>> 0);
-				if (count > show) notes.push(`عرضنا أول ${show} شبكات بس من أصل ${count.toLocaleString('en-US')}.`);
+				if (count > show) notes.push(`عرضنا أول ${show} شبكات فقط من أصل ${count.toLocaleString('en-US')}.`);
 				notes.push(borrowed === 0
-					? `القناع هو القناع الأساسي للفئة ${cls.c}، فما في تقسيم: شبكة وحدة.`
-					: `استعرنا ${borrowed} بت من قسم الأجهزة لنعمل شبكات فرعية.`);
+					? `القناع هو القناع الأساسي للفئة ${cls.c}، فلا يوجد تقسيم: شبكة واحدة.`
+					: `استعرنا ${borrowed} بت من قسم الأجهزة لننشئ شبكات فرعية.`);
 			} else {
 				o('nets').textContent = '–';
-				if (cls.def) notes.push(`القناع أصغر من القناع الأساسي للفئة ${cls.c} (/${cls.def})، فهون منكون عم نجمع شبكات مش نقسم.`);
+				if (cls.def) notes.push(`القناع أصغر من القناع الأساسي للفئة ${cls.c} (/${cls.def})، فنحن هنا نجمع شبكات ولا نقسمها.`);
 				const net = (ip & mask) >>> 0;
 				subnets = cls.def ? [net] : [];
 			}
@@ -117,7 +117,7 @@ const prefixes = Array.from({ length: 23 }, (_, i) => i + 8); // 8..30
 				})
 				.join('');
 			o('kind').textContent = cls.def
-				? `${isPrivate(oct) ? 'عنوان خاص (Private): بينفع جوّا الشبكات المحلية بس، متل بيتك أو المختبر.' : 'عنوان عام (Public): بينشاف على الإنترنت.'} السطر الملوّن هو الشبكة يلي فيها العنوان يلي كتبته.`
+				? `${isPrivate(oct) ? 'عنوان خاص (Private): يصلح داخل الشبكات المحلية فقط، مثل منزلك أو المختبر.' : 'عنوان عام (Public): يظهر على الإنترنت.'} السطر الملوّن هو الشبكة التي تحتوي العنوان الذي كتبته.`
 				: '';
 			o('note').textContent = notes.join(' ');
 		}
