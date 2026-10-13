@@ -18,8 +18,36 @@
 </div>
 
 <script>
-	type Node = { type: 'dir'; name: string; children: Node[] } | { type: 'file'; name: string; content: string };
+	type Node = { type: 'dir'; name: string; children: Node[]; hidden?: boolean } | { type: 'file'; name: string; content: string; hidden?: boolean; readonly?: boolean };
+	type Proc = { name: string; pid: number; mem: number };
 	const HOME = 'C:\\Users\\student';
+	const ENV: Record<string, string> = {
+		USERNAME: 'student',
+		COMPUTERNAME: 'LAB-PC',
+		USERPROFILE: HOME,
+		OS: 'Windows_NT',
+		PROCESSOR_ARCHITECTURE: 'AMD64',
+		NUMBER_OF_PROCESSORS: '8',
+		WINDIR: 'C:\\Windows',
+	};
+	const initialProcs = (): Proc[] => [
+		{ name: 'System', pid: 4, mem: 144 },
+		{ name: 'explorer.exe', pid: 3120, mem: 98412 },
+		{ name: 'chrome.exe', pid: 5240, mem: 215300 },
+		{ name: 'chrome.exe', pid: 5288, mem: 84120 },
+		{ name: 'chrome.exe', pid: 5302, mem: 61876 },
+		{ name: 'notepad.exe', pid: 6012, mem: 14220 },
+		{ name: 'cmd.exe', pid: 7100, mem: 4560 },
+	];
+	// عناوين وهمية لـ ping (الزمن بالـ ms من - لـ)
+	const HOSTS: Record<string, [string, number, number]> = {
+		'192.168.1.1': ['192.168.1.1', 1, 4],
+		'127.0.0.1': ['127.0.0.1', 0, 0],
+		localhost: ['127.0.0.1', 0, 0],
+		'8.8.8.8': ['8.8.8.8', 35, 60],
+		'google.com': ['142.250.185.78', 30, 70],
+		'www.google.com': ['142.250.185.78', 30, 70],
+	};
 
 	function initialFs(): Node {
 		const dir = (name: string, children: Node[] = []): Node => ({ type: 'dir', name, children });
@@ -37,7 +65,7 @@
 		]);
 	}
 
-	interface State { root: Node; cwd: string; last: string; history: string[]; done: Set<number>; flags: Record<string, boolean> }
+	interface State { root: Node; cwd: string; last: string; history: string[]; done: Set<string>; flags: Record<string, boolean>; procs: Proc[]; set: number }
 
 	// ويندوز ما بيفرّق بين الحروف الكبيرة والصغيرة
 	const child = (d: Node, name: string) => (d.type === 'dir' ? d.children.find((c) => c.name.toLowerCase() === name.toLowerCase()) : undefined);
@@ -97,12 +125,53 @@
 		{ text: 'اعرض محتوى الملف بـ <code>type</code>', check: (s) => /^type\s+.*notes\.txt/i.test(s.last) },
 		{ text: 'انسخه لـ <code>backup.txt</code> بنفس المجلد', check: (s) => { s.flags.backup ||= get(s, `${HOME}\\Documents\\os1\\backup.txt`)?.type === 'file'; return s.flags.backup; } },
 		{ text: 'احذف <code>backup.txt</code>', check: (s) => !!s.flags.backup && !get(s, `${HOME}\\Documents\\os1\\backup.txt`) },
-		{ text: 'ارجع لمجلدك الرئيسي: <code>cd ..\\..</code>', check: (s) => s.cwd.toLowerCase() === HOME.toLowerCase() && s.done.has(7) },
+		{ text: 'ارجع لمجلدك الرئيسي: <code>cd ..\\..</code>', check: (s) => s.cwd.toLowerCase() === HOME.toLowerCase() && s.done.has('0:7') },
 	];
+	const SYS_MISSIONS: { text: string; check: (s: State) => boolean }[] = [
+		{ text: 'شوف كل البرامج الشغّالة: <code>tasklist</code>', check: (s) => /^tasklist$/i.test(s.last) },
+		{ text: 'دوّر على chrome بس: <code>tasklist | find "chrome"</code>', check: (s) => /^tasklist\s*\|\s*find(str)?\s.*chrome/i.test(s.last) },
+		{ text: 'برنامج notepad معلّق. سكّره: <code>taskkill /im notepad.exe</code>', check: (s) => !s.procs.some((p) => p.name === 'notepad.exe') },
+		{ text: 'اعرف عنوان IP تبعك: <code>ipconfig</code>', check: (s) => /^ipconfig/i.test(s.last) },
+		{ text: 'جرّب الاتصال بالراوتر: <code>ping 192.168.1.1</code>', check: (s) => /^ping\s+192\.168\.1\.1\b/.test(s.last) },
+		{ text: 'اعرف معلومات جهازك: <code>systeminfo</code>', check: (s) => /^systeminfo/i.test(s.last) },
+		{ text: 'اعرض اسمك من متغير النظام: <code>echo %USERNAME%</code>', check: (s) => /^echo\s+%username%/i.test(s.last) },
+		{ text: 'خبّي ملف <code>notes.txt</code> بمجلدك الرئيسي: <code>attrib +h notes.txt</code>', check: (s) => !!get(s, `${HOME}\\notes.txt`)?.hidden },
+		{ text: 'اعمل نسخة احتياطية لمجلد Documents: <code>xcopy Documents Backup /e /i</code>', check: (s) => get(s, `${HOME}\\Backup\\cv.txt`)?.type === 'file' },
+	];
+	const SETS = [
+		{ title: 'الملفات', list: MISSIONS, end: 'جرّب <code>tree /f</code> لتشوف شغلك.' },
+		{ title: 'النظام والشبكة', list: SYS_MISSIONS, end: 'جرّب <code>dir /a</code> لتشوف الملف المخفي.' },
+	];
+	const pad = (x: string | number, n: number, left = false) => (left ? String(x).padEnd(n) : String(x).padStart(n));
+	const kb = (n: number) => `${n.toLocaleString('en-US')} K`;
+	// بيقسم «أمر | فلتر» (برّا علامات التنصيص)
+	function splitPipe(line: string): [string, string] | null {
+		let q = false;
+		for (let i = 0; i < line.length; i++) {
+			if (line[i] === '"') q = !q;
+			else if (line[i] === '|' && !q) return [line.slice(0, i).trim(), line.slice(i + 1).trim()];
+		}
+		return null;
+	}
+	const strip = (l: string) => l.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 
 	const LINUX: Record<string, string> = { ls: 'dir', pwd: 'cd', cat: 'type', cp: 'copy', mv: 'move', rm: 'del', clear: 'cls', touch: 'echo hello > notes.txt', man: 'help' };
 
 	function run(s: State, line: string): string {
+		// cmd بيبدّل المتغيرات (%USERNAME%...) قبل ما ينفّذ
+		line = line.replace(/%(\w+)%/g, (all, k) => ENV[k.toUpperCase()] ?? all);
+		const pipe = splitPipe(line);
+		if (pipe) {
+			const fm = pipe[1].match(/^(find|findstr)\s+(\/i\s+)?"?([^"]*)"?\s*$/i);
+			if (!fm) return 'هون الـ | بيشتغل مع find أو findstr بس، متل: tasklist | find "chrome"';
+			const out = run(s, pipe[0]);
+			const ci = !!fm[2] || fm[1].toLowerCase() === 'findstr';
+			const needle = ci ? fm[3].toLowerCase() : fm[3];
+			return out
+				.split('\n')
+				.filter((l) => (ci ? strip(l).toLowerCase() : strip(l)).includes(needle))
+				.join('\n');
+		}
 		const redir = line.match(/^echo\s+(.*?)\s*(>>?)\s*(.+)$/i);
 		if (redir) {
 			const path = resolve(s.cwd, redir[3].trim());
@@ -110,7 +179,7 @@
 			const d = get(s, dir);
 			if (d?.type !== 'dir') return 'The system cannot find the path specified.';
 			const old = child(d, name);
-			if (old?.type === 'dir') return 'Access is denied.';
+			if (old?.type === 'dir' || (old?.type === 'file' && old.readonly)) return 'Access is denied.';
 			const text = redir[1] + '\r\n';
 			if (old?.type === 'file') old.content = redir[2] === '>>' ? old.content + text : text;
 			else d.children.push({ type: 'file', name, content: text });
@@ -123,7 +192,184 @@
 		const P = (p: string) => resolve(s.cwd, p);
 		switch (cmd) {
 			case 'help':
-				return ['CD        وين أنا؟ أو فوت لمجلد (cd .. لورا)', 'DIR       شو في بالمجلد', 'MKDIR     اعمل مجلد', 'ECHO > f  اكتب نص بملف (>> بيضيف)', 'TYPE      اعرض محتوى ملف', 'COPY      انسخ', 'MOVE      انقل', 'REN       غيّر الاسم', 'DEL       احذف ملف', 'RMDIR     احذف مجلد فاضي (rmdir /s لمجلد فيه شي)', 'TREE      شجرة المجلدات (tree /f مع الملفات)', 'CLS       نظّف الشاشة', 'WHOAMI، HOSTNAME، VER، DATE /T'].join('\n');
+				return [
+					'-- الملفات --',
+					'CD        وين أنا؟ أو فوت لمجلد (cd .. لورا)',
+					'DIR       شو في بالمجلد (dir /a مع المخفي)',
+					'MKDIR     اعمل مجلد',
+					'ECHO > f  اكتب نص بملف (>> بيضيف)',
+					'TYPE      اعرض محتوى ملف',
+					'COPY      انسخ ملف',
+					'XCOPY     انسخ مجلد كامل (xcopy a b /e /i)',
+					'MOVE      انقل',
+					'REN       غيّر الاسم',
+					'DEL       احذف ملف',
+					'RMDIR     احذف مجلد فاضي (rmdir /s لمجلد فيه شي)',
+					'TREE      شجرة المجلدات (tree /f مع الملفات)',
+					'ATTRIB    خبّي ملف (+h) أو احميه من التعديل (+r)',
+					'FIND      دوّر على كلمة جوّا ملف',
+					'FC        قارن ملفين',
+					'-- النظام والشبكة --',
+					'TASKLIST  البرامج الشغّالة',
+					'TASKKILL  سكّر برنامج (taskkill /im اسم)',
+					'IPCONFIG  عنوان IP تبعك (ipconfig /all للتفاصيل)',
+					'PING      جرّب الاتصال بجهاز',
+					'SYSTEMINFO معلومات الجهاز',
+					'SET       متغيرات النظام (echo %USERNAME%)',
+					'CLS       نظّف الشاشة',
+					'PIPE |    مرّر النتيجة لـ find: tasklist | find "chrome"',
+				].join('\n');
+			case 'tasklist': {
+				const head = [`${pad('Image Name', 26, true)}${pad('PID', 8)}${pad('Mem Usage', 14)}`, `${'='.repeat(25)} ${'='.repeat(7)} ${'='.repeat(13)}`];
+				return [...head, ...s.procs.map((p) => `${pad(p.name, 26, true)}${pad(p.pid, 8)}${pad(kb(p.mem), 14)}`)].join('\n');
+			}
+			case 'taskkill': {
+				const lower = args.map((a) => a.replace(/"/g, ''));
+				const im = lower.findIndex((a) => a.toLowerCase() === '/im');
+				const pi = lower.findIndex((a) => a.toLowerCase() === '/pid');
+				const targets = im >= 0 ? s.procs.filter((p) => p.name.toLowerCase() === (lower[im + 1] ?? '').toLowerCase()) : pi >= 0 ? s.procs.filter((p) => p.pid === Number(lower[pi + 1])) : null;
+				if (!targets) return 'ERROR: Invalid syntax. استخدم taskkill /im notepad.exe أو taskkill /pid 6012';
+				if (!targets.length) return `ERROR: The process "${esc(lower[(im >= 0 ? im : pi) + 1] ?? '')}" not found.`;
+				return targets
+					.map((p) => {
+						if (p.name === 'System') return `ERROR: The process "System" with PID 4 could not be terminated.\nReason: Access is denied.`;
+						s.procs = s.procs.filter((x) => x !== p);
+						return `SUCCESS: The process "${p.name}" with PID ${p.pid} has been terminated.`;
+					})
+					.join('\n');
+			}
+			case 'ipconfig': {
+				const all = rest.toLowerCase() === '/all';
+				return [
+					'Windows IP Configuration',
+					'',
+					'Wireless LAN adapter Wi-Fi:',
+					'',
+					...(all ? ['   Physical Address. . . . . . . . . : 3C-52-82-1A-7F-09', '   DHCP Enabled. . . . . . . . . . . : Yes'] : []),
+					'   IPv4 Address. . . . . . . . . . . : 192.168.1.15',
+					'   Subnet Mask . . . . . . . . . . . : 255.255.255.0',
+					'   Default Gateway . . . . . . . . . : 192.168.1.1',
+					...(all ? ['   DNS Servers . . . . . . . . . . . : 8.8.8.8'] : []),
+				].join('\n');
+			}
+			case 'ping': {
+				const host = (args.find((a) => !a.startsWith('-') && !a.startsWith('/')) ?? '').toLowerCase();
+				if (!host) return 'اكتب اسم أو عنوان الجهاز: ping google.com';
+				const known = HOSTS[host];
+				const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(host);
+				if (!known && !isIp) return `Ping request could not find host ${esc(host)}. Please check the name and try again.`;
+				const ip = known ? known[0] : host;
+				const lines = [`Pinging ${esc(host)}${known && known[0] !== host ? ` [${ip}]` : ''} with 32 bytes of data:`];
+				let ok = 0;
+				const times: number[] = [];
+				for (let i = 0; i < 4; i++) {
+					if (!known) lines.push('Request timed out.');
+					else {
+						const t = Math.round(known[1] + Math.random() * (known[2] - known[1]));
+						times.push(t);
+						ok++;
+						lines.push(`Reply from ${ip}: bytes=32 time${t < 1 ? '&lt;1' : '=' + t}ms TTL=${ip.startsWith('192') || ip.startsWith('127') ? 64 : 117}`);
+					}
+				}
+				lines.push('', `Ping statistics for ${ip}:`, `    Packets: Sent = 4, Received = ${ok}, Lost = ${4 - ok} (${(4 - ok) * 25}% loss),`);
+				if (ok) lines.push('Approximate round trip times in milli-seconds:', `    Minimum = ${Math.min(...times)}ms, Maximum = ${Math.max(...times)}ms, Average = ${Math.round(times.reduce((a, b) => a + b, 0) / ok)}ms`);
+				return lines.join('\n');
+			}
+			case 'systeminfo':
+				return [
+					'Host Name:                 LAB-PC',
+					'OS Name:                   Microsoft Windows 11 Pro',
+					'OS Version:                10.0.26100 N/A Build 26100',
+					'System Type:               x64-based PC',
+					'Processor(s):              1 Processor(s) Installed.',
+					'                           Intel64 Family 6 ~2400 Mhz',
+					'Total Physical Memory:     8,192 MB',
+					'Available Physical Memory: 3,412 MB',
+					'Network Card(s):           1 NIC(s) Installed. Wi-Fi',
+				].join('\n');
+			case 'set':
+				return Object.entries(ENV)
+					.filter(([k]) => !rest || k.startsWith(rest.toUpperCase()))
+					.map(([k, v]) => `${k}=${esc(v)}`)
+					.join('\n');
+			case 'attrib': {
+				const flags = args.filter((a) => /^[+-][hr]$/i.test(a));
+				const name = args.find((a) => !/^[+-][hr]$/i.test(a));
+				if (!name) return 'اكتب اسم الملف: attrib notes.txt';
+				const path = P(name);
+				const n = get(s, path);
+				if (!n) return `File not found - ${esc(name)}`;
+				for (const f of flags) {
+					const on = f[0] === '+';
+					if (f[1].toLowerCase() === 'h') n.hidden = on;
+					else if (n.type === 'file') n.readonly = on;
+				}
+				if (flags.length) return '';
+				return `A    ${n.hidden ? 'H' : ' '} ${n.type === 'file' && n.readonly ? 'R' : ' '}       ${esc(realPath(s, path))}`;
+			}
+			case 'find': {
+				const fm = rest.match(/^(\/i\s+)?"([^"]*)"\s+(.+)$/i);
+				if (!fm) return 'اكتب الكلمة بين علامتي تنصيص واسم الملف: find "hello" notes.txt';
+				const n = get(s, P(fm[3]));
+				if (n?.type !== 'file') return `File not found - ${esc(fm[3])}`;
+				const ci = !!fm[1];
+				const hits = n.content.split(/\r?\n/).filter((l) => l && (ci ? l.toLowerCase().includes(fm[2].toLowerCase()) : l.includes(fm[2])));
+				return [`---------- ${esc(n.name.toUpperCase())}`, ...hits.map(esc)].join('\n');
+			}
+			case 'fc': {
+				if (args.length < 2) return 'FC: Insufficient number of file specifications';
+				const a = get(s, P(args[0]));
+				const b = get(s, P(args[1]));
+				if (a?.type !== 'file' || b?.type !== 'file') return 'FC: cannot open file - no such file or folder';
+				const head = `Comparing files ${esc(a.name.toUpperCase())} and ${esc(b.name.toUpperCase())}`;
+				if (a.content === b.content) return `${head}\nFC: no differences encountered`;
+				return [head, `***** ${esc(a.name.toUpperCase())}`, ...a.content.trim().split(/\r?\n/).map(esc), `***** ${esc(b.name.toUpperCase())}`, ...b.content.trim().split(/\r?\n/).map(esc), '*****'].join('\n');
+			}
+			case 'xcopy': {
+				const names = args.filter((a) => !a.startsWith('/'));
+				const sub = args.some((a) => a.toLowerCase() === '/e' || a.toLowerCase() === '/s');
+				if (names.length < 2) return 'Invalid number of parameters';
+				const src = get(s, P(names[0]));
+				if (!src) return `File not found - ${esc(names[0])}`;
+				const dstPath = P(names[1]);
+				let dst = get(s, dstPath);
+				if (!dst) {
+					const { dir, name } = split(dstPath);
+					const d = get(s, dir);
+					if (d?.type !== 'dir') return 'Invalid path';
+					dst = { type: 'dir', name, children: [] };
+					d.children.push(dst);
+				}
+				if (dst.type !== 'dir') return 'Cannot perform a cyclic copy';
+				let count = 0;
+				const copyInto = (from: Node, to: Node) => {
+					if (to.type !== 'dir' || from.type !== 'dir') return;
+					for (const c of from.children) {
+						if (c.type === 'file') {
+							const old = child(to, c.name);
+							if (old) to.children.splice(to.children.indexOf(old), 1);
+							to.children.push(JSON.parse(JSON.stringify(c)));
+							count++;
+						} else if (sub) {
+							let sd = child(to, c.name);
+							if (!sd) {
+								sd = { type: 'dir', name: c.name, children: [] };
+								to.children.push(sd);
+							}
+							copyInto(c, sd);
+						}
+					}
+				};
+				if (src.type === 'file') {
+					dst.children.push(JSON.parse(JSON.stringify(src)));
+					count = 1;
+				} else copyInto(src, dst);
+				return `${count} File(s) copied`;
+			}
+			case 'more':
+				return run(s, 'type ' + rest);
+			case 'exit':
+				return 'هون ما فيك تسكّر الطرفية 🙂 اكبس «من الأول» لتبلّش من جديد.';
 			case 'echo':
 				return esc(rest) || 'ECHO is on.';
 			case 'whoami':
@@ -149,7 +395,8 @@
 				const target = tp ? P(tp) : s.cwd;
 				const n = get(s, target);
 				if (n?.type !== 'dir') return 'File Not Found';
-				const items = [...n.children].sort((a, b) => a.name.localeCompare(b.name));
+				const showAll = args.some((a) => /^\/a/i.test(a));
+				const items = [...n.children].filter((c) => showAll || !c.hidden).sort((a, b) => a.name.localeCompare(b.name));
 				let files = 0;
 				let size = 0;
 				const lines = [` Directory of ${esc(realPath(s, target))}`, ''];
@@ -221,6 +468,7 @@
 				const n = get(s, path);
 				if (!n) return `Could Not Find ${esc(path)}`;
 				if (n.type === 'dir') return 'del للملفات. للمجلد استخدم rmdir';
+				if (n.readonly) return `Access is denied.\nالملف محمي (attrib +r). شيل الحماية بـ attrib -r ${n.name}`;
 				const p = get(s, split(path).dir)!;
 				if (p.type === 'dir') p.children.splice(p.children.indexOf(n), 1);
 				return '';
@@ -273,23 +521,39 @@
 		const input = root.querySelector<HTMLInputElement>('[data-in="cmd"]')!;
 		let s: State;
 		let hi = 0;
+		let lastSet = 0;
 		const prompt = () => `${s.cwd}>`;
 		function reset() {
-			s = { root: initialFs(), cwd: HOME, last: '', history: [], done: new Set(), flags: {} };
+			s = { root: initialFs(), cwd: HOME, last: '', history: [], done: new Set(), flags: {}, procs: initialProcs(), set: lastSet };
 			screen.innerHTML = '<div>Microsoft Windows [Version 10.0.26100]</div><div dir="rtl" class="os-hint-t">هاد cmd تدريبي. ابدأ بالمهمة الأولى، أو اكتب <bdi dir="ltr">help</bdi>.</div><div>&nbsp;</div>';
 			paint();
 		}
 		function paint() {
 			root.querySelector('[data-out="prompt"]')!.textContent = prompt();
+			const set = SETS[s.set];
+			const key = (i: number) => `${s.set}:${i}`;
 			let first = -1;
-			MISSIONS.forEach((m, i) => {
-				if (!s.done.has(i) && first < 0 && m.check(s)) s.done.add(i);
-				if (!s.done.has(i) && first < 0) first = i;
+			set.list.forEach((m, i) => {
+				if (!s.done.has(key(i)) && first < 0 && m.check(s)) s.done.add(key(i));
+				if (!s.done.has(key(i)) && first < 0) first = i;
 			});
-			root.querySelector('[data-out="missions"]')!.innerHTML =
-				`<strong>المهمات (${s.done.size}/${MISSIONS.length})</strong><ol>` +
-				MISSIONS.map((m, i) => `<li class="${s.done.has(i) ? 'done' : i === first ? 'now' : ''}">${s.done.has(i) ? '✔ ' : ''}${m.text}</li>`).join('') +
-				'</ol>' + (s.done.size === MISSIONS.length ? '<p class="wl-msg wl-good">🎉 خلّصت كل المهمات! جرّب <code>tree /f</code> لتشوف شغلك.</p>' : '');
+			const doneN = set.list.filter((_, i) => s.done.has(key(i))).length;
+			const tabs = SETS.map((x, i) => {
+				const n = x.list.filter((_, j) => s.done.has(`${i}:${j}`)).length;
+				return `<button type="button" class="wl-btn" data-set="${i}" aria-pressed="${i === s.set}">${i + 1}. ${x.title} (${n}/${x.list.length})</button>`;
+			}).join('');
+			const box = root.querySelector('[data-out="missions"]')!;
+			box.innerHTML =
+				`<div class="wl-row" role="group" aria-label="مجموعة المهمات">${tabs}</div><ol>` +
+				set.list.map((m, i) => `<li class="${s.done.has(key(i)) ? 'done' : i === first ? 'now' : ''}">${s.done.has(key(i)) ? '✔ ' : ''}${m.text}</li>`).join('') +
+				'</ol>' +
+				(doneN === set.list.length ? `<p class="wl-msg wl-good">🎉 خلّصت مهمات «${set.title}»! ${set.end}${s.set < SETS.length - 1 ? ' وبعدين انتقل للمجموعة الجاية.' : ''}</p>` : '');
+			box.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) =>
+				b.addEventListener('click', () => {
+					s.set = lastSet = +b.dataset.set!;
+					paint();
+				}),
+			);
 			screen.scrollTop = screen.scrollHeight;
 		}
 		root.querySelector('[data-form]')!.addEventListener('submit', (e) => {
