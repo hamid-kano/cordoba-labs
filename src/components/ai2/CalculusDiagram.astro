@@ -1,7 +1,7 @@
 ---
 // التفاضل = الميل، والتكامل = المساحة، على نفس منحني الخطأ e(t) (صفحة PID والضبابي ببساطة).
 const T = 8;
-const e = (t: number) => Math.exp(-0.6 * t) + 0.15; // خطأ عم يصغر، وبيضل منه شوي
+const e = (t: number) => Math.exp(-0.6 * t) + 0.15; // خطأ يصغر، ويبقى منه القليل
 const X = (t: number) => 40 + t * 32;
 const Y = (v: number) => 180 - v * 130;
 const ts = Array.from({ length: 81 }, (_, i) => (i * T) / 80);
@@ -22,7 +22,7 @@ const axes = `M40 20 V180 H300`;
 
 <div class="ai-two calc-figs">
 	<figure class="wl-fig">
-		<svg class="d-big" viewBox="0 0 320 230" role="img" aria-label="منحني الخطأ عم ينزل مع الزمن، والخط الأحمر المماس بيبيّن ميله، وهو التفاضل">
+		<svg class="d-big" viewBox="0 0 320 230" role="img" aria-label="منحني الخطأ ينخفض مع الزمن، والخط الأحمر المماس يبيّن ميله، وهو التفاضل">
 			<defs>
 				<marker id="calc-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
 					<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
@@ -35,14 +35,14 @@ const axes = `M40 20 V180 H300`;
 			<path d={tangent} class="d-line d-red calc-tan"></path>
 			<circle cx={X(t0)} cy={Y(e(t0))} r="6" class="d-fred"></circle>
 			<text x="200" y="60" class="d-t d-b">التفاضل = الميل</text>
-			<text x="200" y="84" class="d-s">قديش عم يتغيّر هلق</text>
+			<text x="200" y="84" class="d-s">كم يتغيّر الآن</text>
 		</svg>
 		<figcaption>
-			<strong>التفاضل:</strong> الخط الأحمر بيبيّن قديش الخطأ عم ينزل <strong>بهاللحظة</strong>. نازل بقوة يعني عم نقرّب بسرعة، فالـ <strong>D</strong> بيفرمل.
+			<strong>التفاضل:</strong> يبيّن الخط الأحمر مقدار انخفاض الخطأ <strong>في هذه اللحظة</strong>. الانخفاض الحاد يعني أننا نقترب بسرعة، فيضغط الجزء <strong>D</strong> على الفرامل.
 		</figcaption>
 	</figure>
 	<figure class="wl-fig">
-		<svg class="d-big" viewBox="0 0 320 230" role="img" aria-label="نفس منحني الخطأ، والمساحة تحته ملوّنة، وهي التكامل">
+		<svg class="d-big" viewBox="0 0 320 230" role="img" aria-label="منحني الخطأ نفسه، والمساحة تحته ملوّنة، وهي التكامل">
 			<path d={area} class="d-fgreen calc-area"></path>
 			<path d={axes} class="d-line" marker-start="url(#calc-ar)" marker-end="url(#calc-ar)"></path>
 			<text x="300" y="205" class="d-s d-ltr">t</text>
@@ -50,10 +50,10 @@ const axes = `M40 20 V180 H300`;
 			<path d={curve} class="d-line d-blue calc-curve"></path>
 			<line x1={X(t1)} y1={Y(0)} x2={X(t1)} y2={Y(e(t1))} class="d-line d-green"></line>
 			<text x="200" y="60" class="d-t d-b">التكامل = المساحة</text>
-			<text x="200" y="84" class="d-s">قديش تجمّع لهلق</text>
+			<text x="200" y="84" class="d-s">كم تجمّع حتى الآن</text>
 		</svg>
 		<figcaption>
-			<strong>التكامل:</strong> المساحة الخضرا هي كل الخطأ يلي <strong>تجمّع</strong> لهلق. حتى لو ضل خطأ صغير، المساحة بتضل تكبر، فالـ <strong>I</strong> بيزيد الدفعة لحتى يروح.
+			<strong>التكامل:</strong> المساحة الخضراء هي كل الخطأ الذي <strong>تجمّع</strong> حتى الآن. حتى لو بقي خطأ صغير، تستمر المساحة في الزيادة، فيزيد الجزء <strong>I</strong> الدفعة حتى يزول الخطأ.
 		</figcaption>
 	</figure>
 </div>

@@ -14,7 +14,7 @@ const id = `term-${Math.random().toString(36).slice(2, 9)}`;
 	<span class="term-pop-head">
 		<strong>{t}</strong>
 		{en && en !== t && <span dir="ltr" class="term-pop-en">{en}</span>}
-		<button type="button" class="term-pop-x" popovertarget={id} popovertargetaction="hide" aria-label="سكّر">✕</button>
+		<button type="button" class="term-pop-x" popovertarget={id} popovertargetaction="hide" aria-label="إغلاق">✕</button>
 	</span>
 	<span class="term-pop-def">{def}</span>
 </span>

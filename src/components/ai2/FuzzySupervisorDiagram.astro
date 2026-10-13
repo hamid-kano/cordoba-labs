@@ -3,7 +3,7 @@
 ---
 
 <figure class="wl-fig">
-	<svg class="d-big" viewBox="0 0 640 280" role="img" aria-label="المتحكم الضبابي فوق بيقرأ الخطأ وتغيّره، وبيغيّر أزرار الـ PID تحت، والـ PID بيتحكم بالنظام">
+	<svg class="d-big" viewBox="0 0 640 280" role="img" aria-label="المتحكم الضبابي في الأعلى يقرأ الخطأ وتغيّره، ويغيّر أزرار الـ PID في الأسفل، والـ PID يتحكم بالنظام">
 		<defs>
 			<marker id="fsup-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
 				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
@@ -12,7 +12,7 @@
 		<!-- المشرف الضبابي -->
 		<rect x="200" y="14" width="230" height="64" rx="12" class="d-box2 d-orange"></rect>
 		<text x="315" y="42" class="d-t d-b">المشرف الضبابي</text>
-		<text x="315" y="64" class="d-s">بيقدّر الموقف بالقواعد</text>
+		<text x="315" y="64" class="d-s">يقدّر الموقف بالقواعد</text>
 		<path d="M268 78 V146" class="d-line d-orange" marker-end="url(#fsup-ar)"></path>
 		<path d="M315 78 V146" class="d-line d-orange" marker-end="url(#fsup-ar)"></path>
 		<path d="M362 78 V146" class="d-line d-orange" marker-end="url(#fsup-ar)"></path>
@@ -26,14 +26,14 @@
 		<!-- PID -->
 		<rect x="200" y="148" width="230" height="60" rx="12" class="d-box"></rect>
 		<text x="315" y="175" class="d-t d-b d-ltr">PID</text>
-		<text x="315" y="196" class="d-s">بيحسب بسرعة ودقة</text>
+		<text x="315" y="196" class="d-s">يحسب بسرعة ودقة</text>
 		<line x1="430" y1="178" x2="498" y2="178" class="d-line" marker-end="url(#fsup-ar)"></line>
 		<!-- النظام -->
 		<rect x="500" y="150" width="120" height="56" rx="10" class="d-box"></rect>
 		<text x="560" y="184" class="d-t d-b">النظام</text>
-		<text x="315" y="252" class="d-s">الأزرار ما عادت ثابتة: بتتغيّر لحالها حسب الحالة</text>
+		<text x="315" y="252" class="d-s">لم تعد الأزرار ثابتة: تتغيّر تلقائياً حسب الحالة</text>
 	</svg>
 	<figcaption>
-		الـ <strong>PID</strong> تحت بيشتغل كالعادة، بس أزراره ما عادت ثابتة. الـ<strong>مشرف الضبابي</strong> فوق بيشوف الوضع (مثلاً: منعطف حاد ولا خط مستقيم؟) وبيغيّر <code>Kp</code> و <code>Ki</code> و <code>Kd</code> لحالهن.
+		يعمل الـ <strong>PID</strong> في الأسفل كالمعتاد، لكن أزراره لم تعد ثابتة. يراقب <strong>المشرف الضبابي</strong> في الأعلى الوضع (مثلاً: منعطف حاد أم خط مستقيم؟) ويغيّر <code>Kp</code> و <code>Ki</code> و <code>Kd</code> تلقائياً.
 	</figcaption>
 </figure>
