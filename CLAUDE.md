@@ -9,7 +9,7 @@
 - Astro 7 + Starlight 0.42، موقع ثابت بدون قاعدة بيانات وبدون تسجيل دخول.
 - عربي فقط، RTL (`locales.root = ar, dir rtl`)، خط IBM Plex Sans Arabic.
 - المعادلات: `remark-math` + `rehype-katex` (ولازمهم `@astrojs/markdown-remark` لأن Astro 7 صار يستخدم Sätteri افتراضياً).
-- البحث Pagefind (مدمج)، والوضع الليلي مدمج.
+- البحث Pagefind (مدمج)، والوضع الليلي مدمج. نصوص البحث العربية بـ `src/content/i18n/ar.json` (ناقصة بترجمة Starlight)، و Pagefind بيستخدم left/right ثابتين فقلبناهن للـ RTL بآخر `custom.css` (وإلا العدسة بتطلع على زر «إلغاء» بالموبايل).
 - النشر: GitHub Pages عن طريق `.github/workflows/deploy.yml`. الـ `site` والـ `base` بيجوا من متغيرات البيئة `SITE` و `BASE_PATH` (بيعبّيهم `actions/configure-pages`). محلياً الـ base هو `/`.
 
 ## البنية

@@ -401,3 +401,17 @@ code,
 .os-term-win { background: #0c0c0c; }
 .os-term-win .os-term-prompt, .os-term-win.os-term .os-p { color: #cccccc; }
 .os-missions code { white-space: nowrap; }
+
+/* ===== البحث (Pagefind) بالعربي: Pagefind بيستخدم left/right ثابتين، فمنقلبهن لليمين ===== */
+/* بدونها أيقونة العدسة بتطلع على زر «إلغاء» بالموبايل */
+[dir='rtl'] #starlight__search .pagefind-ui__form::before {
+	left: auto;
+	right: calc(20px * var(--pagefind-ui-scale));
+}
+[dir='rtl'] #starlight__search .pagefind-ui__search-input {
+	padding: 0 calc(54px * var(--pagefind-ui-scale)) 0 calc(70px * var(--pagefind-ui-scale));
+}
+[dir='rtl'] #starlight__search .pagefind-ui__search-clear {
+	right: auto;
+	left: calc(var(--sl-search-cancel-space) + 3px * var(--pagefind-ui-scale));
+}

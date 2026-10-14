@@ -1,0 +1,12 @@
+{
+	"pagefind.clear_search": "مسح",
+	"pagefind.load_more": "عرض نتائج أخرى",
+	"pagefind.search_label": "ابحث في الموقع",
+	"pagefind.filters_label": "التصفية",
+	"pagefind.zero_results": "لا توجد نتائج لـ: [SEARCH_TERM]",
+	"pagefind.many_results": "عدد النتائج: [COUNT]، للبحث عن: [SEARCH_TERM]",
+	"pagefind.one_result": "نتيجة واحدة للبحث عن: [SEARCH_TERM]",
+	"pagefind.alt_search": "لا توجد نتائج لـ [SEARCH_TERM]. نعرض نتائج: [DIFFERENT_TERM]",
+	"pagefind.search_suggestion": "لا توجد نتائج لـ [SEARCH_TERM]. جرّب إحدى هذه الكلمات:",
+	"pagefind.searching": "جارٍ البحث عن [SEARCH_TERM]..."
+}
