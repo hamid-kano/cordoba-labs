@@ -90,7 +90,7 @@ public/favicon.png, apple-touch-icon.png, og-image.png   أيقونات وصور
   - المكوّنات بـ `src/components/os1/`، والحسابات بـ `src/scripts/os1.ts` (جدولة القرص، و RAID، والنسخ، والأداء، والموازنة)، وبتنجرب بـ `node file.mts`. أرقام الصفحات كلها من هالمحرك: مثال 1 (طلبات Silberschatz، الرأس 53، لتحت) FCFS 640، SSTF 236، SCAN 236، LOOK 208؛ مثال 2 (الرأس 50، لفوق) 642، 208، 332، C-SCAN 391 مع القفزة، LOOK 314، C-LOOK 341.
   - **SqlLab** بيستخدم `sql.js` (مثبّت `1.11.0`)، وملف `public/files/os1/sql-wasm.wasm` منسوخ من `node_modules/sql.js/dist` (إذا تحدّثت المكتبة لازم ينسخ من جديد). و NetLab بيطلب `public/files/os1/students.json` من نفس الموقع.
   - التجارب الحقيقية على ويندوز (Task Manager، و PowerShell `Get-PhysicalDisk` و `Get-FileHash` و `Get-CimInstance Win32_Processor`، و `tree`).
-- توزيع العلامات بخطة ذكاء 2 مجرد مثال.
+- **ما في قسم «التقييم» ولا توزيع علامات بخطط المواد** (المستخدم طلب شيله، 2026-10-14). ما تضيفه بأي مادة.
 
 ## Git والنشر
 
