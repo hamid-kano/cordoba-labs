@@ -20,7 +20,9 @@ src/content/docs/
   ai2/  wireless/  os1/
     index.mdx          خطة المادة (sidebar.order: 0) + جدول الجلسات (متاحة/قريباً)
     lab-NN-name.mdx    جلسة (sidebar.order: NN)
-src/components/PanelToggles.astro override لـ SocialIcons: زرين بالهيدر (كمبيوتر بس) لإخفاء القائمة الجانبية و«على هذه الصفحة»
+src/components/PanelToggles.astro override لـ SocialIcons: 3 أزرار بالهيدر (كمبيوتر بس): إخفاء القائمة الجانبية، و«على هذه الصفحة»، و«وضع العرض» لشاشة الإسقاط
+                            (data-present: بدون هيدر ولا قوائم، محتوى 68rem وخط 112.5%، بيضل بنفس التبويب بـ sessionStorage، والخروج بـ Esc أو زر بالزاوية).
+                            ولما القائمتين مخفيتين المحتوى بيتوسّع لـ 62rem.
                             (بيحطوا data-hide-nav / data-hide-toc على <html>، والـ CSS بآخر custom.css، والحالة بـ localStorage)
 src/styles/custom.css       الألوان، و .lab-meta، و details.answer، والكود/المعادلات LTR
 public/files/<course>/      ملفات التحميل (.m، .c ...)

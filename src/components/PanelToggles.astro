@@ -11,6 +11,8 @@ const { hasSidebar, toc } = Astro.locals.starlightRoute;
 		for (const k of ['nav', 'toc']) {
 			if (localStorage.getItem('cpu-hide-' + k) === '1') document.documentElement.setAttribute('data-hide-' + k, '');
 		}
+		// وضع العرض بينحفظ للتبويب الحالي بس (sessionStorage)، لحتى ما يعلق عند الطلاب
+		if (sessionStorage.getItem('cpu-present') === '1') document.documentElement.setAttribute('data-present', '');
 	} catch {}
 </script>
 
@@ -28,11 +30,36 @@ const { hasSidebar, toc } = Astro.locals.starlightRoute;
 		</button>
 	)
 }
+<button type="button" class="panel-toggle present-toggle" title="وضع العرض على شاشة الإسقاط (للخروج: Esc)" aria-label="وضع العرض على شاشة الإسقاط">
+	<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M12 16v3M8 21l4-2 4 2" /></svg>
+</button>
 <Default />
 
 <script>
 	const root = document.documentElement;
-	document.querySelectorAll<HTMLButtonElement>('.panel-toggle').forEach((btn) => {
+
+	// وضع العرض: زر الخروج بينحط برّا الهيدر لأنه الهيدر بيختفي
+	const exit = document.createElement('button');
+	exit.type = 'button';
+	exit.className = 'present-exit';
+	exit.textContent = '✕ خروج من وضع العرض';
+	document.body.append(exit);
+	const setPresent = (on: boolean) => {
+		root.toggleAttribute('data-present', on);
+		try {
+			sessionStorage.setItem('cpu-present', on ? '1' : '0');
+		} catch {}
+	};
+	document.querySelector('.present-toggle')?.addEventListener('click', () => setPresent(true));
+	exit.addEventListener('click', () => setPresent(false));
+	document.addEventListener('keydown', (e) => {
+		if (e.key === 'Escape' && root.hasAttribute('data-present') && !document.querySelector(':popover-open, dialog[open]')) setPresent(false);
+	});
+</script>
+
+<script>
+	const root = document.documentElement;
+	document.querySelectorAll<HTMLButtonElement>('.panel-toggle[data-panel]').forEach((btn) => {
 		const k = btn.dataset.panel!;
 		const sync = () => btn.setAttribute('aria-pressed', String(!root.hasAttribute(`data-hide-${k}`)));
 		sync();
@@ -85,11 +112,18 @@ const { hasSidebar, toc } = Astro.locals.starlightRoute;
 		opacity: 0.6;
 	}
 	/* «على هذه الصفحة» بيطلع جانبي من 72rem وطالع. تحت هيك هي قائمة منسدلة أصلاً */
-	.toc-toggle {
+	.toc-toggle,
+	.present-toggle {
 		display: none;
 	}
 	@media (min-width: 72rem) {
 		.toc-toggle {
+			display: flex;
+		}
+	}
+	/* وضع العرض للكمبيوتر بس (شاشة الإسقاط) */
+	@media (min-width: 50rem) {
+		.present-toggle {
 			display: flex;
 		}
 	}

@@ -217,6 +217,27 @@ code,
 @media (min-width: 72em) {
 	:root[data-hide-toc] .right-sidebar-container { display: none; }
 	:root[data-hide-toc] .main-pane { width: 100%; --sl-content-margin-inline: auto; }
+	/* لما القائمتين مخفيتين، المحتوى بيتوسّع (الافتراضي 45rem) */
+	:root[data-hide-nav][data-hide-toc] { --sl-content-width: 62rem; }
+}
+
+/* ===== وضع العرض (شاشة الإسقاط): بدون هيدر ولا قوائم، ومحتوى أعرض وخط أكبر ===== */
+.present-exit { display: none; }
+@media (min-width: 50em) {
+	:root[data-present] { --sl-nav-height: 0rem; --sl-content-width: 68rem; --sl-content-inline-start: 0rem; font-size: 112.5%; }
+	:root[data-present] header.header,
+	:root[data-present] .sidebar-pane,
+	:root[data-present] .right-sidebar-container,
+	:root[data-present] mobile-starlight-toc { display: none; }
+	:root[data-present] .main-pane { width: 100%; --sl-content-margin-inline: auto; }
+	:root[data-present] .main-frame { padding-top: 0; }
+	:root[data-present] .present-exit {
+		display: block; position: fixed; z-index: 100; top: 0.6rem; inset-inline-start: 0.6rem;
+		padding: 0.3rem 0.7rem; border: 1px solid var(--sl-color-gray-5); border-radius: 0.4rem;
+		background: var(--sl-color-bg); color: var(--sl-color-gray-2); font: inherit; font-size: 0.8rem;
+		cursor: pointer; opacity: 0.35; transition: opacity 0.2s;
+	}
+	:root[data-present] .present-exit:hover, :root[data-present] .present-exit:focus-visible { opacity: 1; }
 }
 
 /* ===== أدوات المحاكاة بالذكاء الصنعي 2 (src/components/ai2/) ===== */
@@ -290,7 +311,7 @@ code,
 	.kw-table td, .kw-table th { padding: 0.15rem 0.4rem; }
 }
 @media print {
-	.sl-banner, .panel-toggle { display: none !important; }
+	.sl-banner, .panel-toggle, .present-exit { display: none !important; }
 }
 
 /* ===== أدوات نظم التشغيل 1 (src/components/os1/) ===== */
