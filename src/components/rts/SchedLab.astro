@@ -1,0 +1,190 @@
+---
+// محاكي الجدولة بالأولويات (الجلستان 4 و 5).
+// mode="rm": RM مع خيار «الأولوية حسب ترتيب الجدول» للمقارنة، واختبار Liu & Layland.
+// mode="compare": نفس المهام على RM و EDF جنب بعض.
+interface Props {
+	mode: 'rm' | 'compare';
+}
+const { mode } = Astro.props;
+const EX = {
+	robot: [
+		['الحسّاسات', 1, 4],
+		['المحرّكات', 2, 6],
+		['الخريطة', 3, 12],
+	],
+	watch: [
+		['النبض', 1, 4],
+		['الخطوات', 1, 5],
+		['الشاشة', 2, 10],
+	],
+	drone: [
+		['التوازن', 2, 5],
+		['الكاميرا', 4, 7],
+	],
+	full: [
+		['التوازن', 2, 4],
+		['الكاميرا', 3, 6],
+	],
+};
+const exNames: Record<string, string> = { robot: 'المكنسة الذكية', watch: 'الساعة الذكية', drone: 'الطائرة المسيّرة', full: 'حمل 100%' };
+const shown = mode === 'rm' ? ['watch', 'robot', 'drone'] : ['drone', 'robot', 'full'];
+---
+
+<div class="not-content wl-box" data-rts-sched={mode} data-ex={JSON.stringify(EX)} data-first={shown[0]}>
+	<h4>{mode === 'rm' ? 'محاكي الأولوية حسب الدور' : 'المقارنة: الأولوية حسب الدور، والأقرب مهلة أولاً'}</h4>
+	<div style="overflow-x:auto">
+		<table class="rts-tasks">
+			<thead><tr><th>المهمة</th><th>C</th><th>T = D</th>{mode === 'rm' && <th>الأولوية</th>}</tr></thead>
+			<tbody>
+				{
+					[0, 1, 2, 3].map((i) => (
+						<tr data-row={i}>
+							<td><span class={`rts-sw k${i}`} /><input class="wl-input" style="direction:rtl;width:6.5rem" data-f="name" /></td>
+							<td><input class="wl-input" type="number" min="1" max="20" data-f="C" /></td>
+							<td><input class="wl-input" type="number" min="1" max="24" data-f="T" /></td>
+							{mode === 'rm' && <td data-f="rank">–</td>}
+						</tr>
+					))
+				}
+			</tbody>
+		</table>
+	</div>
+	<div class="wl-row">
+		{shown.map((k) => <button type="button" class="wl-btn" data-ex-btn={k}>{exNames[k]}</button>)}
+	</div>
+	{
+		mode === 'rm' && (
+			<div class="wl-row">
+				<label class="ai-check"><input type="radio" name="rts-pol" value="rm" checked data-pol /> الأقصر دوراً أولاً (RM)</label>
+				<label class="ai-check"><input type="radio" name="rts-pol" value="order" data-pol /> حسب ترتيب الجدول (الأول أعلى)</label>
+			</div>
+		)
+	}
+	<div class="wl-grid ai-metrics">
+		<div class="wl-out"><span>نسبة الاستخدام U</span><strong data-out="U"></strong></div>
+		{mode === 'rm' && <div class="wl-out"><span>حد Liu & Layland</span><strong data-out="B"></strong></div>}
+		<div class="wl-out"><span>الدورة الكبرى</span><strong data-out="H"></strong></div>
+	</div>
+	{mode === 'rm' && <p class="wl-msg" data-out="test"></p>}
+	{
+		(mode === 'rm' ? ['one'] : ['rm', 'edf']).map((k) => (
+			<div class="rts-run" data-run={k}>
+				{mode === 'compare' && <h5 class="rts-run-h">{k === 'rm' ? 'الأقصر دوراً أولاً (RM)' : 'الأقرب مهلة أولاً (EDF)'}</h5>}
+				<figure class="rts-tl">
+					<svg data-tl role="img" aria-label="جدول التنفيذ على خط زمني" />
+				</figure>
+				<p class="wl-msg" data-res />
+			</div>
+		))
+	}
+	<p class="os-hint">السهم ↑ وصول نسخة جديدة، و ✕ نسخة فاتت مهلتها (أوقفناها عندها). وفي صف «المعالج» كل ما نفّذه بالترتيب، والفراغ يعني أنه كان مرتاحاً.</p>
+</div>
+
+<style is:global>
+	.rts-run { display: flex; flex-direction: column; gap: 0.4rem; }
+	.rts-run-h { margin: 0.5rem 0 0; font-size: var(--sl-text-sm); color: var(--sl-color-white); }
+</style>
+
+<script>
+	import { simulate, rmTest, rmRanks, hyperperiod, utilization, countAr, type Task, type Policy } from '../../scripts/rts';
+	import { drawTimeline, type TLRow } from '../../scripts/timeline';
+
+	const NUM = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+	const pct = (u: number) => `${(u * 100).toFixed(1).replace(/\.0$/, '')}%`;
+	const MAXH = 48;
+
+	document.querySelectorAll<HTMLElement>('[data-rts-sched]').forEach((root) => {
+		const mode = root.dataset.rtsSched as 'rm' | 'compare';
+		const EX = JSON.parse(root.dataset.ex!) as Record<string, [string, number, number][]>;
+		const rows = [...root.querySelectorAll<HTMLTableRowElement>('[data-row]')];
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`);
+		const f = (r: HTMLElement, k: string) => r.querySelector<HTMLInputElement>(`[data-f="${k}"]`)!;
+
+		function load(ex: [string, number, number][]) {
+			rows.forEach((r, i) => {
+				f(r, 'name').value = ex[i]?.[0] ?? '';
+				f(r, 'C').value = ex[i] ? String(ex[i][1]) : '';
+				f(r, 'T').value = ex[i] ? String(ex[i][2]) : '';
+			});
+			run();
+		}
+
+		function draw(run: HTMLElement, ts: (Task & { k: number })[], pol: Policy) {
+			const H = hyperperiod(ts);
+			const hz = Math.min(H, MAXH);
+			const r = simulate(ts, pol, hz);
+			const tl: TLRow[] = ts.map((t, i) => ({
+				label: t.name,
+				blocks: r.slices.filter((s) => s.task === i).map((s) => ({ start: s.start, end: s.end, cls: `rts-k${t.k}` })),
+				marks: [
+					...r.jobs.filter((j) => j.task === i).map((j) => ({ t: j.release, kind: 'release' as const })),
+					...r.jobs.filter((j) => j.task === i && j.missed).map((j) => ({ t: j.deadline, kind: 'miss' as const })),
+				],
+			}));
+			tl.push({ label: 'المعالج', blocks: r.slices.map((s) => ({ start: s.start, end: s.end, cls: `rts-k${ts[s.task].k}` })) });
+			drawTimeline(run.querySelector('[data-tl]') as unknown as SVGSVGElement, tl, hz);
+			const res = run.querySelector<HTMLElement>('[data-res]')!;
+			const cut = H > MAXH ? ` (عرضنا أول ${MAXH} وحدة من الدورة الكبرى)` : '';
+			if (r.misses) {
+				const list = r.jobs
+					.filter((j) => j.missed)
+					.slice(0, 4)
+					.map((j) => `${ts[j.task].name} ${NUM[j.k] ?? j.k + 1} عند <bdi dir="ltr">${j.deadline}</bdi>`)
+					.join('، ');
+				res.innerHTML = `✕ فاتت ${countAr(r.misses, 'مهلة واحدة', 'مهلتان', 'مهل', 'مهلة')}: ${list}${r.misses > 4 ? '…' : ''}${cut}.`;
+				res.className = 'wl-msg wl-bad';
+			} else {
+				res.innerHTML = `✓ لحقت كل النسخ مهلها، ${r.preemptions ? `وقُطعت المهام ${countAr(r.preemptions, 'مرة واحدة', 'مرتين', 'مرات', 'مرة')}` : 'دون أي مقاطعة'}${cut}.`;
+				res.className = 'wl-msg wl-good';
+			}
+		}
+
+		function run() {
+			const ts: (Task & { k: number })[] = [];
+			rows.forEach((r, i) => {
+				const name = f(r, 'name').value.trim();
+				const C = Math.round(+f(r, 'C').value);
+				const T = Math.round(+f(r, 'T').value);
+				if (name && C >= 1 && T >= 1 && T <= 24 && C <= 20) ts.push({ name, C, T, k: i });
+			});
+			const runs = [...root.querySelectorAll<HTMLElement>('[data-run]')];
+			if (!ts.length) {
+				runs.forEach((r) => {
+					r.querySelector('[data-tl]')!.innerHTML = '';
+					r.querySelector('[data-res]')!.textContent = '';
+				});
+				return;
+			}
+			out('U')!.textContent = pct(utilization(ts));
+			out('H')!.textContent = String(hyperperiod(ts));
+			if (mode === 'rm') {
+				const pol = (root.querySelector<HTMLInputElement>('[data-pol]:checked')?.value ?? 'rm') as Policy;
+				const rank = pol === 'rm' ? rmRanks(ts) : ts.map((_, i) => i);
+				rows.forEach((r) => (f(r, 'rank').textContent = '–'));
+				ts.forEach((t, i) => (f(rows[t.k], 'rank').textContent = String(rank[i] + 1)));
+				const x = rmTest(ts);
+				out('B')!.textContent = `${pct(x.B)}`;
+				const tst = out('test')!;
+				const cmp = `<bdi dir="ltr">U = ${pct(x.U)}</bdi> و <bdi dir="ltr">${pct(x.B)}</bdi> هو الحد ${ts.length === 1 ? 'لمهمة واحدة' : ts.length === 2 ? 'لمهمتين' : `لـ ${ts.length} مهام`}`;
+				if (x.verdict === 'sure') {
+					tst.innerHTML = `اختبار الاستخدام: ${cmp}. U أقل من الحد، فـ RM <b>مضمون</b> دون أي رسم.`;
+					tst.className = 'wl-msg wl-good';
+				} else if (x.verdict === 'maybe') {
+					tst.innerHTML = `اختبار الاستخدام: ${cmp}. U بين الحد و 100%: الاختبار <b>لا يعرف</b>، فنرسم الدورة الكبرى ونرى.`;
+					tst.className = 'wl-msg';
+				} else {
+					tst.innerHTML = `اختبار الاستخدام: U أكبر من 100%: <b>مستحيل</b> بأي طريقة.`;
+					tst.className = 'wl-msg wl-bad';
+				}
+				draw(runs[0], ts, pol);
+			} else {
+				draw(runs[0], ts, 'rm');
+				draw(runs[1], ts, 'edf');
+			}
+		}
+
+		root.querySelectorAll('input').forEach((i) => i.addEventListener(i.type === 'radio' ? 'change' : 'input', run));
+		root.querySelectorAll<HTMLButtonElement>('[data-ex-btn]').forEach((b) => b.addEventListener('click', () => load(EX[b.dataset.exBtn!])));
+		load(EX[root.dataset.first!]);
+	});
+</script>

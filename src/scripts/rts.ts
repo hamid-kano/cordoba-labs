@@ -135,3 +135,85 @@ export function cyclicSolve(ts: Task[], f: number): number[] | null {
 	};
 	return go(0) ? at : null;
 }
+
+// ===== الجلسات 4 و 5: محاكاة الجدولة بالأولويات (مع مقاطعة) =====
+// 'rm': الأقصر دوراً أولويته أعلى (ثابتة). 'order': الأولوية حسب ترتيب الجدول (للمقارنة).
+// 'edf': بكل لحظة بتشتغل النسخة يلي مهلتها أقرب.
+export type Policy = 'rm' | 'order' | 'edf';
+
+export interface SimSlice {
+	task: number;
+	start: number;
+	end: number;
+}
+export interface SimJob extends CJob {
+	finish: number; // -1 إذا ما خلصت
+	missed: boolean;
+}
+export interface SimResult {
+	slices: SimSlice[];
+	jobs: SimJob[];
+	misses: number;
+	preemptions: number;
+	horizon: number;
+}
+
+// الأولوية الثابتة لكل مهمة (0 = الأعلى)
+export function rmRanks(ts: Task[]) {
+	const idx = ts.map((_, i) => i).sort((a, b) => ts[a].T - ts[b].T || a - b);
+	const rank = new Array(ts.length);
+	idx.forEach((i, r) => (rank[i] = r));
+	return rank as number[];
+}
+
+// خطوة زمنية = وحدة وحدة. النسخة يلي بتفوت مهلتها منوقفها عندها (منعلّمها ✕ ومنكمّل بالباقي)
+export function simulate(ts: Task[], policy: Policy, horizon = hyperperiod(ts)): SimResult {
+	const jobs: SimJob[] = jobsOf(ts, horizon).map((j) => ({ ...j, finish: -1, missed: false }));
+	const left = jobs.map((j) => j.C);
+	const rank = policy === 'rm' ? rmRanks(ts) : ts.map((_, i) => i);
+	const slices: SimSlice[] = [];
+	let preemptions = 0;
+	let prev = -1; // النسخة يلي اشتغلت بالوحدة الماضية
+	for (let t = 0; t < horizon; t++) {
+		// المهل يلي وصلت لهون وما خلصت
+		jobs.forEach((j, i) => {
+			if (!j.missed && j.finish < 0 && j.deadline <= t && left[i] > 0) j.missed = true;
+		});
+		let best = -1;
+		jobs.forEach((j, i) => {
+			if (j.release > t || left[i] <= 0 || j.missed) return;
+			if (best < 0) return void (best = i);
+			const b = jobs[best];
+			const better =
+				policy === 'edf'
+					? j.deadline < b.deadline || (j.deadline === b.deadline && (j.task < b.task || (j.task === b.task && j.k < b.k)))
+					: rank[j.task] < rank[b.task] || (j.task === b.task && j.k < b.k);
+			if (better) best = i;
+		});
+		if (best < 0) {
+			prev = -1;
+			continue;
+		}
+		if (prev >= 0 && prev !== best && left[prev] > 0 && !jobs[prev].missed) preemptions++;
+		const last = slices[slices.length - 1];
+		if (last && last.task === jobs[best].task && last.end === t && prev === best) last.end = t + 1;
+		else slices.push({ task: jobs[best].task, start: t, end: t + 1 });
+		left[best]--;
+		if (left[best] === 0) jobs[best].finish = t + 1;
+		prev = best;
+	}
+	jobs.forEach((j, i) => {
+		if (!j.missed && j.finish < 0 && left[i] > 0 && j.deadline <= horizon) j.missed = true;
+	});
+	return { slices, jobs, misses: jobs.filter((j) => j.missed).length, preemptions, horizon };
+}
+
+// حد Liu & Layland لـ n مهمة: n(2^(1/n) − 1)
+export const llBound = (n: number) => n * (2 ** (1 / n) - 1);
+
+// حكم اختبار الاستخدام لـ RM: 'sure' مضمون، 'maybe' لازم نرسم، 'no' مستحيل
+export function rmTest(ts: Task[]) {
+	const U = utilization(ts);
+	const B = llBound(ts.length);
+	return { U, B, verdict: (U <= B + 1e-12 ? 'sure' : U <= 1 + 1e-12 ? 'maybe' : 'no') as 'sure' | 'maybe' | 'no' };
+}

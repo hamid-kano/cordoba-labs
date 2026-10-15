@@ -1,0 +1,33 @@
+---
+// مناطق اختبار الاستخدام لـ RM (الجلسة 4): مضمون، ارسم وتأكد، مستحيل. الحد هنا لـ 3 مهام (78%)
+const X = (p: number) => 40 + p * 4.6; // p بالمية، و 120% آخر المحور
+---
+
+<figure class="wl-fig wl-wide">
+	<div class="wl-scroll">
+		<svg class="d-big" viewBox="0 0 620 170" role="img" aria-label="محور نسبة الاستخدام: من 0 إلى 78% مضمون، ومن 78% إلى 100% ارسم وتأكد، وفوق 100% مستحيل">
+			<rect x={X(0)} y="50" width={X(78) - X(0)} height="44" class="uz-g" />
+			<rect x={X(78)} y="50" width={X(100) - X(78)} height="44" class="uz-y" />
+			<rect x={X(100)} y="50" width={X(120) - X(100)} height="44" class="uz-r" />
+			<text x={X(39)} y="78" class="d-t d-b">مضمون</text>
+			<text x={X(89)} y="70" class="d-s d-b">ارسم</text>
+			<text x={X(89)} y="88" class="d-s d-b">وتأكد</text>
+			<text x={X(110)} y="78" class="d-t d-b">مستحيل</text>
+			{[0, 20, 40, 60, 78, 100, 120].map((p) => (
+				<g>
+					<line x1={X(p)} y1="94" x2={X(p)} y2="104" class="d-line" />
+					<text x={X(p)} y="122" class="d-s d-ltr">{p}%</text>
+				</g>
+			))}
+			<text x={X(78)} y="34" class="d-s d-b">حد Liu & Layland</text>
+			<text x={X(100)} y="148" class="d-s d-b">وقت المعالج كله</text>
+		</svg>
+	</div>
+	<figcaption>اختبار الاستخدام لـ 3 مهام: إذا كانت U في المنطقة الخضراء نجح RM دون أي رسم. وفي الصفراء لا نعرف، فنرسم الدورة الكبرى. وفي الحمراء الفشل مؤكد.</figcaption>
+</figure>
+
+<style>
+	.uz-g { fill: #2fb36b; fill-opacity: 0.35; stroke: #2fb36b; }
+	.uz-y { fill: #e0a030; fill-opacity: 0.35; stroke: #e0a030; }
+	.uz-r { fill: #e5534b; fill-opacity: 0.35; stroke: #e5534b; }
+</style>
