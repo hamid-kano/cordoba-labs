@@ -418,3 +418,26 @@ code,
 
 /* الشارات (متاحة/قريباً) بالجداول ما بتنكسر على سطرين */
 .sl-markdown-content td .sl-badge { white-space: nowrap; }
+
+/* ===== الزمن الحقيقي: الخط الزمني (src/scripts/timeline.ts) ===== */
+.rts-tl { margin: 0; }
+.rts-tl svg { width: 100%; height: auto; display: block; direction: ltr; font-family: var(--sl-font); }
+.rts-tl figcaption { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin-top: 0.25rem; }
+.rts-grid2 { stroke: var(--sl-color-gray-6); stroke-width: 0.5; }
+.rts-lbl { fill: var(--sl-color-white); font-size: 13px; font-weight: 600; }
+.rts-btxt { fill: #111; font-size: 11px; font-weight: 700; font-family: sans-serif; }
+.rts-k0 { fill: #6cc3e0; } .rts-k1 { fill: #f0c070; } .rts-k2 { fill: #7ed6a0; } .rts-k3 { fill: #c3a6f5; }
+.rts-ghost { fill-opacity: 0.35; stroke-dasharray: 3 2; stroke: var(--sl-color-gray-3); }
+.rts-one { fill: var(--sl-color-accent-low); stroke: var(--sl-color-accent); }
+.rts-clash { fill: #e5534b; }
+.rts-rel { fill: var(--sl-color-white); stroke: var(--sl-color-white); stroke-width: 1.2; }
+.rts-dl { fill: #e5534b; }
+.rts-miss { fill: #e5534b; }
+.rts-miss-x { fill: #fff; font-size: 10px; font-weight: 700; font-family: sans-serif; }
+.rts-tasks { width: 100%; border-collapse: collapse; }
+.rts-tasks th, .rts-tasks td { border: 1px solid var(--sl-color-gray-5); padding: 0.25rem 0.35rem; text-align: center; }
+.rts-tasks th { background: var(--sl-color-gray-6); font-size: var(--sl-text-sm); }
+.rts-tasks input { width: 100%; min-width: 2.6rem; text-align: center; }
+.rts-tasks td:first-child { white-space: nowrap; }
+.rts-sw { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 0.2rem; vertical-align: middle; margin-inline-end: 0.3rem; }
+.rts-sw.k0 { background: #6cc3e0; } .rts-sw.k1 { background: #f0c070; } .rts-sw.k2 { background: #7ed6a0; } .rts-sw.k3 { background: #c3a6f5; }

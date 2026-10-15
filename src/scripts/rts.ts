@@ -31,3 +31,40 @@ export function countAr(n: number, one: string, two: string, few: string, many: 
 // نوع النظام لكل مثال بمسابقة الجلسة 1
 export type RtKind = 'hard' | 'firm' | 'soft';
 export const RT_KIND_NAME: Record<RtKind, string> = { hard: 'صارم', firm: 'ثابت', soft: 'مرن' };
+
+// ===== الجلسة 2: المهام الدورية وأرقامها =====
+// كل الأزمنة أعداد صحيحة بنفس الوحدة (ms مثلاً)
+export interface Task {
+	name: string;
+	C: number; // زمن التنفيذ بأسوأ حالة
+	T: number; // الدور
+	D?: number; // المهلة النسبية (إذا ما انكتبت = T)
+}
+
+export const deadlineOf = (t: Task) => t.D ?? t.T;
+export const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+export const lcm = (a: number, b: number) => (a / gcd(a, b)) * b;
+
+// الدورة الكبرى: المضاعف المشترك الأصغر للأدوار، وبعدها كل شي بيتكرر
+export const hyperperiod = (ts: Task[]) => ts.reduce((h, t) => lcm(h, t.T), 1);
+
+// نسبة استخدام المعالج U = مجموع C/T
+export const utilization = (ts: Task[]) => ts.reduce((u, t) => u + t.C / t.T, 0);
+
+// أرقام الدورة الكبرى: كم مرة بتشتغل كل مهمة، وكم وقت شغل ووقت فراغ
+export function hyperStats(ts: Task[]) {
+	const H = hyperperiod(ts);
+	const jobs = ts.map((t) => H / t.T);
+	const busy = ts.reduce((s, t, i) => s + t.C * jobs[i], 0);
+	return { H, jobs, busy, idle: H - busy, U: utilization(ts) };
+}
+
+// «الطلب» لكل وحدة زمن: لو كل مهمة اشتغلت لحالها أول ما توصل، كم مهمة بدها المعالج بنفس اللحظة؟
+// (للجلسة 2: بيبيّن التعارض يلي بيخلينا نحتاج جدولة)
+export function demandAlone(ts: Task[], horizon: number) {
+	const d = new Array(horizon).fill(0);
+	ts.forEach((t) => {
+		for (let r = 0; r < horizon; r += t.T) for (let k = r; k < Math.min(r + t.C, horizon); k++) d[k]++;
+	});
+	return d;
+}

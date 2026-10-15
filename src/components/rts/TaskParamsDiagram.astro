@@ -1,0 +1,40 @@
+---
+// مهمة دورية واحدة على خط زمني: الوصول، والتنفيذ C، والمهلة D، والدور T (الجلسة 2)
+// المهمة: C = 2، T = 6، D = 5. وحدة الزمن = 50 بكسل، والأصل عند x = 40
+const X = (t: number) => 40 + t * 45;
+const jobs = [0, 1];
+---
+
+<figure class="wl-fig wl-wide">
+	<div class="wl-scroll">
+		<svg class="d-big" viewBox="0 0 620 250" role="img" aria-label="مهمة دورية: تصل كل 6 وحدات (الدور T)، وتحتاج وحدتين من التنفيذ (C)، ويجب أن تنتهي خلال 5 وحدات من وصولها (المهلة D)">
+			<defs>
+				<marker id="tp-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+					<path d="M0,0 L10,5 L0,10 z" class="d-arrow" />
+				</marker>
+			</defs>
+			<line x1="30" y1="170" x2="610" y2="170" class="d-line" marker-end="url(#tp-arr)" />
+			{Array.from({ length: 13 }, (_, t) => (
+				<g>
+					<line x1={X(t)} y1="166" x2={X(t)} y2="174" class="d-line" />
+					<text x={X(t)} y="192" class="d-s d-ltr">{t}</text>
+				</g>
+			))}
+			{jobs.map((k) => (
+				<g>
+					<line x1={X(k * 6)} y1="80" x2={X(k * 6)} y2="168" class="d-line d-blue" marker-start="url(#tp-arr)" />
+					<text x={X(k * 6) + 20} y="72" class="d-s d-b">{k ? 'وصول المرة 2' : 'وصول المرة 1'}</text>
+					<rect x={X(k * 6 + 1)} y="128" width={45 * 2} height="38" rx="5" class="d-box" />
+					<text x={X(k * 6 + 2)} y="153" class="d-t d-b d-ltr">C = 2</text>
+					<line x1={X(k * 6 + 5)} y1="110" x2={X(k * 6 + 5)} y2="170" class="d-line d-red d-dash" />
+					<text x={X(k * 6 + 5)} y="102" class="d-s d-b">مهلة {k + 1}</text>
+				</g>
+			))}
+			<line x1={X(0)} y1="215" x2={X(6)} y2="215" class="d-line d-orange" marker-start="url(#tp-arr)" marker-end="url(#tp-arr)" />
+			<text x={X(3)} y="240" class="d-s d-b d-ltr">T = 6</text>
+			<line x1={X(0)} y1="40" x2={X(5)} y2="40" class="d-line d-red" marker-start="url(#tp-arr)" marker-end="url(#tp-arr)" />
+			<text x={X(2.5)} y="30" class="d-s d-b d-ltr">D = 5</text>
+		</svg>
+	</div>
+	<figcaption>تصل المهمة كل <b>T = 6</b> وحدات، وتحتاج <b>C = 2</b> وحدة من المعالج، ويجب أن تنتهي خلال <b>D = 5</b> من وصولها. هنا لم تبدأ فور وصولها (كان المعالج مشغولاً)، لكنها انتهت قبل مهلتها، فهي ناجحة.</figcaption>
+</figure>

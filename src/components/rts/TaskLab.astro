@@ -1,0 +1,138 @@
+---
+// حاسبة المهام (الجلسة 2): C و T لكل مهمة، ومنها U والدورة الكبرى،
+// وخط زمني بيبيّن كل مهمة لحالها، وصف «المعالج» بيعلّم اللحظات يلي فيها أكتر من مهمة بدها تشتغل.
+const EX = {
+	robot: [
+		['الحسّاسات', 1, 4],
+		['المحرّكات', 2, 6],
+		['الخريطة', 3, 12],
+	],
+	heavy: [
+		['الحسّاسات', 1, 4],
+		['المحرّكات', 2, 6],
+		['الخريطة', 3, 12],
+		['الكاميرا', 2, 6],
+	],
+};
+---
+
+<div class="not-content wl-box" data-rts-tasks data-ex={JSON.stringify(EX)}>
+	<h4>حاسبة المهام</h4>
+	<p class="os-hint">اكتب لكل مهمة زمن تنفيذها C ودورها T (بالوحدة نفسها، مثلاً ms). اترك الاسم فارغاً لتلغي المهمة.</p>
+	<div style="overflow-x:auto">
+		<table class="rts-tasks">
+			<thead>
+				<tr><th>المهمة</th><th>C</th><th>T</th><th>U = C ÷ T</th></tr>
+			</thead>
+			<tbody>
+				{
+					[0, 1, 2, 3].map((i) => (
+						<tr data-row={i}>
+							<td><span class={`rts-sw k${i}`} /><input class="wl-input" style="direction:rtl;width:6.5rem" data-f="name" /></td>
+							<td><input class="wl-input" type="number" min="1" max="20" data-f="C" /></td>
+							<td><input class="wl-input" type="number" min="1" max="24" data-f="T" /></td>
+							<td><bdi dir="ltr" data-f="u" /></td>
+						</tr>
+					))
+				}
+			</tbody>
+		</table>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-ex-btn="robot">مثال: المكنسة الذكية</button>
+		<button type="button" class="wl-btn" data-ex-btn="heavy">أضف مهمة الكاميرا</button>
+	</div>
+	<div class="wl-grid ai-metrics">
+		<div class="wl-out"><span>نسبة الاستخدام U</span><strong data-out="U"></strong></div>
+		<div class="wl-out"><span>الدورة الكبرى</span><strong data-out="H"></strong></div>
+		<div class="wl-out"><span>وقت العمل في الدورة</span><strong data-out="busy"></strong></div>
+		<div class="wl-out"><span>وقت الفراغ في الدورة</span><strong data-out="idle"></strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<figure class="rts-tl">
+		<svg data-out="tl" role="img" aria-label="خط زمني لكل مهمة لوحدها، وصف المعالج يبين لحظات التعارض"></svg>
+		<figcaption>كل مهمة كأنها وحدها: تبدأ لحظة وصولها (السهم ↑). وفي صف «المعالج»: الأخضر مهمة واحدة تريد العمل، والأحمر <b>أكثر من مهمة في اللحظة نفسها</b>.</figcaption>
+	</figure>
+	<p class="os-calc" data-out="calc"></p>
+</div>
+
+<script>
+	import { hyperStats, demandAlone, countAr, type Task } from '../../scripts/rts';
+	import { drawTimeline, type TLRow } from '../../scripts/timeline';
+
+	const fmtU = (u: number) => `${(u * 100).toFixed(1).replace(/\.0$/, '')}%`;
+
+	document.querySelectorAll<HTMLElement>('[data-rts-tasks]').forEach((root) => {
+		const EX = JSON.parse(root.dataset.ex!) as Record<string, [string, number, number][]>;
+		const rows = [...root.querySelectorAll<HTMLTableRowElement>('[data-row]')];
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const f = (r: HTMLElement, k: string) => r.querySelector<HTMLInputElement>(`[data-f="${k}"]`)!;
+		const svg = out('tl') as unknown as SVGSVGElement;
+
+		function load(ex: [string, number, number][]) {
+			rows.forEach((r, i) => {
+				f(r, 'name').value = ex[i]?.[0] ?? '';
+				f(r, 'C').value = ex[i] ? String(ex[i][1]) : '';
+				f(r, 'T').value = ex[i] ? String(ex[i][2]) : '';
+			});
+			run();
+		}
+
+		function run() {
+			const ts: (Task & { k: number })[] = [];
+			rows.forEach((r, i) => {
+				const name = f(r, 'name').value.trim();
+				const C = Math.round(+f(r, 'C').value);
+				const T = Math.round(+f(r, 'T').value);
+				const ok = name && C >= 1 && T >= 1 && T <= 24 && C <= 20;
+				r.querySelector('[data-f="u"]')!.textContent = ok ? `${C}/${T} = ${fmtU(C / T)}` : '–';
+				if (ok) ts.push({ name, C, T, k: i });
+			});
+			const msg = out('msg');
+			if (!ts.length) {
+				['U', 'H', 'busy', 'idle'].forEach((k) => (out(k).textContent = '–'));
+				msg.textContent = 'أضف مهمة واحدة على الأقل.';
+				msg.className = 'wl-msg';
+				svg.innerHTML = '';
+				return;
+			}
+			const s = hyperStats(ts);
+			out('U').textContent = fmtU(s.U);
+			out('H').textContent = `${s.H}`;
+			out('busy').textContent = `${s.busy}`;
+			out('idle').textContent = `${s.idle}`;
+			out('calc').innerHTML =
+				`<bdi dir="ltr">U = ${ts.map((t) => `${t.C}/${t.T}`).join(' + ')} = ${s.U.toFixed(3)}</bdi>` +
+				`<br>وفي الدورة الكبرى تعمل: ${ts.map((t, i) => `${t.name} <bdi dir="ltr">${s.H}÷${t.T}</bdi> = ${countAr(s.jobs[i], "مرة واحدة", "مرتين", "مرات", "مرة")}`).join('، ')}` +
+				(s.H > 48 ? `<br>الدورة الكبرى طويلة، فالرسمة تعرض أول 48 وحدة فقط.` : '');
+			if (s.U > 1) {
+				msg.innerHTML = `U أكبر من 100%: العمل المطلوب أكثر من وقت المعالج. <b>مستحيل</b> أن تلحق كل المهام مهلها مهما رتّبناها.`;
+				msg.className = 'wl-msg wl-bad';
+			} else {
+				msg.innerHTML = `U لا تتجاوز 100%: الوقت <b>يكفي من حيث الكمية</b>. لكن انظر إلى الأحمر في صف المعالج: من يعمل أولاً؟ هذا هو سؤال <b>الجدولة</b> في الجلسات القادمة.`;
+				msg.className = 'wl-msg wl-good';
+			}
+			// إذا الدورة الكبرى طويلة كتير منكتفي بأول 48 وحدة
+			const hz = Math.min(s.H, 48);
+			const tl: TLRow[] = ts.map((t) => {
+				const blocks = [];
+				const marks = [];
+				for (let r = 0; r < hz; r += t.T) {
+					blocks.push({ start: r, end: Math.min(r + t.C, hz), cls: `rts-k${t.k}`, text: '' });
+					marks.push({ t: r, kind: 'release' as const });
+				}
+				return { label: t.name, blocks, marks };
+			});
+			const d = demandAlone(ts, hz);
+			tl.push({
+				label: 'المعالج',
+				blocks: d.flatMap((n, i) => (n ? [{ start: i, end: i + 1, cls: n > 1 ? 'rts-clash' : 'rts-one', text: n > 1 ? String(n) : '' }] : [])),
+			});
+			drawTimeline(svg, tl, hz);
+		}
+
+		root.querySelectorAll('input').forEach((i) => i.addEventListener('input', run));
+		root.querySelectorAll<HTMLButtonElement>('[data-ex-btn]').forEach((b) => b.addEventListener('click', () => load(EX[b.dataset.exBtn!])));
+		load(EX.robot);
+	});
+</script>
