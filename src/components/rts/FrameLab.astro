@@ -1,0 +1,127 @@
+---
+// فاحص حجم الإطار (الجلسة 3): لكل f من 1 للدورة الكبرى، الشروط التلاتة ✓/✗
+const EX = {
+	robot: [
+		['الحسّاسات', 1, 4],
+		['المحرّكات', 2, 6],
+		['الخريطة', 3, 12],
+	],
+	ac: [
+		['الحرارة', 1, 4],
+		['الرطوبة', 1, 8],
+		['المروحة', 2, 8],
+		['الشاشة', 3, 16],
+	],
+	big: [
+		['الحسّاسات', 1, 4],
+		['المحرّكات', 1, 6],
+		['الخريطة', 5, 12],
+	],
+};
+---
+
+<div class="not-content wl-box" data-rts-frame data-ex={JSON.stringify(EX)}>
+	<h4>فاحص حجم الإطار f</h4>
+	<div style="overflow-x:auto">
+		<table class="rts-tasks">
+			<thead><tr><th>المهمة</th><th>C</th><th>T = D</th></tr></thead>
+			<tbody>
+				{
+					[0, 1, 2, 3].map((i) => (
+						<tr data-row={i}>
+							<td><span class={`rts-sw k${i}`} /><input class="wl-input" style="direction:rtl;width:6.5rem" data-f="name" /></td>
+							<td><input class="wl-input" type="number" min="1" max="20" data-f="C" /></td>
+							<td><input class="wl-input" type="number" min="1" max="24" data-f="T" /></td>
+						</tr>
+					))
+				}
+			</tbody>
+		</table>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-ex-btn="robot">المكنسة الذكية</button>
+		<button type="button" class="wl-btn" data-ex-btn="ac">المكيّف الذكي</button>
+		<button type="button" class="wl-btn" data-ex-btn="big">مهمة كبيرة</button>
+	</div>
+	<p class="os-hint" data-out="info"></p>
+	<div style="overflow-x:auto">
+		<table class="wl-table rts-ftab">
+			<thead>
+				<tr><th>f</th><th>1. يتسع لأكبر C</th><th>2. يقسم الدورة الكبرى</th><th>3. إطار كامل قبل كل مهلة</th><th>النتيجة</th></tr>
+			</thead>
+			<tbody data-out="rows"></tbody>
+		</table>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.rts-ftab td { font-family: var(--sl-font-system-mono); }
+	.rts-ftab td.y { color: #2fb36b; font-weight: 700; }
+	.rts-ftab td.n { color: #e5534b; }
+	.rts-ftab td:last-child { font-family: var(--sl-font); }
+	.rts-ftab td small { display: block; font-family: var(--sl-font); color: var(--sl-color-gray-3); }
+	.rts-ftab tr.ok td { background: var(--sl-color-accent-low); }
+</style>
+
+<script>
+	import { frameTable, hyperperiod, type Task } from '../../scripts/rts';
+
+	document.querySelectorAll<HTMLElement>('[data-rts-frame]').forEach((root) => {
+		const EX = JSON.parse(root.dataset.ex!) as Record<string, [string, number, number][]>;
+		const rows = [...root.querySelectorAll<HTMLTableRowElement>('[data-row]')];
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const f = (r: HTMLElement, k: string) => r.querySelector<HTMLInputElement>(`[data-f="${k}"]`)!;
+
+		function load(ex: [string, number, number][]) {
+			rows.forEach((r, i) => {
+				f(r, 'name').value = ex[i]?.[0] ?? '';
+				f(r, 'C').value = ex[i] ? String(ex[i][1]) : '';
+				f(r, 'T').value = ex[i] ? String(ex[i][2]) : '';
+			});
+			run();
+		}
+
+		function run() {
+			const ts: Task[] = [];
+			rows.forEach((r) => {
+				const name = f(r, 'name').value.trim();
+				const C = Math.round(+f(r, 'C').value);
+				const T = Math.round(+f(r, 'T').value);
+				if (name && C >= 1 && T >= 1 && T <= 24 && C <= 20) ts.push({ name, C, T });
+			});
+			const msg = out('msg');
+			if (!ts.length) {
+				out('rows').innerHTML = '';
+				out('info').textContent = '';
+				msg.textContent = 'أضف مهمة واحدة على الأقل.';
+				msg.className = 'wl-msg';
+				return;
+			}
+			const H = hyperperiod(ts);
+			const maxC = Math.max(...ts.map((t) => t.C));
+			out('info').innerHTML = `الدورة الكبرى <bdi dir="ltr">H = ${H}</bdi>، وأكبر زمن تنفيذ <bdi dir="ltr">C = ${maxC}</bdi>.` + (H > 24 ? ' الدورة طويلة، فنعرض قواسمها فقط.' : '');
+			const tab = frameTable(ts);
+			const yn = (b: boolean) => `<td class="${b ? 'y' : 'n'}">${b ? '✓' : '✗'}</td>`;
+			out('rows').innerHTML = tab
+				.map((x) => {
+					const bad = ts.filter((_, i) => !x.each[i]).map((t) => t.name);
+					const c3 = `<td class="${x.enough ? 'y' : 'n'}">${x.enough ? '✓' : `✗<small>${bad.join('، ')}</small>`}</td>`;
+					return `<tr class="${x.ok ? 'ok' : ''}"><td>${x.f}</td>${yn(x.fits)}${yn(x.divides)}${c3}<td class="${x.ok ? 'y' : 'n'}">${x.ok ? 'مناسب' : '–'}</td></tr>`;
+				})
+				.join('');
+			const good = tab.filter((x) => x.ok).map((x) => x.f);
+			if (good.length) {
+				msg.innerHTML = `حجم الإطار المناسب: <bdi dir="ltr">f = ${good.join('، ')}</bdi>. فتنقسم الدورة الكبرى إلى <bdi dir="ltr">${H} ÷ ${good[0]} = ${H / good[0]}</bdi> إطارات.`;
+				msg.className = 'wl-msg wl-good';
+			} else {
+				msg.innerHTML = 'لا يوجد حجم إطار مناسب. الحل: نقسم المهمة الكبيرة إلى أجزاء أصغر، ثم نعيد الفحص.';
+				msg.className = 'wl-msg wl-bad';
+			}
+		}
+
+		root.querySelectorAll('input').forEach((i) => i.addEventListener('input', run));
+		root.querySelectorAll<HTMLButtonElement>('[data-ex-btn]').forEach((b) => b.addEventListener('click', () => load(EX[b.dataset.exBtn!])));
+		load(EX.robot);
+	});
+</script>

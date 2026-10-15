@@ -441,3 +441,6 @@ code,
 .rts-tasks td:first-child { white-space: nowrap; }
 .rts-sw { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 0.2rem; vertical-align: middle; margin-inline-end: 0.3rem; }
 .rts-sw.k0 { background: #6cc3e0; } .rts-sw.k1 { background: #f0c070; } .rts-sw.k2 { background: #7ed6a0; } .rts-sw.k3 { background: #c3a6f5; }
+.rts-fline { stroke: var(--sl-color-accent); stroke-width: 2.5; }
+/* المعادلات القصيرة بالرسائل ما بتنقسم على سطرين (بتنقلب بالـ RTL إذا انقسمت) */
+.wl-box bdi[dir="ltr"] { white-space: nowrap; }

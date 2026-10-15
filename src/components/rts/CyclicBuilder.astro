@@ -1,0 +1,163 @@
+---
+// ابنِ الجدول بإيدك (الجلسة 3): الطالب بيختار نسخة وبيحطها بإطار، والأداة بتصحّح:
+// الإطار لازم يبدأ بعد وصول النسخة ويخلص قبل مهلتها، ومجموع C بالإطار ≤ f.
+interface Props {
+	tasks: [string, number, number][]; // [الاسم، C، T]
+	f: number;
+}
+const { tasks, f } = Astro.props;
+---
+
+<div class="not-content wl-box" data-rts-build data-tasks={JSON.stringify(tasks)} data-f={f}>
+	<h4>ابنِ الجدول بيدك</h4>
+	<p class="os-hint">اضغط على نسخة، ثم على الإطار الذي تريد أن تضعها فيه. ولإعادة نسخة، اضغط عليها داخل الإطار.</p>
+	<div class="rts-pool" data-out="pool"></div>
+	<div class="rts-frames" data-out="frames"></div>
+	<p class="wl-msg" data-out="msg"></p>
+	<figure class="rts-tl">
+		<svg data-out="tl" role="img" aria-label="الجدول الناتج على خط زمني"></svg>
+		<figcaption>الجدول الناتج: كل خط عمودي سميك هو بداية إطار، حيث يوقظ المؤقّت البرنامج.</figcaption>
+	</figure>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-reset>ابدأ من جديد</button>
+		<button type="button" class="wl-btn" data-solve>أرني حلاً</button>
+	</div>
+</div>
+
+<style is:global>
+	.rts-pool { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 2.4rem; padding: 0.4rem; border: 1px dashed var(--sl-color-gray-4); border-radius: 0.5rem; }
+	.rts-pool:empty::before { content: 'وُضعت كل النسخ'; color: var(--sl-color-gray-3); font-size: var(--sl-text-sm); }
+	.rts-chip { display: inline-flex; flex-direction: column; align-items: center; padding: 0.2rem 0.55rem; border: 2px solid transparent; border-radius: 0.45rem; color: #111; font: inherit; font-size: var(--sl-text-sm); font-weight: 700; cursor: pointer; line-height: 1.3; }
+	.rts-chip small { font-weight: 400; font-size: 0.7rem; direction: ltr; unicode-bidi: isolate; }
+	.rts-chip.k0 { background: #6cc3e0; } .rts-chip.k1 { background: #f0c070; } .rts-chip.k2 { background: #7ed6a0; } .rts-chip.k3 { background: #c3a6f5; }
+	.rts-chip.sel { border-color: var(--sl-color-white); box-shadow: 0 0 0 2px var(--sl-color-accent); }
+	.rts-frames { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.5rem; }
+	.rts-frame { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.5rem; border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem; background: var(--sl-color-gray-7, var(--sl-color-black)); cursor: pointer; text-align: start; font: inherit; color: inherit; }
+	.rts-frame:hover { border-color: var(--sl-color-accent); }
+	.rts-frame b { font-size: var(--sl-text-sm); }
+	.rts-frame .rng { font-size: 0.75rem; color: var(--sl-color-gray-3); direction: ltr; unicode-bidi: isolate; }
+	.rts-cap { height: 0.5rem; border-radius: 99px; background: var(--sl-color-gray-5); overflow: hidden; }
+	.rts-cap i { display: block; height: 100%; background: var(--sl-color-accent); }
+	.rts-cap.full i { background: #e0a030; }
+	.rts-in { display: flex; flex-wrap: wrap; gap: 0.3rem; min-height: 2.2rem; }
+</style>
+
+<script>
+	import { jobsOf, frameWindow, cyclicSolve, hyperperiod, type Task } from '../../scripts/rts';
+	import { drawTimeline, type TLRow } from '../../scripts/timeline';
+
+	const NUM = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧'];
+
+	document.querySelectorAll<HTMLElement>('[data-rts-build]').forEach((root) => {
+		const raw = JSON.parse(root.dataset.tasks!) as [string, number, number][];
+		const ts: Task[] = raw.map(([name, C, T]) => ({ name, C, T }));
+		const f = +root.dataset.f!;
+		const H = hyperperiod(ts);
+		const n = H / f;
+		const js = jobsOf(ts, H);
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = out('tl') as unknown as SVGSVGElement;
+		let at: number[] = js.map(() => -1);
+		let order: number[] = []; // ترتيب الوضع، لحتى ترتيب التنفيذ جوّا الإطار يطابق يلي عمله الطالب
+		let sel = -1;
+
+		const chip = (i: number) => {
+			const j = js[i];
+			return `<button type="button" class="rts-chip k${j.task}${sel === i ? ' sel' : ''}" data-job="${i}">${ts[j.task].name} ${NUM[j.k] ?? j.k + 1}<small>C=${j.C} · ${j.release}→${j.deadline}</small></button>`;
+		};
+		const load = (j: number) => js.reduce((s, x, i) => s + (at[i] === j ? x.C : 0), 0);
+
+		function say(text: string, cls = '') {
+			const m = out('msg');
+			m.innerHTML = text;
+			m.className = 'wl-msg' + (cls ? ' ' + cls : '');
+		}
+
+		function render() {
+			out('pool').innerHTML = js.map((_, i) => (at[i] < 0 ? chip(i) : '')).join('');
+			out('frames').innerHTML = Array.from({ length: n }, (_, j) => {
+				const l = load(j);
+				const inside = order.filter((i) => at[i] === j).map(chip).join('');
+				return `<div class="rts-frame" role="button" tabindex="0" data-frame="${j}"><b>الإطار ${j + 1}</b><span class="rng">${j * f} → ${(j + 1) * f}</span><span class="rts-cap${l === f ? ' full' : ''}"><i style="width:${(l / f) * 100}%"></i></span><span class="rng">${l} / ${f}</span><span class="rts-in">${inside}</span></div>`;
+			}).join('');
+			// الخط الزمني: كل إطار بيشغّل نسخه ورا بعض حسب ترتيب الوضع
+			const rows: TLRow[] = ts.map((t, k) => ({
+				label: t.name,
+				blocks: [],
+				marks: js.filter((x) => x.task === k).map((x) => ({ t: x.release, kind: 'release' as const })),
+			}));
+			const cpu: TLRow = { label: 'المعالج', blocks: [] };
+			for (let j = 0; j < n; j++) {
+				let t = j * f;
+				for (const i of order.filter((i) => at[i] === j)) {
+					const b = { start: t, end: t + js[i].C, cls: `rts-k${js[i].task}`, text: '' };
+					rows[js[i].task].blocks.push(b);
+					cpu.blocks.push(b);
+					t += js[i].C;
+				}
+			}
+			rows.push(cpu);
+			drawTimeline(svg, rows, H, f);
+			if (at.every((x) => x >= 0)) say('أحسنت! وُضعت كل النسخ، وكل واحدة في إطار بين وصولها ومهلتها. هذا جدول صالح.', 'wl-good');
+		}
+
+		root.addEventListener('click', (e) => {
+			const el = e.target as HTMLElement;
+			const c = el.closest<HTMLElement>('[data-job]');
+			// إذا في نسخة مختارة، الكبسة على أي محل بالإطار (حتى فوق نسخة موضوعة) بتحطها فيه
+			const inFrame = !!el.closest('[data-frame]');
+			if (c && !(sel >= 0 && inFrame)) {
+				const i = +c.dataset.job!;
+				if (at[i] >= 0) {
+					at[i] = -1;
+					order = order.filter((x) => x !== i);
+					sel = -1;
+					say('أُعيدت النسخة.');
+				} else {
+					sel = sel === i ? -1 : i;
+					if (sel >= 0) say(`اخترت ${ts[js[i].task].name} ${NUM[js[i].k]}: تصل عند ${js[i].release} ومهلتها ${js[i].deadline}. اضغط على إطار.`);
+				}
+				render();
+				return;
+			}
+			const fr = el.closest<HTMLElement>('[data-frame]');
+			if (fr && sel >= 0) {
+				const j = +fr.dataset.frame!;
+				const job = js[sel];
+				const w = frameWindow(job, j, f);
+				if (w === 'early') return say(`لا يمكن: هذه النسخة تصل عند <b>${job.release}</b>، والإطار ${j + 1} يبدأ عند <b>${j * f}</b>، أي قبل أن تصل.`, 'wl-bad');
+				if (w === 'late') return say(`لا يمكن: مهلة هذه النسخة <b>${job.deadline}</b>، والإطار ${j + 1} ينتهي عند <b>${(j + 1) * f}</b>، أي بعد المهلة.`, 'wl-bad');
+				if (load(j) + job.C > f) return say(`لا يمكن: في الإطار ${j + 1} بقي <b>${f - load(j)}</b> فقط، وهذه النسخة تحتاج <b>${job.C}</b>.`, 'wl-bad');
+				at[sel] = j;
+				order.push(sel);
+				sel = -1;
+				say('وُضعت. تابع.');
+				render();
+			} else if (fr) say('اختر نسخة أولاً.');
+		});
+		root.addEventListener('keydown', (e) => {
+			const fr = (e.target as HTMLElement).closest('[data-frame]');
+			if (fr && (e.key === 'Enter' || e.key === ' ')) {
+				e.preventDefault();
+				(fr as HTMLElement).click();
+			}
+		});
+		root.querySelector('[data-reset]')!.addEventListener('click', () => {
+			at = js.map(() => -1);
+			order = [];
+			sel = -1;
+			say('');
+			render();
+		});
+		root.querySelector('[data-solve]')!.addEventListener('click', () => {
+			const s = cyclicSolve(ts, f);
+			if (!s) return say('لا يوجد جدول بهذا الحجم للإطار.', 'wl-bad');
+			at = s;
+			order = js.map((_, i) => i).sort((a, b) => js[a].task - js[b].task);
+			sel = -1;
+			render();
+			say('هذا حل واحد. وقد توجد حلول أخرى صحيحة: جرّب أن تبني غيره.', 'wl-good');
+		});
+		render();
+	});
+</script>

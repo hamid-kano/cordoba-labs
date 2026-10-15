@@ -23,7 +23,8 @@ const ROW = 34;
 const TOP = 10;
 const AXIS = 24;
 
-export function drawTimeline(svg: SVGSVGElement, rows: TLRow[], horizon: number) {
+// frame: إذا انبعت، منرسم خط سميك ببداية كل إطار (الجدولة الدورية)
+export function drawTimeline(svg: SVGSVGElement, rows: TLRow[], horizon: number, frame = 0) {
 	// العرض الحقيقي بالبكسل، لحتى يضل حجم الكتابة ثابت عالموبايل
 	const W = Math.max(320, Math.min(900, Math.round(svg.getBoundingClientRect().width) || 600));
 	const H = TOP + rows.length * ROW + AXIS;
@@ -52,5 +53,6 @@ export function drawTimeline(svg: SVGSVGElement, rows: TLRow[], horizon: number)
 			else g += `<circle class="rts-miss" cx="${x}" cy="${y + 6}" r="6"/><text class="rts-miss-x" x="${x}" y="${y + 10}" text-anchor="middle">✕</text>`;
 		}
 	});
+	if (frame) for (let t = 0; t <= horizon; t += frame) g += `<line class="rts-fline" x1="${X(t)}" x2="${X(t)}" y1="4" y2="${H - AXIS}"/>`;
 	svg.innerHTML = g;
 }

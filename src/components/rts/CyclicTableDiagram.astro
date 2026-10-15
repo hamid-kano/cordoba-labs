@@ -1,0 +1,55 @@
+---
+// جدول المكنسة الذكية بالجدولة الدورية (الجلسة 3): دورة كبرى 12، وإطار 4، وثلاثة إطارات
+const X = (t: number) => 30 + t * 46;
+const blocks = [
+	{ s: 0, e: 1, k: 0, t: 'حسّاس' },
+	{ s: 1, e: 3, k: 1, t: 'محرّك' },
+	{ s: 4, e: 5, k: 0, t: 'حسّاس' },
+	{ s: 5, e: 8, k: 2, t: 'خريطة' },
+	{ s: 8, e: 9, k: 0, t: 'حسّاس' },
+	{ s: 9, e: 11, k: 1, t: 'محرّك' },
+];
+const fills = ['#6cc3e0', '#f0c070', '#7ed6a0'];
+---
+
+<figure class="wl-fig wl-wide">
+	<div class="wl-scroll">
+		<svg class="d-big" viewBox="0 0 620 266" role="img" aria-label="جدول دوري: الدورة الكبرى 12 مقسومة إلى ثلاثة إطارات طول كل منها 4. في الإطار الأول الحسّاس ثم المحرّك، وفي الثاني الحسّاس ثم الخريطة، وفي الثالث الحسّاس ثم المحرّك">
+			<defs>
+				<marker id="ct-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+					<path d="M0,0 L10,5 L0,10 z" class="d-arrow" />
+				</marker>
+			</defs>
+			{[0, 1, 2].map((j) => (
+				<g>
+					<rect x={X(j * 4)} y="60" width={46 * 4} height="70" class="d-box2" />
+					<text x={X(j * 4 + 2)} y="50" class="d-s d-b">الإطار {j + 1}</text>
+					<text x={X(j * 4)} y="22" class="d-s">⏰</text>
+				</g>
+			))}
+			<text x={X(12)} y="22" class="d-s">⏰</text>
+			{blocks.map((b) => (
+				<g>
+					<rect x={X(b.s) + 1} y="72" width={(b.e - b.s) * 46 - 2} height="46" rx="5" fill={fills[b.k]} />
+					<text x={X((b.s + b.e) / 2)} y="100" class="d-s d-b" fill="#111" style="fill:#111">{b.t}</text>
+				</g>
+			))}
+			<text x={X(3.5)} y="100" class="d-s">فراغ</text>
+			<text x={X(11.5)} y="100" class="d-s">فراغ</text>
+			<line x1="20" y1="150" x2="610" y2="150" class="d-line" />
+			{Array.from({ length: 13 }, (_, t) => (
+				<g>
+					<line x1={X(t)} y1="146" x2={X(t)} y2="154" class="d-line" />
+					<text x={X(t)} y="172" class="d-s d-ltr">{t}</text>
+				</g>
+			))}
+			<line x1={X(0)} y1="192" x2={X(4)} y2="192" class="d-line d-orange" marker-start="url(#ct-arr)" marker-end="url(#ct-arr)" />
+			<text x={X(1.3)} y="214" class="d-s d-b">إطار صغير</text>
+			<text x={X(3.2)} y="214" class="d-s d-b d-ltr">f = 4</text>
+			<line x1={X(0)} y1="232" x2={X(12)} y2="232" class="d-line d-blue" marker-start="url(#ct-arr)" marker-end="url(#ct-arr)" />
+			<text x={X(5)} y="256" class="d-s d-b">الدورة الكبرى، ثم يتكرر كل شيء</text>
+			<text x={X(9.5)} y="256" class="d-s d-b d-ltr">H = 12</text>
+		</svg>
+	</div>
+	<figcaption>في بداية كل إطار (⏰) يوقظ <b>المؤقّت</b> البرنامج، فينفذ ما في الإطار من مهام واحدة بعد الأخرى دون مقاطعة، ثم ينتظر الإطار التالي.</figcaption>
+</figure>

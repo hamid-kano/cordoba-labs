@@ -68,3 +68,70 @@ export function demandAlone(ts: Task[], horizon: number) {
 	});
 	return d;
 }
+
+// ===== الجلسة 3: الجدولة الدورية (إطارات ثابتة) =====
+// شروط حجم الإطار f (Baker & Shaw):
+// 1) f ≥ أكبر C (كل نسخة بتخلص جوّا إطار واحد بدون مقاطعة)
+// 2) f بيقسم الدورة الكبرى H
+// 3) 2f − gcd(f, T) ≤ D لكل مهمة (بين وصول النسخة ومهلتها في إطار كامل على الأقل)
+export function frameCheck(ts: Task[], f: number) {
+	const H = hyperperiod(ts);
+	const fits = f >= Math.max(...ts.map((t) => t.C));
+	const divides = H % f === 0;
+	const each = ts.map((t) => 2 * f - gcd(f, t.T) <= deadlineOf(t));
+	return { f, fits, divides, each, enough: each.every(Boolean), ok: fits && divides && each.every(Boolean) };
+}
+
+// كل الأحجام من 1 للدورة الكبرى (أو قواسمها بس إذا كانت طويلة)
+export function frameTable(ts: Task[]) {
+	const H = hyperperiod(ts);
+	const fs = H <= 24 ? Array.from({ length: H }, (_, i) => i + 1) : Array.from({ length: H }, (_, i) => i + 1).filter((f) => H % f === 0);
+	return fs.map((f) => frameCheck(ts, f));
+}
+
+export interface CJob {
+	task: number;
+	k: number; // رقم النسخة من 0
+	release: number;
+	deadline: number;
+	C: number;
+}
+
+export function jobsOf(ts: Task[], H = hyperperiod(ts)): CJob[] {
+	const js: CJob[] = [];
+	ts.forEach((t, i) => {
+		for (let k = 0; k * t.T < H; k++) js.push({ task: i, k, release: k * t.T, deadline: k * t.T + deadlineOf(t), C: t.C });
+	});
+	return js;
+}
+
+// هل النسخة مسموح تنحط بالإطار رقم j؟ لازم الإطار يبدأ بعد وصولها ويخلص قبل مهلتها
+export function frameWindow(job: CJob, j: number, f: number): 'ok' | 'early' | 'late' {
+	if (j * f < job.release) return 'early';
+	if ((j + 1) * f > job.deadline) return 'late';
+	return 'ok';
+}
+
+// حل بالتجريب والرجوع (للزر «أرني حلاً»): بيرجع رقم الإطار لكل نسخة، أو null
+export function cyclicSolve(ts: Task[], f: number): number[] | null {
+	const H = hyperperiod(ts);
+	const n = H / f;
+	const js = jobsOf(ts, H);
+	// الأضيق نافذة والأكبر أولاً لحتى يخلص التجريب بسرعة
+	const order = js.map((_, i) => i).sort((a, b) => js[a].deadline - js[a].release - (js[b].deadline - js[b].release) || js[b].C - js[a].C);
+	const load = new Array(n).fill(0);
+	const at = new Array(js.length).fill(-1);
+	const go = (p: number): boolean => {
+		if (p === order.length) return true;
+		const i = order[p];
+		for (let j = 0; j < n; j++) {
+			if (frameWindow(js[i], j, f) !== 'ok' || load[j] + js[i].C > f) continue;
+			load[j] += js[i].C;
+			at[i] = j;
+			if (go(p + 1)) return true;
+			load[j] -= js[i].C;
+		}
+		return false;
+	};
+	return go(0) ? at : null;
+}
