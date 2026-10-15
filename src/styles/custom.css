@@ -444,3 +444,6 @@ code,
 .rts-fline { stroke: var(--sl-color-accent); stroke-width: 2.5; }
 /* المعادلات القصيرة بالرسائل ما بتنقسم على سطرين (بتنقلب بالـ RTL إذا انقسمت) */
 .wl-box bdi[dir="ltr"] { white-space: nowrap; }
+.rts-cs { stroke: #111; stroke-width: 1.5; }
+.rts-boost { stroke: #e5534b; stroke-width: 3; }
+.rts-wait { fill: var(--sl-color-gray-5); fill-opacity: 0.45; stroke: var(--sl-color-gray-3); stroke-dasharray: 4 3; }

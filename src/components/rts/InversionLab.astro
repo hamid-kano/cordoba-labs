@@ -1,0 +1,87 @@
+---
+// محاكي انقلاب الأولوية (الجلسة 6): H و M و L، وقفل واحد بين H و L.
+// الطالب بيغيّر طول M وطريقة الحماية، وبيشوف كم بتستنى H وهل بتلحق مهلتها (9).
+---
+
+<div class="not-content wl-box" data-rts-inv>
+	<h4>محاكي انقلاب الأولوية</h4>
+	<p class="os-hint">ثلاث مهام: <b>H</b> عالية الأولوية، و <b>M</b> متوسطة، و <b>L</b> منخفضة. و H و L تتشاركان <b>قفلاً</b> واحداً (🔒)، أما M فلا تستخدمه أبداً. ومهلة H عند <bdi dir="ltr">9</bdi>.</p>
+	<div class="wl-row">
+		<label class="ai-check"><input type="radio" name="rts-proto" value="none" checked data-proto /> بدون حماية</label>
+		<label class="ai-check"><input type="radio" name="rts-proto" value="inherit" data-proto /> وراثة الأولوية</label>
+		<label class="ai-check"><input type="radio" name="rts-proto" value="ceiling" data-proto /> سقف الأولوية</label>
+	</div>
+	<div class="ai-sliders">
+		<label class="ai-slider"><span>طول المهمة M<output data-o="m"></output></span><input type="range" min="1" max="8" value="4" data-m /></label>
+	</div>
+	<figure class="rts-tl">
+		<svg data-tl role="img" aria-label="جدول المهام الثلاث مع القفل على خط زمني"></svg>
+	</figure>
+	<div class="wl-grid ai-metrics">
+		<div class="wl-out"><span>انتهت H عند</span><strong data-out="fin"></strong></div>
+		<div class="wl-out"><span>انتظرت H</span><strong data-out="wait"></strong></div>
+		<div class="wl-out"><span>منها بسبب M</span><strong data-out="byM"></strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<p class="os-hint">🔒 داخل القسم الحرج (تمسك القفل). والإطار الأحمر: L تعمل بأولوية <b>مرفوعة</b>. والرمادي المتقطع: H جاهزة لكنها <b>تنتظر</b>.</p>
+</div>
+
+<script>
+	import { simulateLocks, inversionScenario, type LockProtocol } from '../../scripts/rts';
+	import { drawTimeline, type TLRow } from '../../scripts/timeline';
+
+	const HZ = 16;
+	const DL = 9;
+	// منصوب بعد «انتظرت»: وحدتين
+const uA = (n: number) => (n === 2 ? 'وحدتين' : u(n));
+const u = (n: number) => (n === 1 ? 'وحدة واحدة' : n === 2 ? 'وحدتان' : n <= 10 ? `${n} وحدات` : `${n} وحدة`);
+
+	document.querySelectorAll<HTMLElement>('[data-rts-inv]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const slider = root.querySelector<HTMLInputElement>('[data-m]')!;
+		const svg = root.querySelector('[data-tl]') as unknown as SVGSVGElement;
+
+		function run() {
+			const proto = (root.querySelector<HTMLInputElement>('[data-proto]:checked')?.value ?? 'none') as LockProtocol;
+			const m = +slider.value;
+			root.querySelector('[data-o="m"]')!.textContent = String(m);
+			const js = inversionScenario(m, DL);
+			const r = simulateLocks(js, proto, HZ);
+			const rows: TLRow[] = js.map((j, i) => ({
+				label: j.name,
+				blocks: [
+					...r.blocked.filter((b) => b.job === i && i === 0).map((b) => ({ start: b.start, end: b.end, cls: 'rts-wait', text: '' })),
+					...r.slices
+						.filter((s) => s.job === i)
+						.map((s) => ({ start: s.start, end: s.end, cls: `rts-k${i}${s.res ? ' rts-cs' : ''}${s.prio < j.prio ? ' rts-boost' : ''}`, text: s.res ? '🔒' : '' })),
+				],
+				marks: [{ t: j.release, kind: 'release' as const }, ...(i === 0 ? [{ t: DL, kind: (r.missed[0] ? 'miss' : 'deadline') as 'miss' | 'deadline' }] : [])],
+			}));
+			drawTimeline(svg, rows, HZ);
+			const fin = r.finish[0];
+			const waits = r.blocked.filter((b) => b.job === 0);
+			const wait = waits.reduce((s, b) => s + b.end - b.start, 0);
+			// كم من انتظار H كانت M عم تشتغل
+			const byM = r.slices
+				.filter((s) => s.job === 1)
+				.reduce((s, x) => s + waits.reduce((a, w) => a + Math.max(0, Math.min(x.end, w.end) - Math.max(x.start, w.start)), 0), 0);
+			out('fin').textContent = fin >= 0 ? String(fin) : '–';
+			out('wait').textContent = String(wait);
+			out('byM').textContent = String(byM);
+			const msg = out('msg');
+			if (r.missed[0]) {
+				msg.innerHTML = `✕ فاتت H مهلتها: انتهت عند <bdi dir="ltr">${fin}</bdi> بدل <bdi dir="ltr">${DL}</bdi>. انتظرت ${uA(wait)}، منها ${u(byM)} بسبب M، مع أن M لا تستخدم القفل أصلاً! هذا هو <b>انقلاب الأولوية</b>، ولو كانت هذه مركبة المريخ لأعاد الحارس تشغيلها.`;
+				msg.className = 'wl-msg wl-bad';
+			} else if (proto === 'none') {
+				msg.innerHTML = `✓ لحقت H مهلتها هذه المرة، لكنها انتظرت ${uA(wait)}، منها ${u(byM)} بسبب M. كبّر M وانظر ماذا يحدث.`;
+				msg.className = 'wl-msg';
+			} else {
+				msg.innerHTML = `✓ لحقت H مهلتها. انتظرت ${uA(wait)} فقط${byM ? '' : '، ولم تؤخرها M أبداً'}. جرّب أن تكبّر M: انتظار H لا يتغير.`;
+				msg.className = 'wl-msg wl-good';
+			}
+		}
+
+		root.querySelectorAll('input').forEach((i) => i.addEventListener(i.type === 'radio' ? 'change' : 'input', run));
+		run();
+	});
+</script>

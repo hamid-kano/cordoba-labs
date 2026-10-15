@@ -217,3 +217,85 @@ export function rmTest(ts: Task[]) {
 	const B = llBound(ts.length);
 	return { U, B, verdict: (U <= B + 1e-12 ? 'sure' : U <= 1 + 1e-12 ? 'maybe' : 'no') as 'sure' | 'maybe' | 'no' };
 }
+
+// ===== الجلسة 6: الموارد المشتركة وانقلاب الأولوية =====
+// نسخ لمرة وحدة (مش دورية) لحتى تبين الفكرة. كل نسخة أجزاء ورا بعض، والجزء res بيحتاج القفل الوحيد.
+export interface LockJob {
+	name: string;
+	prio: number; // 0 = الأعلى
+	release: number;
+	parts: { len: number; res?: boolean }[];
+	deadline?: number; // مطلقة (اختيارية)
+}
+export type LockProtocol = 'none' | 'inherit' | 'ceiling';
+export interface LockSlice {
+	job: number;
+	start: number;
+	end: number;
+	res: boolean; // جوّا القسم الحرج
+	prio: number; // الأولوية الفعلية وقتها (لتبيين الوراثة)
+}
+
+export function simulateLocks(js: LockJob[], proto: LockProtocol, horizon: number) {
+	const part = js.map(() => 0);
+	const left = js.map((j) => j.parts[0]?.len ?? 0);
+	const finish = js.map(() => -1);
+	const blocked: { job: number; start: number; end: number; lock: boolean }[] = [];
+	const slices: LockSlice[] = [];
+	let owner = -1;
+	// سقف القفل: أعلى أولوية بين كل يلي بيستخدموه
+	const ceiling = Math.min(...js.filter((j) => j.parts.some((p) => p.res)).map((j) => j.prio));
+	for (let t = 0; t < horizon; t++) {
+		const ready = js.map((j, i) => j.release <= t && finish[i] < 0);
+		const wantsLock = (i: number) => !!js[i].parts[part[i]]?.res && owner !== i;
+		const isBlocked = (i: number) => wantsLock(i) && owner >= 0;
+		const eff = js.map((j, i) => {
+			let p = j.prio;
+			if (i === owner) {
+				if (proto === 'ceiling') p = Math.min(p, ceiling);
+				if (proto === 'inherit') js.forEach((o, k) => ready[k] && isBlocked(k) && (p = Math.min(p, o.prio)));
+			}
+			return p;
+		});
+		let best = -1;
+		js.forEach((_, i) => {
+			if (!ready[i] || isBlocked(i)) return;
+			// بالتساوي بتكمّل يلي ماسكة القفل (سقف الأولوية)، وبعدها الأقدم
+			if (best < 0 || eff[i] < eff[best] || (eff[i] === eff[best] && i === owner)) best = i;
+		});
+		// الانتظار: جاهزة بس مش عم تشتغل (lock = عم تستنى القفل نفسه)
+		js.forEach((_, i) => {
+			if (!ready[i] || i === best) return;
+			const lock = isBlocked(i);
+			const last = [...blocked].reverse().find((x) => x.job === i);
+			if (last && last.end === t && last.lock === lock) last.end = t + 1;
+			else blocked.push({ job: i, start: t, end: t + 1, lock });
+		});
+		if (best < 0) continue;
+		const res = !!js[best].parts[part[best]].res;
+		if (res && owner < 0) owner = best;
+		// بسقف الأولوية بترتفع أول ما تاخد القفل (من نفس الوحدة)
+		const pr = res && proto === 'ceiling' ? Math.min(eff[best], ceiling) : eff[best];
+		const prev = slices[slices.length - 1];
+		if (prev && prev.job === best && prev.end === t && prev.res === res && prev.prio === pr) prev.end = t + 1;
+		else slices.push({ job: best, start: t, end: t + 1, res, prio: pr });
+		if (--left[best] === 0) {
+			if (res) owner = -1;
+			part[best]++;
+			if (part[best] >= js[best].parts.length) finish[best] = t + 1;
+			else left[best] = js[best].parts[part[best]].len;
+		}
+	}
+	const response = js.map((j, i) => (finish[i] >= 0 ? finish[i] - j.release : -1));
+	const missed = js.map((j, i) => j.deadline !== undefined && (finish[i] < 0 || finish[i] > j.deadline));
+	return { slices, blocked, finish, response, missed };
+}
+
+// سيناريو الجلسة 6: L بتمسك القفل، H بتستناه، و M بطولها m بتقطع L
+export function inversionScenario(m: number, deadline = 9): LockJob[] {
+	return [
+		{ name: 'H', prio: 0, release: 2, parts: [{ len: 1 }, { len: 1, res: true }, { len: 1 }], deadline },
+		{ name: 'M', prio: 1, release: 3, parts: [{ len: m }] },
+		{ name: 'L', prio: 2, release: 0, parts: [{ len: 1 }, { len: 3, res: true }, { len: 1 }] },
+	];
+}

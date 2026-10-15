@@ -1,0 +1,53 @@
+---
+// انقلاب الأولوية بالصورة (الجلسة 6): نفس سيناريو المحاكي بطول M = 4 وبدون حماية
+const X = (t: number) => 70 + t * 42;
+const Y = { H: 40, M: 120, L: 180 };
+const fills = { H: '#6cc3e0', M: '#f0c070', L: '#7ed6a0' };
+const blocks: { r: 'H' | 'M' | 'L'; s: number; e: number; cs?: boolean }[] = [
+	{ r: 'L', s: 0, e: 1 },
+	{ r: 'L', s: 1, e: 2, cs: true },
+	{ r: 'H', s: 2, e: 3 },
+	{ r: 'M', s: 3, e: 7 },
+	{ r: 'L', s: 7, e: 9, cs: true },
+	{ r: 'H', s: 9, e: 10, cs: true },
+	{ r: 'H', s: 10, e: 11 },
+	{ r: 'L', s: 11, e: 12 },
+];
+---
+
+<figure class="wl-fig wl-wide">
+	<div class="wl-scroll">
+		<svg class="d-big" viewBox="0 0 600 296" role="img" aria-label="انقلاب الأولوية: L تمسك القفل، ثم تصل H وتحتاجه فتنتظر، ثم تصل M فتقطع L وتعمل طويلاً، فتنتظر H المهمة M مع أنها أقل منها">
+			{(['H', 'M', 'L'] as const).map((r) => (
+				<g>
+					<text x="30" y={Y[r] + 27} class="d-t d-b d-ltr">{r}</text>
+					<line x1={X(0)} y1={Y[r] + 44} x2={X(12.5)} y2={Y[r] + 44} class="d-line" />
+				</g>
+			))}
+			<rect x={X(3)} y={Y.H + 6} width={42 * 6} height="34" rx="4" class="inv-wait" />
+			<text x={X(6)} y={Y.H + 28} class="d-s d-b">H تنتظر القفل</text>
+			{blocks.map((b) => (
+				<g>
+					<rect x={X(b.s) + 1} y={Y[b.r] + 6} width={(b.e - b.s) * 42 - 2} height="34" rx="4" fill={fills[b.r]} class={b.cs ? 'inv-cs' : ''} />
+					{b.cs && <text x={X((b.s + b.e) / 2)} y={Y[b.r] + 29} class="d-s">🔒</text>}
+				</g>
+			))}
+			<path d={`M${X(3)},${Y.M - 4} q0,-8 10,-8 h${42 * 4 - 20} q10,0 10,8`} class="d-line d-red" />
+			<text x={X(6.1)} y={Y.M - 18} class="d-s d-b d-ltr inv-red">M</text>
+			<text x={X(5)} y={Y.M - 18} class="d-s d-b inv-red">تؤخر</text>
+			<text x={X(3.9)} y={Y.M - 18} class="d-s d-b d-ltr inv-red">H</text>
+			{Array.from({ length: 13 }, (_, t) => (
+				<text x={X(t)} y="252" class="d-s d-ltr">{t}</text>
+			))}
+			<line x1={X(9)} y1={Y.H} x2={X(9)} y2="236" class="d-line d-dash d-red" />
+			<text x={X(9)} y="282" class="d-s d-b inv-red">مهلة H</text>
+		</svg>
+	</div>
+	<figcaption>L أخذت القفل عند 1. وصلت H عند 2 واحتاجت القفل عند 3، فانتظرت L. لكن عند 3 وصلت M (لا تحتاج القفل) فقطعت L وعملت 4 وحدات. فانتظرت <b>H</b> المهمة <b>M</b> الأقل منها، وفاتت مهلتها.</figcaption>
+</figure>
+
+<style>
+	.inv-cs { stroke: #111; stroke-width: 1.5; }
+	.inv-wait { fill: var(--sl-color-gray-5); fill-opacity: 0.45; stroke: var(--sl-color-gray-3); stroke-dasharray: 4 3; }
+	.inv-red { fill: #e5534b; }
+</style>
