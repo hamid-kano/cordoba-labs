@@ -7,7 +7,7 @@
 ## التقنية
 
 - Astro 7 + Starlight 0.42، موقع ثابت بدون قاعدة بيانات وبدون تسجيل دخول.
-- عربي فقط، RTL (`locales.root = ar, dir rtl`)، خط IBM Plex Sans Arabic.
+- عربي فقط، RTL (`locales.root = ar, dir rtl`)، خط IBM Plex Sans Arabic **محلي** من `@fontsource/ibm-plex-sans-arabic` (بـ `customCss`، مش Google Fonts)، لحتى الموقع يشتغل كله بدون إنترنت. ما تضيف أي ملف من CDN.
 - المعادلات: `remark-math` + `rehype-katex` (ولازمهم `@astrojs/markdown-remark` لأن Astro 7 صار يستخدم Sätteri افتراضياً).
 - البحث Pagefind (مدمج)، والوضع الليلي مدمج. نصوص البحث العربية بـ `src/content/i18n/ar.json` (ناقصة بترجمة Starlight)، و Pagefind بيستخدم left/right ثابتين فقلبناهن للـ RTL بآخر `custom.css` (وإلا العدسة بتطلع على زر «إلغاء» بالموبايل).
 - النشر: GitHub Pages عن طريق `.github/workflows/deploy.yml`. الـ `site` والـ `base` بيجوا من متغيرات البيئة `SITE` و `BASE_PATH` (بيعبّيهم `actions/configure-pages`). محلياً الـ base هو `/`.
@@ -109,7 +109,7 @@ public/favicon.png, apple-touch-icon.png, og-image.png   أيقونات وصور
 ## التطوير
 
 - شغّل السيرفر بالخلفية: `npx astro dev --background` (http://localhost:4321)، وللإيقاف `npx astro dev stop`، وللحالة `npx astro dev status`، وللسجلات `npx astro dev logs`.
-- البناء: `npm run build`. لتجرب base فرعي من Git Bash: `MSYS_NO_PATHCONV=1 BASE_PATH=/cordoba-labs npm run build` (بدون `MSYS_NO_PATHCONV` بيخرب Git Bash المسار).
+- البناء: `npm run build`. ولـ XAMPP (http://localhost/cordoba-labs/dist/): `npm run build:xampp` (بياخد `SITE` و `BASE_PATH` من `.env.xampp`). لتجرب base فرعي من Git Bash: `MSYS_NO_PATHCONV=1 BASE_PATH=/cordoba-labs npm run build` (بدون `MSYS_NO_PATHCONV` بيخرب Git Bash المسار).
 - بـ Bash على هالجهاز، heredoc طويل فيه عربي ممكن يفشل، فاستخدم أداة Write للملفات.
 - هالملف (`CLAUDE.md`) هو المرجع الوحيد للمشروع، وهو ملف عادي مو symlink لأن الـ symlinks ما بتشتغل على Windows هون (`core.symlinks=false`). لازم يضل بـ git بالـ mode `100644` (تأكد بـ `git ls-files -s CLAUDE.md`)، لأنه إذا رجع `120000` بيفشل `checkout` بالـ CI.
 

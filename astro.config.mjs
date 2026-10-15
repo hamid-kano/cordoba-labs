@@ -28,21 +28,19 @@ export default defineConfig({
 			},
 			logo: { src: './src/assets/brand/cordoba-emblem.png', alt: 'جامعة قرطبة الخاصة', replacesTitle: false },
 			favicon: '/favicon.png',
-			customCss: ['katex/dist/katex.min.css', './src/styles/custom.css'],
+			// الخط محلي (fontsource) لحتى الموقع يشتغل بدون إنترنت
+			customCss: [
+				'@fontsource/ibm-plex-sans-arabic/400.css',
+				'@fontsource/ibm-plex-sans-arabic/500.css',
+				'@fontsource/ibm-plex-sans-arabic/700.css',
+				'katex/dist/katex.min.css',
+				'./src/styles/custom.css',
+			],
 			head: [
 				{ tag: 'link', attrs: { rel: 'apple-touch-icon', href: withBase('apple-touch-icon.png') } },
 				{ tag: 'meta', attrs: { name: 'theme-color', content: '#006738' } },
 				{ tag: 'meta', attrs: { property: 'og:image', content: ogImage } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: ogImage } },
-				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
-				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' } },
-				{
-					tag: 'link',
-					attrs: {
-						rel: 'stylesheet',
-						href: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap',
-					},
-				},
 			],
 			components: {
 				SocialIcons: './src/components/PanelToggles.astro',
