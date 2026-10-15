@@ -299,3 +299,17 @@ export function inversionScenario(m: number, deadline = 9): LockJob[] {
 		{ name: 'L', prio: 2, release: 0, parts: [{ len: 1 }, { len: 3, res: true }, { len: 1 }] },
 	];
 }
+
+// ===== الجلسة 7: vTaskDelay مقابل vTaskDelayUntil =====
+// مهمة بتشتغل C وبدها تبلّش كل P. منرجّع لحظات البداية الفعلية لأول n مرة.
+// vTaskDelay: بتنام P بعد ما تخلص، فالدور الحقيقي P + C وبيتراكم التأخير.
+// vTaskDelayUntil: بتصحى عند k·P بالضبط (إلا إذا كان الشغل أطول من الدور).
+export function delayStarts(C: number, P: number, n: number) {
+	const delay: number[] = [];
+	const until: number[] = [];
+	for (let k = 0; k < n; k++) {
+		delay.push(k === 0 ? 0 : delay[k - 1] + C + P);
+		until.push(k === 0 ? 0 : Math.max(k * P, until[k - 1] + C));
+	}
+	return { delay, until };
+}

@@ -1,0 +1,66 @@
+---
+// vTaskDelay مقابل vTaskDelayUntil (الجلسة 7): كم بيتأخر بدء المهمة عن موعدها مع كل مرة
+---
+
+<div class="not-content wl-box" data-rts-delay>
+	<h4>النوم من الآن أم حتى الموعد؟</h4>
+	<p class="os-hint">مهمة تريد أن تبدأ كل <bdi dir="ltr">100 ms</bdi>، وتعمل في كل مرة مدة C. ماذا يحدث لموعد بدايتها مع الوقت؟</p>
+	<div class="ai-sliders">
+		<label class="ai-slider"><span>زمن العمل C (ms)<output data-o="c"></output></span><input type="range" min="0" max="90" step="10" value="30" data-c /></label>
+	</div>
+	<figure class="ai-chart">
+		<svg data-chart role="img" aria-label="تأخر بداية المهمة عن موعدها مع كل مرة، للطريقتين"></svg>
+		<figcaption>المحور الأفقي: رقم المرة. والعمودي: كم تأخرت البداية عن موعدها (ms).</figcaption>
+	</figure>
+	<div class="ai-legend"><span><i class="ai-c4"></i><bdi dir="ltr">vTaskDelay</bdi></span><span><i class="ai-c3"></i><bdi dir="ltr">vTaskDelayUntil</bdi></span></div>
+	<div class="wl-grid ai-metrics">
+		<div class="wl-out"><span>الدور الحقيقي مع vTaskDelay</span><strong data-out="pd"></strong></div>
+		<div class="wl-out"><span>الدور الحقيقي مع vTaskDelayUntil</span><strong data-out="pu"></strong></div>
+		<div class="wl-out"><span>تأخر vTaskDelay بعد 10 مرات</span><strong data-out="lag"></strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<script>
+	import { delayStarts } from '../../scripts/rts';
+	import { drawChart } from '../../scripts/chart';
+
+	const P = 100;
+	const N = 11;
+
+	document.querySelectorAll<HTMLElement>('[data-rts-delay]').forEach((root) => {
+		const c = root.querySelector<HTMLInputElement>('[data-c]')!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector('[data-chart]') as unknown as SVGSVGElement;
+		function run() {
+			const C = +c.value;
+			root.querySelector('[data-o="c"]')!.textContent = String(C);
+			const s = delayStarts(C, P, N);
+			const ks = s.delay.map((_, k) => k);
+			const lagD = s.delay.map((t, k) => t - k * P);
+			const lagU = s.until.map((t, k) => t - k * P);
+			drawChart(svg, {
+				series: [
+					{ x: ks, y: lagD, cls: 'ai-c4' },
+					{ x: ks, y: lagU, cls: 'ai-c3' },
+				],
+				points: [...ks.map((k) => ({ x: k, y: lagD[k], cls: 'ai-c4' })), ...ks.map((k) => ({ x: k, y: lagU[k], cls: 'ai-c3' }))],
+				xMin: 0,
+				xMax: N - 1,
+				yMin: 0,
+				yMax: Math.max(100, ...lagD) * 1.05,
+				height: 220,
+			});
+			out('pd').textContent = `${P + C} ms`;
+			out('pu').textContent = `${P} ms`;
+			out('lag').textContent = `${lagD[10]} ms`;
+			const m = out('msg');
+			m.innerHTML = C
+				? `مع <bdi dir="ltr">vTaskDelay</bdi> تنام المهمة <bdi dir="ltr">100 ms</bdi> <b>بعد</b> أن تنتهي، فيصبح دورها <bdi dir="ltr">${P + C} ms</bdi>، ويتراكم التأخير. أما <bdi dir="ltr">vTaskDelayUntil</bdi> فتستيقظ عند الموعد التالي بالضبط.`
+				: 'عندما يكون C = 0 تتساوى الطريقتان. لكن لا توجد مهمة حقيقية لا تعمل شيئاً!';
+			m.className = 'wl-msg ' + (C ? 'wl-bad' : 'wl-good');
+		}
+		c.addEventListener('input', run);
+		run();
+	});
+</script>
