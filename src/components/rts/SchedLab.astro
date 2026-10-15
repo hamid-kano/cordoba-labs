@@ -25,9 +25,14 @@ const EX = {
 		['التوازن', 2, 4],
 		['الكاميرا', 3, 6],
 	],
+	over: [
+		['التوازن', 2, 4],
+		['الحسّاس', 1, 5],
+		['الكاميرا', 2, 5],
+	],
 };
-const exNames: Record<string, string> = { robot: 'المكنسة الذكية', watch: 'الساعة الذكية', drone: 'الطائرة المسيّرة', full: 'حمل 100%' };
-const shown = mode === 'rm' ? ['watch', 'robot', 'drone'] : ['drone', 'robot', 'full'];
+const exNames: Record<string, string> = { robot: 'المكنسة الذكية', watch: 'الساعة الذكية', drone: 'الطائرة المسيّرة', full: 'حمل 100%', over: 'حمل زائد' };
+const shown = mode === 'rm' ? ['watch', 'robot', 'drone'] : ['drone', 'full', 'over'];
 ---
 
 <div class="not-content wl-box" data-rts-sched={mode} data-ex={JSON.stringify(EX)} data-first={shown[0]}>
@@ -65,7 +70,7 @@ const shown = mode === 'rm' ? ['watch', 'robot', 'drone'] : ['drone', 'robot', '
 		{mode === 'rm' && <div class="wl-out"><span>حد Liu & Layland</span><strong data-out="B"></strong></div>}
 		<div class="wl-out"><span>الدورة الكبرى</span><strong data-out="H"></strong></div>
 	</div>
-	{mode === 'rm' && <p class="wl-msg" data-out="test"></p>}
+	<p class="wl-msg" data-out="test"></p>
 	{
 		(mode === 'rm' ? ['one'] : ['rm', 'edf']).map((k) => (
 			<div class="rts-run" data-run={k}>
@@ -178,6 +183,13 @@ const shown = mode === 'rm' ? ['watch', 'robot', 'drone'] : ['drone', 'robot', '
 				}
 				draw(runs[0], ts, pol);
 			} else {
+				const U = utilization(ts);
+				const tst = out('test')!;
+				tst.innerHTML =
+					U <= 1 + 1e-12
+						? `اختبار EDF: <bdi dir="ltr">U = ${pct(U)}</bdi> لا تتجاوز 100%، فـ EDF <b>مضمون</b>.`
+						: `<bdi dir="ltr">U = ${pct(U)}</bdi> أكبر من 100%: <b>حمل زائد</b>، وستفوت مهل مهما فعلنا. انظر: أي المهام تخسر في كل طريقة؟`;
+				tst.className = 'wl-msg ' + (U <= 1 + 1e-12 ? 'wl-good' : 'wl-bad');
 				draw(runs[0], ts, 'rm');
 				draw(runs[1], ts, 'edf');
 			}

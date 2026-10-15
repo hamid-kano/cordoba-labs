@@ -29,7 +29,7 @@ export function drawTimeline(svg: SVGSVGElement, rows: TLRow[], horizon: number,
 	const W = Math.max(320, Math.min(900, Math.round(svg.getBoundingClientRect().width) || 600));
 	const H = TOP + rows.length * ROW + AXIS;
 	svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-	const cw = (W - LABEL - 10) / horizon;
+	const cw = (W - LABEL - 14) / horizon;
 	const X = (t: number) => LABEL + t * cw;
 	const step = cw >= 18 ? 1 : cw >= 9 ? 2 : 5;
 	let g = '';
