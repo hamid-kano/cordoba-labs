@@ -415,3 +415,6 @@ code,
 	right: auto;
 	left: calc(var(--sl-search-cancel-space) + 3px * var(--pagefind-ui-scale));
 }
+
+/* الشارات (متاحة/قريباً) بالجداول ما بتنكسر على سطرين */
+.sl-markdown-content td .sl-badge { white-space: nowrap; }

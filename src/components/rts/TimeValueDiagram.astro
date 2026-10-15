@@ -1,0 +1,63 @@
+---
+// فائدة النتيجة مع الزمن للأنواع التلاتة: صارم، ثابت، مرن (الجلسة 1)
+// المحور: الأصل (40,120)، والمهلة عند x=170، والفائدة الكاملة عند y=50
+const kinds = [
+	{
+		key: 'hard',
+		title: 'صارم',
+		path: 'M40,50 L170,50 L170,165 L285,165',
+		cls: 'd-red',
+		note: 'كارثة',
+		cap: 'بعد المهلة لا تصبح النتيجة بلا فائدة فقط، بل يحدث ضرر: الوسادة الهوائية المتأخرة لا تنقذ أحداً.',
+	},
+	{
+		key: 'firm',
+		title: 'ثابت',
+		path: 'M40,50 L170,50 L170,120 L285,120',
+		cls: 'd-orange',
+		note: 'لا فائدة',
+		cap: 'بعد المهلة تصبح النتيجة بلا قيمة فنرميها، لكن لا يحدث ضرر: توقّع العاصفة بعد وصولها.',
+	},
+	{
+		key: 'soft',
+		title: 'مرن',
+		path: 'M40,50 L170,50 C205,58 230,100 285,112',
+		cls: 'd-green',
+		note: 'تقلّ الفائدة',
+		cap: 'بعد المهلة تقلّ الفائدة شيئاً فشيئاً: مكالمة الفيديو المتأخرة قليلاً مزعجة، لكنها تعمل.',
+	},
+];
+---
+
+<div class="rts-three">
+	{
+		kinds.map((k) => (
+			<figure class="wl-fig">
+				<svg class="d-big" viewBox="0 0 300 200" role="img" aria-label={`نظام ${k.title}: ${k.cap}`}>
+					<text x="150" y="22" class="d-t d-b">{k.title}</text>
+					<rect x="170" y="34" width="115" height="140" class="rts-late" />
+					<line x1="40" y1="34" x2="40" y2="174" class="d-line" />
+					<line x1="40" y1="120" x2="288" y2="120" class="d-line" />
+					<text x="72" y="44" class="d-s">الفائدة</text>
+					<text x="262" y="137" class="d-s">الزمن</text>
+					<line x1="170" y1="34" x2="170" y2="174" class="d-line d-dash" />
+					<text x="170" y="192" class="d-s d-b">المهلة</text>
+					<path d={k.path} class={`d-line rts-curve ${k.cls}`} />
+					<text x={k.key === 'soft' ? 245 : 228} y={k.key === 'hard' ? 157 : k.key === 'firm' ? 108 : 74} class="d-s d-b">
+						{k.note}
+					</text>
+				</svg>
+				<figcaption>
+					<strong>{k.title}:</strong> {k.cap}
+				</figcaption>
+			</figure>
+		))
+	}
+</div>
+
+<style>
+	.rts-three { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0 1rem; }
+	.rts-three .wl-fig { margin-block: 0.75rem; }
+	.rts-late { fill: var(--sl-color-gray-6); }
+	.rts-curve { stroke-width: 3.5; }
+</style>

@@ -1,0 +1,116 @@
+---
+// قياس دقة مؤقّت المتصفح (الجلسة 1): منطلب «نبضة» كل P ms ومنقيس الفرق الحقيقي بين النبضات.
+// الفكرة: المتصفح مش نظام زمن حقيقي، فالنبضات بتتأخر وبتتذبذب، وأكتر لما نشغّل المعالج.
+---
+
+<div class="not-content wl-box" data-rts-timer>
+	<h4>هل ساعة المتصفح دقيقة؟</h4>
+	<p class="os-hint">نطلب من المتصفح «نبضة» كل فترة ثابتة لمدة ثانيتين، ونقيس الزمن الحقيقي بين كل نبضتين.</p>
+	<div class="wl-row">
+		<label class="wl-label">
+			<span>الفترة المطلوبة</span>
+			<select class="wl-select" data-in="period">
+				<option value="10">10 ms</option>
+				<option value="20" selected>20 ms</option>
+				<option value="50">50 ms</option>
+			</select>
+		</label>
+		<label class="ai-check"><input type="checkbox" data-in="load" /> أشغِل المعالج بعمل آخر أثناء القياس</label>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-start>ابدأ القياس</button>
+	</div>
+	<figure class="ai-chart">
+		<svg data-out="chart" role="img" aria-label="الزمن الحقيقي بين كل نبضتين"></svg>
+		<figcaption>المحور الأفقي: رقم النبضة. والعمودي: الزمن الحقيقي بينها وبين التي قبلها (ms). الخط المتقطع هو الفترة المطلوبة، والأحمر هو حد التأخر.</figcaption>
+	</figure>
+	<div class="wl-grid ai-metrics">
+		<div class="wl-out"><span>عدد النبضات</span><strong data-out="n">–</strong></div>
+		<div class="wl-out"><span>المتوسط</span><strong data-out="mean">–</strong></div>
+		<div class="wl-out"><span>الأقل والأكثر</span><strong data-out="range">–</strong></div>
+		<div class="wl-out"><span>التذبذب</span><strong data-out="jitter">–</strong></div>
+		<div class="wl-out"><span>نبضات متأخرة</span><strong data-out="late">–</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<script>
+	import { drawChart } from '../../scripts/chart';
+	import { timeStats, missed, countAr } from '../../scripts/rts';
+
+	const DURATION = 2000;
+	const LATE = 1.2; // النبضة متأخرة إذا زادت عن الفترة بأكتر من 20%
+
+	document.querySelectorAll<HTMLElement>('[data-rts-timer]').forEach((root) => {
+		const inp = <T extends HTMLElement>(k: string) => root.querySelector<T>(`[data-in="${k}"]`)!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const btn = root.querySelector<HTMLButtonElement>('[data-start]')!;
+		const svg = out('chart') as unknown as SVGSVGElement;
+
+		function draw(gaps: number[], p: number) {
+			drawChart(svg, {
+				series: [{ x: gaps.map((_, i) => i + 1), y: gaps, cls: 'ai-c1' }],
+				xMin: 1,
+				xMax: Math.max(2, gaps.length),
+				yMin: 0,
+				yMax: Math.max(p * 2, ...gaps) * 1.05,
+				hlines: [
+					{ y: p, cls: 'ai-ref' },
+					{ y: p * LATE, cls: 'ai-c4' },
+				],
+				height: 220,
+			});
+		}
+
+		function report(gaps: number[], p: number) {
+			const st = timeStats(gaps);
+			const late = missed(gaps, p * LATE);
+			const f = (x: number) => x.toFixed(1);
+			out('n').textContent = `${st.n}`;
+			out('mean').textContent = `${f(st.mean)} ms`;
+			out('range').textContent = `${f(st.min)} – ${f(st.max)} ms`;
+			out('jitter').textContent = `${f(st.jitter)} ms`;
+			out('late').textContent = `${late} / ${st.n}`;
+			const m = out('msg');
+			m.className = 'wl-msg ' + (late ? 'wl-bad' : 'wl-good');
+			m.innerHTML = late
+				? `تأخرت ${countAr(late, 'نبضة واحدة', 'نبضتان', 'نبضات', 'نبضة')}، وأسوأ نبضة جاءت بعد <bdi dir="ltr">${f(st.max)} ms</bdi> بدل <bdi dir="ltr">${p} ms</bdi>. المتصفح لا يضمن الوقت، لذلك هو ليس نظام زمن حقيقي.`
+				: `لم تتأخر أي نبضة هذه المرة، لكن النبضات لم تكن متساوية تماماً (التذبذب <bdi dir="ltr">${f(st.jitter)} ms</bdi>). جرّب أن تشغل المعالج.`;
+		}
+
+		btn.addEventListener('click', () => {
+			const p = +inp<HTMLSelectElement>('period').value;
+			const load = inp<HTMLInputElement>('load').checked;
+			const gaps: number[] = [];
+			let last = performance.now();
+			const t0 = last;
+			btn.disabled = true;
+			btn.textContent = 'جارٍ القياس…';
+			out('msg').textContent = '';
+
+			// الحِمل: كل 250 ms منشغّل المعالج 40 ms متواصلين (متل برنامج تاني تقيل)
+			const busy = load
+				? window.setInterval(() => {
+						const end = performance.now() + 40;
+						while (performance.now() < end);
+					}, 250)
+				: 0;
+
+			const id = window.setInterval(() => {
+				const now = performance.now();
+				gaps.push(now - last);
+				last = now;
+				if (now - t0 >= DURATION) {
+					clearInterval(id);
+					clearInterval(busy);
+					btn.disabled = false;
+					btn.textContent = 'قِس مرة أخرى';
+					draw(gaps, p);
+					report(gaps, p);
+				}
+			}, p);
+		});
+
+		draw([], +inp<HTMLSelectElement>('period').value);
+	});
+</script>

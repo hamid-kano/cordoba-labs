@@ -21,7 +21,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'المختبر العملي',
-			description: 'المحتوى العملي لمواد الشبكات اللاسلكية والذكاء الصنعي 2 ونظم التشغيل 1 – جامعة قرطبة',
+			description: 'المحتوى العملي لمواد الشبكات اللاسلكية والذكاء الصنعي 2 ونظم التشغيل 1 ونظم الزمن الحقيقي – جامعة قرطبة',
 			defaultLocale: 'root',
 			locales: {
 				root: { label: 'العربية', lang: 'ar', dir: 'rtl' },
@@ -69,6 +69,11 @@ export default defineConfig({
 						// جلسات طلعت من الخطة، بس خليناها للمراجعة لأنها من منهج النظري
 						{ label: 'أرشيف للمراجعة', collapsed: true, items: [{ autogenerate: { directory: 'os1-archive' } }] },
 					],
+				},
+				{
+					label: 'نظم الزمن الحقيقي',
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'rts' } }],
 				},
 			],
 		}),

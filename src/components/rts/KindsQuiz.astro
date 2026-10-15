@@ -1,0 +1,76 @@
+---
+// تصنيف أمثلة من الحياة: صارم أو ثابت أو مرن (الجلسة 1)
+import { RT_KIND_NAME, type RtKind } from '../../scripts/rts';
+
+const items: { q: string; a: RtKind; why: string }[] = [
+	{ q: 'الوسادة الهوائية في السيارة', a: 'hard', why: 'إذا انفتحت بعد أن يصطدم رأس السائق بالمقود، فقد حدث الضرر.' },
+	{ q: 'مكالمة فيديو على الهاتف', a: 'soft', why: 'التأخر القليل يجعل الصورة تتقطع، لكن المكالمة تستمر.' },
+	{ q: 'منظّم ضربات القلب', a: 'hard', why: 'النبضة المتأخرة خطر مباشر على حياة المريض.' },
+	{ q: 'صورة من بث مباراة مباشر وصلت بعد عرض الصورة التالية', a: 'firm', why: 'لا فائدة من عرضها الآن فنرميها، والبث يكمل دون ضرر.' },
+	{ q: 'جهاز الصراف الآلي', a: 'soft', why: 'إذا تأخر بضع ثوانٍ ينزعج الزبون، لكن العملية تتم.' },
+	{ q: 'الطيار الآلي في الطائرة', a: 'hard', why: 'التصحيح المتأخر قد يُسقط الطائرة.' },
+	{ q: 'توقّع عاصفة وصل بعد أن بدأت العاصفة', a: 'firm', why: 'لم يعد له قيمة، لكن وصوله المتأخر نفسه لا يسبب ضرراً.' },
+	{ q: 'لعبة على الإنترنت', a: 'soft', why: 'التأخر يجعل اللعب أسوأ، لكن اللعبة لا تتوقف.' },
+];
+const kinds: RtKind[] = ['hard', 'firm', 'soft'];
+---
+
+<div class="not-content wl-box" data-rts-quiz>
+	<h4>صنّف: صارم أم ثابت أم مرن؟</h4>
+	<ol class="rts-quiz">
+		{
+			items.map((it) => (
+				<li data-a={it.a}>
+					<span class="rts-q">{it.q}</span>
+					<span class="wl-row">
+						{kinds.map((k) => (
+							<button type="button" class="wl-btn" data-k={k}>
+								{RT_KIND_NAME[k]}
+							</button>
+						))}
+					</span>
+					<span class="rts-why" hidden>{it.why}</span>
+				</li>
+			))
+		}
+	</ol>
+	<p class="wl-msg" data-out="score"></p>
+</div>
+
+<style>
+	.rts-quiz { margin: 0; padding-inline-start: 1.4rem; display: flex; flex-direction: column; gap: 0.75rem; }
+	.rts-quiz li { display: flex; flex-direction: column; gap: 0.35rem; }
+	.rts-q { font-weight: 600; color: var(--sl-color-white); }
+	.rts-why { font-size: var(--sl-text-sm); }
+	.rts-quiz .wl-btn.right { background: #2fb36b; border-color: #2fb36b; color: #111; }
+	.rts-quiz .wl-btn.wrong { background: #e5534b; border-color: #e5534b; color: #111; }
+</style>
+
+<script>
+	import { RT_KIND_NAME, type RtKind } from '../../scripts/rts';
+
+	document.querySelectorAll<HTMLElement>('[data-rts-quiz]').forEach((root) => {
+		const lis = [...root.querySelectorAll<HTMLLIElement>('li[data-a]')];
+		const score = root.querySelector<HTMLElement>('[data-out="score"]')!;
+		const done = new Map<HTMLLIElement, boolean>();
+
+		lis.forEach((li) => {
+			li.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((b) =>
+				b.addEventListener('click', () => {
+					if (done.has(li)) return;
+					const ok = b.dataset.k === li.dataset.a;
+					done.set(li, ok);
+					b.classList.add(ok ? 'right' : 'wrong');
+					li.querySelector(`[data-k="${li.dataset.a}"]`)!.classList.add('right');
+					li.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((x) => (x.disabled = !x.classList.contains('right') && !x.classList.contains('wrong')));
+					const why = li.querySelector<HTMLElement>('.rts-why')!;
+					why.hidden = false;
+					why.textContent = `${ok ? '✓ صحيح.' : `✗ الجواب: ${RT_KIND_NAME[li.dataset.a as RtKind]}.`} ${why.textContent}`;
+					const right = [...done.values()].filter(Boolean).length;
+					score.className = 'wl-msg' + (done.size === lis.length ? (right >= 6 ? ' wl-good' : ' wl-bad') : '');
+					score.textContent = `النتيجة: ${right} من ${done.size}` + (done.size === lis.length ? (right >= 6 ? '. ممتاز!' : '. راجع الرسمة في الأعلى وأعد المحاولة لاحقاً.') : '');
+				}),
+			);
+		});
+	});
+</script>

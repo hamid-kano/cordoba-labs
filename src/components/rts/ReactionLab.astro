@@ -1,0 +1,139 @@
+---
+// اختبار سرعة رد الفعل (الجلسة 1): الطالب نفسه «نظام زمن حقيقي» إلو مهلة.
+---
+
+<div class="not-content wl-box" data-rts-react>
+	<h4>اختبار رد الفعل: هل تلحق المهلة؟</h4>
+	<div class="wl-row">
+		<label class="wl-label">
+			<span>المهلة</span>
+			<select class="wl-select" data-in="deadline">
+				<option value="250">250 ms (صعبة)</option>
+				<option value="350" selected>350 ms (عادية)</option>
+				<option value="500">500 ms (سهلة)</option>
+			</select>
+		</label>
+	</div>
+	<button type="button" class="rts-pad" data-pad data-state="idle">اضغط هنا لتبدأ</button>
+	<div class="wl-grid">
+		<div class="wl-out"><span>المحاولات</span><strong data-out="n">0 / 5</strong></div>
+		<div class="wl-out"><span>المتوسط</span><strong data-out="mean">–</strong></div>
+		<div class="wl-out"><span>الأفضل والأسوأ</span><strong data-out="range">–</strong></div>
+		<div class="wl-out"><span>فاتت المهلة</span><strong data-out="miss">–</strong></div>
+	</div>
+	<ol class="rts-tries" data-out="list"></ol>
+	<p class="wl-msg" data-out="verdict"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-reset>ابدأ من جديد</button>
+	</div>
+</div>
+
+<style>
+	.rts-pad {
+		display: block;
+		width: 100%;
+		min-height: 9rem;
+		border: 0;
+		border-radius: 0.75rem;
+		font: inherit;
+		font-size: var(--sl-text-xl);
+		font-weight: 700;
+		cursor: pointer;
+		touch-action: manipulation;
+		user-select: none;
+		color: #fff;
+		background: #3a6e8f;
+	}
+	.rts-pad[data-state='wait'] { background: #b8342d; }
+	.rts-pad[data-state='go'] { background: #1f9d55; }
+	.rts-tries { margin: 0; padding-inline-start: 1.4rem; display: flex; flex-wrap: wrap; gap: 0.25rem 1.6rem; }
+	.rts-tries:empty { display: none; }
+	.rts-tries li.ok::marker, .rts-tries li.ok b { color: #2fb36b; }
+	.rts-tries li.late::marker, .rts-tries li.late b { color: #e5534b; }
+	.rts-tries b { direction: ltr; unicode-bidi: isolate; }
+</style>
+
+<script>
+	import { timeStats, missed, countAr } from '../../scripts/rts';
+
+	const TRIES = 5;
+	const ms = (x: number) => `<bdi dir="ltr">${Math.round(x)} ms</bdi>`;
+
+	document.querySelectorAll<HTMLElement>('[data-rts-react]').forEach((root) => {
+		const pad = root.querySelector<HTMLButtonElement>('[data-pad]')!;
+		const sel = root.querySelector<HTMLSelectElement>('[data-in="deadline"]')!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let times: number[] = [];
+		let timer = 0;
+		let goAt = 0;
+
+		const state = (s: string, text: string) => {
+			pad.dataset.state = s;
+			pad.textContent = text;
+		};
+
+		function show() {
+			const d = +sel.value;
+			const st = timeStats(times);
+			out('n').textContent = `${times.length} / ${TRIES}`;
+			out('mean').textContent = st.n ? `${Math.round(st.mean)} ms` : '–';
+			out('range').textContent = st.n ? `${Math.round(st.min)} – ${Math.round(st.max)} ms` : '–';
+			out('miss').textContent = st.n ? `${missed(times, d)} / ${st.n}` : '–';
+			out('list').innerHTML = times
+				.map((t) => `<li class="${t <= d ? 'ok' : 'late'}"><b>${Math.round(t)} ms</b> ${t <= d ? '✓' : '✗'}</li>`)
+				.join('');
+			const v = out('verdict');
+			v.className = 'wl-msg';
+			v.innerHTML = '';
+			if (times.length < TRIES) return;
+			const m = missed(times, d);
+			if (m === 0) {
+				v.innerHTML = `ممتاز! لحقت المهلة في كل المحاولات. لكن انتبه: الفرق بين أسرع وأبطأ محاولة هو ${ms(st.jitter)}، وهذا هو «التذبذب».`;
+				v.classList.add('wl-good');
+			} else {
+				v.innerHTML = `فاتتك المهلة ${countAr(m, 'مرة واحدة', 'مرتين', 'مرات', 'مرة')} من ${TRIES}. في نظام <b>مرن</b> هذا مقبول، أما في نظام <b>صارم</b> (مثل الوسادة الهوائية) فمرة واحدة تكفي ليكون فاشلاً.`;
+				v.classList.add('wl-bad');
+			}
+		}
+
+		function press() {
+			const s = pad.dataset.state;
+			if (s === 'idle') {
+				if (times.length >= TRIES) times = [];
+				show();
+				state('wait', 'انتظر اللون الأخضر…');
+				timer = window.setTimeout(() => {
+					goAt = performance.now();
+					state('go', 'اضغط الآن!');
+				}, 1500 + Math.random() * 2500);
+			} else if (s === 'wait') {
+				clearTimeout(timer);
+				state('idle', 'مبكر جداً! اضغط لتعيد المحاولة');
+			} else if (s === 'go') {
+				times.push(performance.now() - goAt);
+				show();
+				state('idle', times.length >= TRIES ? 'انتهى. اضغط لتجرّب مرة أخرى' : 'اضغط للمحاولة التالية');
+			}
+		}
+
+		// pointerdown أسرع من click (ما بيستنى رفع الإصبع)
+		pad.addEventListener('pointerdown', (e) => {
+			e.preventDefault();
+			press();
+		});
+		pad.addEventListener('keydown', (e) => {
+			if (e.key === ' ' || e.key === 'Enter') {
+				e.preventDefault();
+				if (!e.repeat) press();
+			}
+		});
+		sel.addEventListener('change', show);
+		root.querySelector('[data-reset]')!.addEventListener('click', () => {
+			clearTimeout(timer);
+			times = [];
+			state('idle', 'اضغط هنا لتبدأ');
+			show();
+		});
+		show();
+	});
+</script>

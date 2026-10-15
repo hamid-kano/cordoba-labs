@@ -1,0 +1,36 @@
+---
+// الحدث، وزمن الاستجابة، والمهلة: مرة بالوقت ومرة متأخر (الجلسة 1)
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 600 250" role="img" aria-label="خط زمني: يقع الحدث، ثم يبدأ زمن الاستجابة. في الحالة الأولى ينتهي قبل المهلة فهو صحيح، وفي الثانية ينتهي بعدها فهو خطأ">
+		<defs>
+			<marker id="rts-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+				<path d="M0,0 L10,5 L0,10 z" class="d-arrow" />
+			</marker>
+		</defs>
+		<line x1="30" y1="210" x2="580" y2="210" class="d-line" marker-end="url(#rts-arr)" />
+		<text x="555" y="235" class="d-s">الزمن</text>
+
+		<line x1="70" y1="40" x2="70" y2="210" class="d-line d-blue" />
+		<text x="70" y="30" class="d-s d-b">الحدث</text>
+		<text x="70" y="232" class="d-s d-ltr">t = 0</text>
+
+		<line x1="400" y1="40" x2="400" y2="210" class="d-line d-dash d-red" />
+		<text x="400" y="30" class="d-s d-b">المهلة</text>
+
+		<rect x="70" y="70" width="250" height="40" rx="6" class="d-box" />
+		<text x="195" y="96" class="d-t">زمن الاستجابة</text>
+		<text x="490" y="96" class="d-t d-b rts-ok">✓ في الوقت</text>
+
+		<rect x="70" y="140" width="400" height="40" rx="6" class="d-box2 d-red" />
+		<text x="235" y="166" class="d-t">زمن الاستجابة</text>
+		<text x="530" y="166" class="d-t d-b rts-bad">✗ متأخر</text>
+	</svg>
+	<figcaption>يقع حدث (مثل اصطدام السيارة)، فيبدأ النظام بالعمل. إذا أنهى ردّه <strong>قبل المهلة</strong> فهو صحيح، وإذا أنهاه <strong>بعدها</strong> فهو خطأ حتى لو كان الجواب نفسه.</figcaption>
+</figure>
+
+<style>
+	.rts-ok { fill: #2fb36b; }
+	.rts-bad { fill: #e5534b; }
+</style>
