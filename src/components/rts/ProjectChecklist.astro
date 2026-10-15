@@ -1,0 +1,108 @@
+---
+// قائمة التسليم (الجلسة 8): الطالب بيعلّم يلي خلّصه، والحالة بتنحفظ بالمتصفح (localStorage) إذا أمكن.
+// ما فيها ولا جواب: بس الخطوات.
+const items = [
+	['1. وصف المهام', 'جدول المهام (C و T و D)، و U لكل مهمة ومجموعها، والدورة الكبرى.'],
+	['2. اختبار RM', 'الأولويات، والحد لعدد مهامك، والحكم. وإذا كنت في المنطقة الصفراء: رسم الدورة الكبرى بيدك.'],
+	['3. التأكد بالمحاكي', 'نتيجة محاكي الجلسة 4 تطابق رسمك (أو تعرف أين أخطأت).'],
+	['4. EDF', 'حكم EDF بالاختبار، والمقارنة مع RM بمحاكي الجلسة 5.'],
+	['5. الجدول الثابت', 'حجم الإطار بالشروط الثلاثة، والجدول مبنياً (أو سبب عدم وجوده واقتراح حل).'],
+	['6. القرار', 'أي طريقة تختار لنظامك؟ ولماذا؟ (فقرة قصيرة)'],
+	['7. التطبيق في Wokwi', 'القالب مملوءاً بمهامك وأولوياتك، ويعمل.'],
+	['8. القياس', 'لقطة من الطرفية بعد 10 ثوانٍ على الأقل: worst و misses لكل مهمة، ومقارنتها مع حسابك.'],
+	['9. التجربة الخطأ', 'غيّر الأولويات إلى ترتيب خطأ، وسجّل ماذا حدث.'],
+];
+---
+
+<div class="not-content wl-box" data-rts-check>
+	<h4>قائمة التسليم</h4>
+	<label class="wl-label">
+		<span>مشروعك</span>
+		<select class="wl-select" data-proj>
+			<option value="A">A: روبوت متتبع الخط</option>
+			<option value="B">B: محطة الطقس</option>
+			<option value="C">C: ذراع الروبوت</option>
+		</select>
+	</label>
+	<div class="rts-prog"><i data-bar></i></div>
+	<p class="wl-msg" data-out="msg"></p>
+	<ul class="rts-check">
+		{
+			items.map(([t, d], i) => (
+				<li>
+					<label class="ai-check">
+						<input type="checkbox" data-i={i} /> <b>{t}</b>
+					</label>
+					<span>{d}</span>
+				</li>
+			))
+		}
+	</ul>
+</div>
+
+<style is:global>
+	.rts-check { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+	.rts-check li { display: flex; flex-direction: column; gap: 0.1rem; padding: 0.4rem 0.6rem; border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem; }
+	.rts-check li span { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); padding-inline-start: 1.6rem; }
+	.rts-check li:has(input:checked) { border-color: var(--sl-color-accent); background: var(--sl-color-accent-low); }
+	.rts-prog { height: 0.7rem; border-radius: 99px; background: var(--sl-color-gray-5); overflow: hidden; }
+	.rts-prog i { display: block; height: 100%; width: 0; background: var(--sl-color-accent); transition: width 0.2s; }
+</style>
+
+<script>
+	const KEY = 'rts-project-check';
+	const read = (): Record<string, boolean[]> => {
+		try {
+			return JSON.parse(localStorage.getItem(KEY) || '{}');
+		} catch {
+			return {};
+		}
+	};
+	const write = (v: Record<string, boolean[]>) => {
+		try {
+			localStorage.setItem(KEY, JSON.stringify(v));
+		} catch {
+			/* المتصفح مانع التخزين: منكمّل بدونه */
+		}
+	};
+
+	document.querySelectorAll<HTMLElement>('[data-rts-check]').forEach((root) => {
+		const sel = root.querySelector<HTMLSelectElement>('[data-proj]')!;
+		const boxes = [...root.querySelectorAll<HTMLInputElement>('[data-i]')];
+		let state = read();
+		try {
+			const last = localStorage.getItem(KEY + '-proj');
+			if (last) sel.value = last;
+		} catch {
+			/* لا شيء */
+		}
+		function show() {
+			const done = boxes.filter((b) => b.checked).length;
+			root.querySelector<HTMLElement>('[data-bar]')!.style.width = `${(done / boxes.length) * 100}%`;
+			const m = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+			m.textContent = done === boxes.length ? 'أنهيت كل الخطوات. راجع تقريرك وسلّمه.' : `أنهيت ${done} من ${boxes.length}`;
+			m.className = 'wl-msg' + (done === boxes.length ? ' wl-good' : '');
+		}
+		function load() {
+			const s = state[sel.value] ?? [];
+			boxes.forEach((b, i) => (b.checked = !!s[i]));
+			show();
+		}
+		boxes.forEach((b) =>
+			b.addEventListener('change', () => {
+				state[sel.value] = boxes.map((x) => x.checked);
+				write(state);
+				show();
+			}),
+		);
+		sel.addEventListener('change', () => {
+			try {
+				localStorage.setItem(KEY + '-proj', sel.value);
+			} catch {
+				/* لا شيء */
+			}
+			load();
+		});
+		load();
+	});
+</script>
