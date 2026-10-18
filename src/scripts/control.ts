@@ -264,6 +264,27 @@ export function stepPid(P: number, I: number, D: number, num = [1], den = [0.5, 
 	return { t, y };
 }
 
+/**
+ * أجزاء معادلة PID بكل لحظة، من نتيجة stepPid (المطلوب r = 1):
+ * e = 1 − y، و∫e بشبه المنحرف، و de/dt = −dy/dt (فرق مركزي). و u = P·e + I·∫e + D·de/dt.
+ * (عند t = 0 بالضبط في «ضربة» من D لأنه الخطأ قفز فجأة من 0 لـ 1، فمنعرض القيم من بعدها.)
+ */
+export function pidTerms(t: number[], y: number[], P: number, I: number, D: number) {
+	const n = t.length;
+	const e = y.map((v) => 1 - v);
+	const ie = new Array(n).fill(0);
+	for (let k = 1; k < n; k++) ie[k] = ie[k - 1] + ((e[k] + e[k - 1]) / 2) * (t[k] - t[k - 1]);
+	const de = e.map((_, k) => {
+		const a = Math.max(k - 1, 0), b = Math.min(k + 1, n - 1);
+		return (e[b] - e[a]) / (t[b] - t[a]);
+	});
+	const pTerm = e.map((v) => P * v);
+	const iTerm = ie.map((v) => I * v);
+	const dTerm = de.map((v) => D * v);
+	const u = pTerm.map((v, k) => v + iTerm[k] + dTerm[k]);
+	return { e, ie, de, pTerm, iTerm, dTerm, u };
+}
+
 /** التجاوز وزمن الاستقرار (2%) والقيمة النهائية */
 export function stepinfo(t: number[], y: number[], yfinal = y[y.length - 1], y0 = 0) {
 	const amp = yfinal - y0;

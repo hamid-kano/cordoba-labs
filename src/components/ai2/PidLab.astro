@@ -35,16 +35,42 @@
 		<button type="button" class="wl-btn" data-pin>📌 ثبّت الرسم للمقارنة</button>
 		<button type="button" class="wl-btn" data-unpin hidden>أزل الرسم المثبّت</button>
 	</div>
+
+	<h4 class="pid-sub">كيف يحسب المتحكم الدفعة u في لحظة معيّنة؟</h4>
+	<label class="ai-slider"><span>اختر لحظة t (بالثواني)<output data-o="t"></output></span><input type="range" min="0.1" max="10" step="0.05" value="0.5" data-k="t" /></label>
+	<div class="pid-calc" data-r="calc"></div>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="أجزاء الدفعة u مع الزمن: جزء P وجزء I وجزء D ومجموعها" data-chart2></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-c2"><i></i>P × e</span>
+			<span class="ai-c3"><i></i>I × ∫e</span>
+			<span class="ai-c4"><i></i>D × de/dt</span>
+			<span class="ai-c5"><i></i>u = المجموع</span>
+		</figcaption>
+	</figure>
 </div>
 
+<style is:global>
+	.pid-sub { margin-top: 1rem; }
+	.pid-rows { display: flex; flex-direction: column; gap: 0.4rem; margin-block: 0.5rem; }
+	.pid-rows > div { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.4rem 0.6rem; border-radius: 0.4rem; background: var(--sl-color-gray-6); border-inline-start: 4px solid var(--c, var(--sl-color-gray-4)); }
+	.pid-rows span { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+	.pid-rows code { direction: ltr; text-align: left; unicode-bidi: isolate; font-family: var(--sl-font-system-mono); font-weight: 700; color: var(--sl-color-white); overflow-wrap: anywhere; }
+	.pid-rows .pid-c2 { --c: #e0a030; } .pid-rows .pid-c3 { --c: #2fb36b; } .pid-rows .pid-c4 { --c: #e5534b; }
+	.pid-rows .pid-sum { --c: #a371f7; background: var(--sl-color-accent-low); }
+</style>
+
 <script>
-	import { stepPid, stepinfo } from '../../scripts/control';
+	import { stepPid, stepinfo, pidTerms } from '../../scripts/control';
 	import { drawChart, num, type Series } from '../../scripts/chart';
 
 	document.querySelectorAll<HTMLElement>('[data-pid-lab]').forEach((root) => {
 		const sl = (k: string) => root.querySelector<HTMLInputElement>(`[data-k="${k}"]`)!;
 		const out = (k: string) => root.querySelector<HTMLElement>(`[data-r="${k}"]`)!;
 		const svg = root.querySelector<SVGSVGElement>('[data-chart]')!;
+		const svg2 = root.querySelector<SVGSVGElement>('[data-chart2]')!;
+		const f3 = (v: number) => (Math.abs(v) < 0.0005 ? 0 : v).toFixed(3).replace('-', '−');
+		const par = (v: number) => (v < -0.0005 ? `(${f3(v)})` : f3(v));
 		let ghost: Series | null = null;
 		let last: { t: number[]; y: number[] } = { t: [], y: [] };
 		let raf = 0;
@@ -53,15 +79,63 @@
 			const P = +sl('P').value;
 			const I = +sl('I').value;
 			const D = +sl('D').value;
-			for (const k of ['P', 'I', 'D']) root.querySelector(`[data-o="${k}"]`)!.textContent = sl(k).value;
+			const tSel = +sl('t').value;
+			for (const k of ['P', 'I', 'D', 't']) root.querySelector(`[data-o="${k}"]`)!.textContent = sl(k).value;
 			const r = stepPid(P, I, D);
 			last = r;
 			const s = stepinfo(r.t, r.y, 1);
 			const unstable = !r.y.every(Number.isFinite) || Math.abs(r.y[r.y.length - 1]) > 10;
+			const k = Math.min(r.t.length - 1, Math.max(0, Math.round(tSel / (r.t[1] - r.t[0]))));
 			const series: Series[] = [];
 			if (ghost) series.push(ghost);
 			series.push({ x: r.t, y: r.y, cls: 'ai-c1' });
-			drawChart(svg, { series, xMin: 0, xMax: 10, yMin: 0, yMax: Math.max(1.6, Math.min(3, s.peak * 1.05)), xLabel: 't (s)', yLabel: 'y', hlines: [{ y: 1, cls: 'ai-ref' }] });
+			drawChart(svg, {
+				series, xMin: 0, xMax: 10, yMin: 0, yMax: Math.max(1.6, Math.min(3, s.peak * 1.05)), xLabel: 't (s)', yLabel: 'y',
+				hlines: [{ y: 1, cls: 'ai-ref' }],
+				vlines: unstable ? [] : [{ x: r.t[k], cls: 'ai-ref' }],
+				points: unstable ? [] : [{ x: r.t[k], y: r.y[k], cls: 'ai-c1' }],
+			});
+
+			// معادلة PID باللحظة المختارة، وأجزاؤها مع الزمن
+			const calc = out('calc');
+			if (unstable) {
+				calc.innerHTML = '<p class="wl-msg">النظام لا يستقر، فلا معنى لحساب الدفعة. خفّف I.</p>';
+				svg2.innerHTML = '';
+			} else {
+				const pt = pidTerms(r.t, r.y, P, I, D);
+				// منقرّب القيم التلاتة أول، ومنحسب منها، لحتى يطلع الجمع بالجدول مضبوط متل ما بيحسبه الطالب بإيده
+				const r3 = (v: number) => Math.round(v * 1000) / 1000;
+				const e = r3(pt.e[k]), ie = r3(pt.ie[k]), de = r3(pt.de[k]);
+				const a = r3(P * e), b = r3(I * ie), c = r3(D * de);
+				const u = r3(a + b + c);
+				const note = u <= -0.01
+					? 'الدفعة <b>سالبة</b>: المتحكم <b>يفرمل</b>، أي يدفع بالاتجاه المعاكس.'
+					: u >= 0.01 ? 'الدفعة <b>موجبة</b>: المتحكم يدفع النظام نحو المطلوب.' : 'الدفعة <b>صفر تقريباً</b>: النظام وصل وهدأ.';
+				calc.innerHTML = `<p>عند <bdi dir="ltr">t = ${r.t[k].toFixed(2)} s</bdi> كان الخرج <bdi dir="ltr">y = ${f3(r.y[k])}</bdi>، فالخطأ <bdi dir="ltr">e = 1 − ${f3(r.y[k])} = ${f3(e)}</bdi>.</p>
+					<div class="pid-rows">
+					<div class="pid-c2"><span>P: الخطأ الآن <bdi dir="ltr">(e = ${f3(e)})</bdi></span><code>P × e = ${P} × ${par(e)} = ${f3(a)}</code></div>
+					<div class="pid-c3"><span>I: مجموع الخطأ منذ البداية <bdi dir="ltr">(∫e = ${f3(ie)})</bdi></span><code>I × ∫e = ${I} × ${par(ie)} = ${f3(b)}</code></div>
+					<div class="pid-c4"><span>D: سرعة تغيّر الخطأ <bdi dir="ltr">(de/dt = ${f3(de)})</bdi></span><code>D × de/dt = ${D} × ${par(de)} = ${f3(c)}</code></div>
+					<div class="pid-sum"><span>u: الدفعة = مجموع الأجزاء الثلاثة</span><code>u = ${f3(a)} + ${par(b)} + ${par(c)} = ${f3(u)}</code></div>
+					</div><p>${note}</p>`;
+				// حدود الرسمة من بعد t = 0.2 (عند البداية بالضبط D بيعطي ضربة كبيرة كتير)
+				const from = r.t.findIndex((v) => v >= 0.2);
+				const vals = [pt.pTerm, pt.iTerm, pt.dTerm, pt.u].flatMap((a) => a.slice(from));
+				const lo = Math.max(-8, Math.min(0, ...vals)), hi = Math.min(8, Math.max(...vals));
+				const pad = (hi - lo) * 0.1 || 0.5;
+				drawChart(svg2, {
+					series: [
+						{ x: r.t, y: pt.pTerm, cls: 'ai-c2' },
+						{ x: r.t, y: pt.iTerm, cls: 'ai-c3' },
+						{ x: r.t, y: pt.dTerm, cls: 'ai-c4' },
+						{ x: r.t, y: pt.u, cls: 'ai-c5' },
+					],
+					xMin: 0, xMax: tSel > 4.5 ? 10 : 5, yMin: lo - pad, yMax: hi + pad, xLabel: 't (s)', yLabel: 'u', height: 220,
+					hlines: [{ y: 0, cls: 'ai-ref' }],
+					vlines: [{ x: r.t[k], cls: 'ai-ref' }],
+					points: [{ x: r.t[k], y: u, cls: 'ai-c5' }],
+				});
+			}
 			out('os').innerHTML = unstable ? '–' : num(s.os, 1, '%');
 			out('ts').innerHTML = unstable || !Number.isFinite(s.ts) ? 'لم يستقر' : num(s.ts, 2, 's');
 			out('yf').innerHTML = unstable ? '–' : num(s.final, 3);
