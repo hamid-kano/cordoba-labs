@@ -11,14 +11,15 @@ const withBase = (path) => `${base.replace(/\/$/, '')}/${path}`;
 // صورة المعاينة لما ينبعت رابط الموقع على واتساب أو تلغرام (لازم رابط كامل)
 const ogImage = new URL(withBase('og-image.png'), site).href;
 
-// إحصائيات الزيارات (GoatCounter): عدد زيارات كل صفحة بدون أسماء ولا كوكيز.
-// حط هون اسم الحساب (الجزء قبل .goatcounter.com). فاضي = الإحصائيات مطفية.
-// الاسم مش سر، عادي يكون عام. وبيعدّ بس على الموقع المنشور، مش localhost ولا XAMPP.
-const goatcounter = '';
+// إحصائيات الزيارات (Umami Cloud، اللوحة على cloud.umami.is): بدون أسماء ولا كوكيز.
+// بدل سكربتهم الخارجي، منبعت نفس الطلب يلي بيبعته (POST لـ /api/send) بسطر صغير، فالموقع بيضل يشتغل بلا إنترنت.
+// الـ ID مش سر. وبيعدّ بس على الموقع المنشور (مش localhost ولا XAMPP)، وفاضي = مطفي.
+// لتستثني جهازك من العدّ: افتح الموقع واكتب بالكونسول localStorage.setItem('umami.disabled', '1')
+const umamiId = '29ab7711-9a08-4c63-a633-b86386fd36c7';
 const countHost = new URL(site).hostname;
-const counterScript = goatcounter && {
+const counterScript = umamiId && {
 	tag: 'script',
-	content: `(function(){try{if(location.hostname!==${JSON.stringify(countHost)}||navigator.webdriver)return;var e=encodeURIComponent,u='https://${goatcounter}.goatcounter.com/count?p='+e(location.pathname)+'&t='+e(document.title)+'&r='+e(document.referrer)+'&s='+e(screen.width+','+screen.height+','+(window.devicePixelRatio||1))+'&rnd='+Math.random().toString(36).slice(2);new Image().src=u;}catch(_){}})();`,
+	content: `(function(){try{var h=location.hostname;if(h!==${JSON.stringify(countHost)}||navigator.webdriver)return;try{if(localStorage.getItem('umami.disabled'))return}catch(_){}var id=${JSON.stringify(umamiId)},r=document.referrer;if(r.indexOf(location.origin+'/')===0)r=r.slice(location.origin.length);var send=function(){fetch('https://gateway.umami.is/api/send',{method:'POST',keepalive:true,credentials:'omit',headers:{'Content-Type':'application/json','x-umami-website-id':id,'x-umami-hostname':h},body:JSON.stringify({type:'event',payload:{website:id,hostname:h,url:location.href,title:document.title,referrer:r,language:navigator.language,screen:screen.width+'x'+screen.height}})}).catch(function(){})};if(document.readyState==='loading')addEventListener('DOMContentLoaded',send);else send();}catch(_){}})();`,
 };
 
 export default defineConfig({
