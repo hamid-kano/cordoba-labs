@@ -10,6 +10,7 @@
 - عربي فقط، RTL (`locales.root = ar, dir rtl`)، خط IBM Plex Sans Arabic **محلي** من `@fontsource/ibm-plex-sans-arabic` (بـ `customCss`، مش Google Fonts)، لحتى الموقع يشتغل كله بدون إنترنت. ما تضيف أي ملف من CDN.
 - المعادلات: `remark-math` + `rehype-katex` (ولازمهم `@astrojs/markdown-remark` لأن Astro 7 صار يستخدم Sätteri افتراضياً).
 - البحث Pagefind (مدمج)، والوضع الليلي مدمج. نصوص البحث العربية بـ `src/content/i18n/ar.json` (ناقصة بترجمة Starlight)، و Pagefind بيستخدم left/right ثابتين فقلبناهن للـ RTL بآخر `custom.css` (وإلا العدسة بتطلع على زر «إلغاء» بالموبايل).
+- **إحصائيات الزيارات:** GoatCounter بدون سكربت خارجي: سطر JS بـ `head` بـ `astro.config.mjs` بيبعت طلب صورة لـ `https://<code>.goatcounter.com/count` (المسار والعنوان وحجم الشاشة)، بس على الدومين المنشور (مش localhost ولا XAMPP) وبدون أسماء ولا كوكيز. بيشتغل لما ينحط اسم الحساب بـ `const goatcounter`، وفاضي = مطفي. **بيانات الطلاب (اسم ورقم جامعي) لسا مش مطلوبة**: المستخدم بدها بس وقت يحط اختبارات، بخانتين بسيطتين (بدون تسجيل دخول)، والأرجح مع Firebase بقواعد «إضافة بس» (مفاتيح Firebase عادي تكون عامة، والحماية بالـ Security Rules).
 - النشر: GitHub Pages عن طريق `.github/workflows/deploy.yml`. الـ `site` والـ `base` بيجوا من متغيرات البيئة `SITE` و `BASE_PATH` (بيعبّيهم `actions/configure-pages`). محلياً الـ base هو `/`.
 
 ## البنية

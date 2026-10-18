@@ -11,6 +11,16 @@ const withBase = (path) => `${base.replace(/\/$/, '')}/${path}`;
 // صورة المعاينة لما ينبعت رابط الموقع على واتساب أو تلغرام (لازم رابط كامل)
 const ogImage = new URL(withBase('og-image.png'), site).href;
 
+// إحصائيات الزيارات (GoatCounter): عدد زيارات كل صفحة بدون أسماء ولا كوكيز.
+// حط هون اسم الحساب (الجزء قبل .goatcounter.com). فاضي = الإحصائيات مطفية.
+// الاسم مش سر، عادي يكون عام. وبيعدّ بس على الموقع المنشور، مش localhost ولا XAMPP.
+const goatcounter = '';
+const countHost = new URL(site).hostname;
+const counterScript = goatcounter && {
+	tag: 'script',
+	content: `(function(){try{if(location.hostname!==${JSON.stringify(countHost)}||navigator.webdriver)return;var e=encodeURIComponent,u='https://${goatcounter}.goatcounter.com/count?p='+e(location.pathname)+'&t='+e(document.title)+'&r='+e(document.referrer)+'&s='+e(screen.width+','+screen.height+','+(window.devicePixelRatio||1))+'&rnd='+Math.random().toString(36).slice(2);new Image().src=u;}catch(_){}})();`,
+};
+
 export default defineConfig({
 	// sql.js (محرر SQL بجلسة نظم التشغيل 5) مكتوبة بصيغة قديمة (CommonJS)، فمنخلّي Vite يجهّزها
 	// من أول ما يشتغل السيرفر، وإلا أول فتحة للصفحة بتعلق بخطأ «Outdated Optimize Dep».
@@ -41,6 +51,7 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { name: 'theme-color', content: '#006738' } },
 				{ tag: 'meta', attrs: { property: 'og:image', content: ogImage } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: ogImage } },
+				...(counterScript ? [counterScript] : []),
 			],
 			components: {
 				SocialIcons: './src/components/PanelToggles.astro',
