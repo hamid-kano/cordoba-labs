@@ -1,0 +1,87 @@
+---
+// لعبة ترتيب مراحل دورة حياة البرمجيات: الطالب بيكبس المراحل بالترتيب الصح.
+const phases = [
+	{ name: 'جمع المتطلبات', hint: 'قبل أي شيء: ماذا يريد الزبون؟' },
+	{ name: 'التصميم', hint: 'نرسم الحل قبل أن نكتب الكود، كما يرسم المهندس البيت قبل أن يبنيه.' },
+	{ name: 'البرمجة', hint: 'نكتب الكود حسب التصميم.' },
+	{ name: 'الاختبار', hint: 'نبحث عن الأخطاء قبل أن يجدها الزبون.' },
+	{ name: 'التسليم', hint: 'نضع البرنامج بين يدي الزبون.' },
+	{ name: 'الصيانة', hint: 'إصلاح وتحسين بعد التسليم، وهي أطول مرحلة في عمر البرنامج.' },
+];
+---
+
+<div class="not-content wl-box" data-phase-order>
+	<h4>رتّب المراحل</h4>
+	<p class="se-hint">اضغط على المراحل <b>بالترتيب الصحيح</b>، من أول شيء يفعله الفريق إلى آخره.</p>
+	<ol class="po-done" data-done></ol>
+	<div class="wl-row po-pool" data-pool>
+		{phases.map((p, i) => <button type="button" class="wl-btn" data-i={i} data-hint={p.hint}>{p.name}</button>)}
+	</div>
+	<p class="wl-msg" data-out="msg">ابدأ: ما أول مرحلة؟</p>
+	<button type="button" class="wl-btn" data-reset hidden>↺ أعد الترتيب</button>
+</div>
+
+<style is:global>
+	.po-done { margin: 0; padding-inline-start: 1.6rem; display: flex; flex-direction: column; gap: 0.3rem; min-height: 0.5rem; }
+	.po-done li { font-weight: 700; }
+	.po-done li small { font-weight: 400; color: var(--sl-color-gray-3); }
+	.po-pool .wl-btn.shake { animation: po-shake 0.35s; background: #e5534b; border-color: #e5534b; color: #111; }
+	@keyframes po-shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-phase-order]').forEach((root) => {
+		const pool = root.querySelector<HTMLElement>('[data-pool]')!;
+		const done = root.querySelector<HTMLOListElement>('[data-done]')!;
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const reset = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+		const btns = [...pool.querySelectorAll<HTMLButtonElement>('[data-i]')];
+		let next = 0, mistakes = 0;
+
+		const shuffle = () => {
+			// خلط عشوائي، بس منتأكد إنه ما يطلع بالترتيب الصح
+			let order = btns.map((_, i) => i);
+			do order.sort(() => Math.random() - 0.5); while (order.every((v, i) => v === i));
+			order.forEach((i) => pool.append(btns[i]));
+		};
+		const start = () => {
+			next = 0;
+			mistakes = 0;
+			done.innerHTML = '';
+			btns.forEach((b) => (b.hidden = false));
+			msg.className = 'wl-msg';
+			msg.textContent = 'ابدأ: ما أول مرحلة؟';
+			reset.hidden = true;
+			shuffle();
+		};
+
+		btns.forEach((b) =>
+			b.addEventListener('click', () => {
+				if (+b.dataset.i! === next) {
+					b.hidden = true;
+					const li = document.createElement('li');
+					li.innerHTML = `${b.textContent} <small>— ${b.dataset.hint}</small>`;
+					done.append(li);
+					next++;
+					if (next === btns.length) {
+						msg.className = 'wl-msg wl-good';
+						msg.textContent = mistakes === 0 ? '✓ ممتاز، بدون أي خطأ! هذا هو ترتيب الشلال.' : `✓ أحسنت! (أخطاء: ${mistakes}) هذا هو ترتيب الشلال.`;
+						reset.hidden = false;
+					} else {
+						msg.className = 'wl-msg';
+						msg.textContent = 'صحيح. ما التالي؟';
+					}
+				} else {
+					mistakes++;
+					b.classList.remove('shake');
+					void b.offsetWidth;
+					b.classList.add('shake');
+					msg.className = 'wl-msg wl-bad';
+					msg.textContent = `ليس بعد. تلميح: ${btns[next].dataset.hint}`;
+				}
+			}),
+		);
+		reset.addEventListener('click', start);
+		start();
+	});
+</script>

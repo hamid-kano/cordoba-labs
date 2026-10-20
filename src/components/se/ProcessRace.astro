@@ -1,0 +1,175 @@
+---
+// سباق الشلال والرشيق على نفس المشروع (هندسة البرمجيات: دورة الحياة).
+// أولاً الطالب بيتوقّع، وبعدين بيشوف النتيجة وبيلعب بأسبوع التغيير. الحساب بـ src/scripts/se.ts
+---
+
+<div class="not-content wl-box" data-race>
+	<h4>سباق المشروعين: الشلال ضد الرشيق</h4>
+	<p class="se-hint">فريقان يبنيان <b>التطبيق نفسه</b>. الأول يعمل بنموذج <b>الشلال</b>، والثاني بالنموذج <b>الرشيق</b>. وفي منتصف العمل يطلب الزبون تغييراً.</p>
+
+	<div class="se-predict" data-predict>
+		<p><b>توقّع أولاً:</b> سيطلب الزبون تغييراً في <b>الأسبوع 9</b>. أيّ الفريقين يسلّم المشروع كاملاً أولاً؟</p>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-guess="wf">فريق الشلال</button>
+			<button type="button" class="wl-btn" data-guess="ag">فريق الرشيق</button>
+			<button type="button" class="wl-btn" data-guess="tie">في الوقت نفسه</button>
+		</div>
+	</div>
+
+	<div data-body hidden>
+		<p class="wl-msg" data-out="verdict"></p>
+		<div class="se-controls">
+			<label class="ai-slider"><span>يطلب الزبون التغيير في الأسبوع<output data-o="c"></output></span><input type="range" min="1" max="11" step="1" value="9" data-k="c" /></label>
+			<label class="ai-check"><input type="checkbox" data-k="none" /> بدون أي تغيير</label>
+			<div class="wl-row">
+				<button type="button" class="wl-btn primary" data-play>▶ شغّل الزمن</button>
+			</div>
+		</div>
+
+		<div class="se-race" dir="ltr">
+			<div class="se-lane">
+				<div class="se-name" dir="rtl">الشلال</div>
+				<div class="se-bar" data-bar="wf"></div>
+			</div>
+			<div class="se-lane">
+				<div class="se-name" dir="rtl">الرشيق</div>
+				<div class="se-bar" data-bar="ag"></div>
+			</div>
+			<div class="se-lane">
+				<div class="se-name"></div>
+				<div class="se-axis" data-axis></div>
+			</div>
+			<div class="se-cursor" data-cursor><span data-o="week"></span></div>
+		</div>
+		<p class="se-legend">
+			<span><i class="k-phase"></i>مرحلة</span><span><i class="k-rework"></i>إعادة العمل</span><span><i class="k-sprint"></i>دورة قصيرة</span><span><i class="k-change"></i>تعديل</span><span><i class="k-plan"></i>تخطيط</span><span>📦 نسخة شغّالة تصل إلى الزبون</span>
+		</p>
+
+		<div class="wl-grid">
+			<div class="wl-out"><span>الشلال: التسليم الكامل</span><strong data-out="wfD"></strong></div>
+			<div class="wl-out"><span>الرشيق: التسليم الكامل</span><strong data-out="agD"></strong></div>
+			<div class="wl-out"><span>أول نسخة يجرّبها الزبون</span><strong data-out="first"></strong></div>
+		</div>
+		<p class="wl-msg" data-out="msg"></p>
+		<p class="se-note">نموذج مبسّط للتوضيح: الأرقام ليست قياساً حقيقياً، لكن الفكرة صحيحة: <b>كلما اكتُشف التغيير متأخراً في الشلال، صار أغلى</b>.</p>
+	</div>
+</div>
+
+<style is:global>
+	.se-hint { margin: 0; }
+	.se-predict { padding: 0.75rem; border-radius: 0.5rem; border: 2px dashed var(--sl-color-accent); }
+	.se-predict p { margin: 0 0 0.5rem; }
+	.se-controls { display: flex; flex-direction: column; gap: 0.5rem; }
+	.se-race { position: relative; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+	.se-lane { display: grid; grid-template-columns: 4.2rem 1fr; align-items: center; gap: 0.4rem; }
+	.se-name { font-weight: 700; font-size: var(--sl-text-sm); text-align: end; }
+	.se-bar { position: relative; height: 2.6rem; border-radius: 0.35rem; background: var(--sl-color-gray-6); }
+	.se-seg { position: absolute; top: 0; height: 1.9rem; border-inline-end: 2px solid var(--sl-color-bg); display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 0.68rem; font-weight: 700; color: #111; white-space: nowrap; border-radius: 0.25rem; }
+	.se-ver { position: absolute; bottom: -0.15rem; transform: translateX(-50%); font-size: 0.8rem; line-height: 1; }
+	.k-phase { background: #3a9ec2; } .k-rework { background: #e5534b; } .k-sprint { background: #2fb36b; } .k-plan { background: var(--sl-color-gray-4); } .k-change { background: #e0a030; }
+	.se-cover { position: absolute; top: 0; bottom: 0; right: 0; background: var(--sl-color-gray-6); opacity: 0.85; border-radius: 0 0.35rem 0.35rem 0; }
+	.se-axis { position: relative; height: 1.1rem; font-size: 0.7rem; color: var(--sl-color-gray-3); }
+	.se-axis span { position: absolute; transform: translateX(-50%); }
+	.se-cursor { position: absolute; top: -0.4rem; bottom: 1rem; width: 0; border-left: 2px dashed var(--sl-color-white); pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+	.se-cursor.on { opacity: 1; }
+	.se-cursor span { position: absolute; top: -1rem; left: 0; transform: translateX(-50%); font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
+	.se-legend { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; font-size: var(--sl-text-xs); color: var(--sl-color-gray-2); margin: 0.25rem 0 0; }
+	.se-legend i { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 0.2rem; vertical-align: middle; margin-inline-end: 0.3rem; }
+	.se-note { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin: 0; }
+	.wl-btn.right { background: #2fb36b; border-color: #2fb36b; color: #111; }
+	.wl-btn.wrong { background: #e5534b; border-color: #e5534b; color: #111; }
+</style>
+
+<script>
+	import { waterfall, agile, type RaceResult } from '../../scripts/se';
+
+	const MAXW = 20; // طول المحور بالأسابيع
+	const pct = (w: number) => `${(w / MAXW) * 100}%`;
+
+	document.querySelectorAll<HTMLElement>('[data-race]').forEach((root) => {
+		const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+		const out = (k: string) => $(`[data-out="${k}"]`);
+		const cSl = $<HTMLInputElement>('[data-k="c"]');
+		const none = $<HTMLInputElement>('[data-k="none"]');
+		const cursor = $('[data-cursor]');
+		const lanes = { wf: $('[data-bar="wf"]'), ag: $('[data-bar="ag"]') };
+		let anim = 0;
+
+		// المحور
+		$('[data-axis]').innerHTML = Array.from({ length: MAXW / 2 + 1 }, (_, i) => `<span style="left:${pct(i * 2)}">${i * 2}</span>`).join('');
+
+		// الاسم بيبيّن بس إذا المقطع عريض كفاية (عالموبايل المراحل القصيرة بتضل بلا اسم، والاسم بيطلع بالـ title)
+		const fits = (el: HTMLElement, s: { start: number; end: number; label: string }) => ((el.clientWidth || 300) / MAXW) * (s.end - s.start) >= s.label.length * 7 + 6;
+		const drawLane = (el: HTMLElement, r: RaceResult) => {
+			el.innerHTML =
+				r.segs.map((s) => `<div class="se-seg k-${s.kind}" style="left:${pct(s.start)};width:${pct(s.end - s.start)}" title="${s.label}">${fits(el, s) ? s.label : ''}</div>`).join('') +
+				r.versions.map((v) => `<span class="se-ver" style="left:${pct(v)}">📦</span>`).join('') +
+				`<div class="se-cover" data-cover></div>`;
+		};
+
+		// غطاء رمادي من المؤشر لآخر المحور (الزمن يلي لسا ما صار)
+		const setTime = (w: number) => {
+			cursor.style.left = `calc(4.6rem + (100% - 4.6rem) * ${w / MAXW})`;
+			cursor.querySelector('span')!.textContent = `الأسبوع ${Math.round(w)}`;
+			root.querySelectorAll<HTMLElement>('[data-cover]').forEach((c) => (c.style.left = pct(w)));
+		};
+
+		function run(keepTime = false) {
+			const c = none.checked ? null : +cSl.value;
+			cSl.disabled = none.checked;
+			$('[data-o="c"]').textContent = none.checked ? '–' : cSl.value;
+			const w = waterfall(c), a = agile(c);
+			drawLane(lanes.wf, w);
+			drawLane(lanes.ag, a);
+			if (!keepTime) setTime(MAXW);
+			const wk = (n: number) => `<bdi dir="ltr">${n}</bdi> أسبوعاً`;
+			out('wfD').innerHTML = `<span dir="rtl">${wk(w.delivery)}${w.extra ? ` <small>(زيادة <bdi dir="ltr">${w.extra}</bdi>)</small>` : ''}</span>`;
+			out('agD').innerHTML = `<span dir="rtl">${wk(a.delivery)}${a.extra ? ` <small>(زيادة <bdi dir="ltr">${a.extra}</bdi>)</small>` : ''}</span>`;
+			out('first').innerHTML = `<span dir="rtl">الشلال: الأسبوع <bdi dir="ltr">${w.firstVersion}</bdi> · الرشيق: الأسبوع <bdi dir="ltr">${a.firstVersion}</bdi></span>`;
+			const m = out('msg');
+			if (c === null) m.innerHTML = 'بدون تغيير يفوز <b>الشلال</b> بفارق صغير: لا توجد اجتماعات وتخطيط متكرر. فالشلال جيد عندما تكون المتطلبات ثابتة وواضحة.';
+			else if (w.delivery < a.delivery) m.innerHTML = 'التغيير جاء <b>مبكراً</b> (والفريق ما زال في المتطلبات)، فكلفته في الشلال صغيرة.';
+			else if (w.delivery === a.delivery) m.innerHTML = 'تعادل: التغيير جاء في التصميم، فكلفته في الشلال ما زالت معقولة.';
+			else m.innerHTML = `التغيير جاء في مرحلة <b>متأخرة</b>، فاضطر فريق الشلال إلى إعادة <bdi dir="ltr">${w.extra}</bdi> أسابيع من العمل، بينما أدخله الرشيق في دورته القادمة بأسبوع واحد.`;
+		}
+
+		// التوقّع أولاً
+		root.querySelectorAll<HTMLButtonElement>('[data-guess]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const ok = b.dataset.guess === 'ag';
+				root.querySelectorAll<HTMLButtonElement>('[data-guess]').forEach((x) => (x.disabled = true));
+				b.classList.add(ok ? 'right' : 'wrong');
+				$('[data-guess="ag"]').classList.add('right');
+				const v = out('verdict');
+				v.className = 'wl-msg ' + (ok ? 'wl-good' : 'wl-bad');
+				v.textContent = ok ? '✓ توقّع صحيح! شاهد لماذا في الأسفل.' : '✗ ليس هذه المرة. شاهد ماذا حدث في الأسفل.';
+				$('[data-body]').hidden = false;
+				run();
+				play();
+			}),
+		);
+
+		function play() {
+			cancelAnimationFrame(anim);
+			const t0 = performance.now(), dur = 4000;
+			cursor.classList.add('on');
+			const step = (now: number) => {
+				const f = Math.min(1, (now - t0) / dur);
+				setTime(f * MAXW);
+				if (f < 1) anim = requestAnimationFrame(step);
+				else cursor.classList.remove('on');
+			};
+			anim = requestAnimationFrame(step);
+		}
+
+		const stopAndRun = () => { cancelAnimationFrame(anim); cursor.classList.remove('on'); run(); };
+		cSl.addEventListener('input', stopAndRun);
+		let lastW = innerWidth;
+		addEventListener('resize', () => { if (innerWidth !== lastW && !$('[data-body]').hidden) { lastW = innerWidth; stopAndRun(); } });
+		none.addEventListener('change', stopAndRun);
+		$('[data-play]').addEventListener('click', () => {
+			run();
+			play();
+		});
+	});
+</script>

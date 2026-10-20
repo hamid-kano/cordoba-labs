@@ -1,0 +1,67 @@
+---
+// اختر النموذج المناسب لكل مشروع: الشلال أم الرشيق؟ مع السبب بعد الجواب.
+const items: { q: string; a: 'wf' | 'ag'; why: string }[] = [
+	{ q: 'برنامج يتحكم بجهاز طبي في مستشفى. المتطلبات محددة بالقانون ولا تتغير، وأي خطأ خطير.', a: 'wf', why: 'المتطلبات ثابتة ومعروفة، ونحتاج توثيقاً واختباراً دقيقاً لكل مرحلة قبل التي بعدها.' },
+	{ q: 'تطبيق توصيل طعام لشركة ناشئة. صاحب الشركة غير متأكد مما يريده بالضبط.', a: 'ag', why: 'المتطلبات ستتغير كثيراً، فنسلّم نسخة صغيرة بسرعة ونحسّنها حسب رأي الزبائن.' },
+	{ q: 'نظام رواتب لدائرة حكومية. القواعد مكتوبة وثابتة منذ سنوات.', a: 'wf', why: 'نعرف كل شيء من البداية، فلا داعي لدورات تخطيط متكررة.' },
+	{ q: 'لعبة على الهاتف. نريد رأي اللاعبين بعد كل تحديث.', a: 'ag', why: 'كل دورة قصيرة تعطي نسخة يجرّبها اللاعبون، ونعدّل حسب رأيهم.' },
+	{ q: 'موقع للجامعة يُضاف إليه كل فصل شيء جديد حسب ملاحظات الطلاب.', a: 'ag', why: 'العمل مستمر والمتطلبات تأتي على دفعات، وهذا ما صُمّم له الرشيق.' },
+	{ q: 'برنامج لجسر يقيس الاهتزاز. العقد يحدد كل المواصفات والسعر والموعد مسبقاً.', a: 'wf', why: 'العقد ثابت والمواصفات كاملة من البداية، والشلال يسهّل متابعة المراحل والموعد.' },
+];
+---
+
+<div class="not-content wl-box" data-model-picker>
+	<h4>أنت مدير المشروع: أيّ نموذج تختار؟</h4>
+	<ol class="mp-list">
+		{
+			items.map((it) => (
+				<li data-a={it.a}>
+					<span class="mp-q">{it.q}</span>
+					<span class="wl-row">
+						<button type="button" class="wl-btn" data-k="wf">الشلال</button>
+						<button type="button" class="wl-btn" data-k="ag">الرشيق</button>
+					</span>
+					<span class="mp-why" hidden>{it.why}</span>
+				</li>
+			))
+		}
+	</ol>
+	<p class="wl-msg" data-out="score"></p>
+</div>
+
+<style is:global>
+	.mp-list { margin: 0; padding-inline-start: 1.4rem; display: flex; flex-direction: column; gap: 0.8rem; }
+	.mp-list li { display: flex; flex-direction: column; gap: 0.35rem; }
+	.mp-q { font-weight: 600; color: var(--sl-color-white); }
+	.mp-why { font-size: var(--sl-text-sm); }
+	.wl-btn.right { background: #2fb36b; border-color: #2fb36b; color: #111; }
+	.wl-btn.wrong { background: #e5534b; border-color: #e5534b; color: #111; }
+</style>
+
+<script>
+	const NAME = { wf: 'الشلال', ag: 'الرشيق' } as const;
+	document.querySelectorAll<HTMLElement>('[data-model-picker]').forEach((root) => {
+		const lis = [...root.querySelectorAll<HTMLLIElement>('li[data-a]')];
+		const score = root.querySelector<HTMLElement>('[data-out="score"]')!;
+		const done = new Map<HTMLLIElement, boolean>();
+		lis.forEach((li) =>
+			li.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((b) =>
+				b.addEventListener('click', () => {
+					if (done.has(li)) return;
+					const ok = b.dataset.k === li.dataset.a;
+					done.set(li, ok);
+					b.classList.add(ok ? 'right' : 'wrong');
+					li.querySelector(`[data-k="${li.dataset.a}"]`)!.classList.add('right');
+					li.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((x) => (x.disabled = true));
+					const why = li.querySelector<HTMLElement>('.mp-why')!;
+					why.hidden = false;
+					why.textContent = `${ok ? '✓ صحيح.' : `✗ الأنسب: ${NAME[li.dataset.a as 'wf' | 'ag']}.`} ${why.textContent}`;
+					const right = [...done.values()].filter(Boolean).length;
+					const end = done.size === lis.length;
+					score.className = 'wl-msg' + (end ? (right >= 5 ? ' wl-good' : ' wl-bad') : '');
+					score.textContent = `النتيجة: ${right} من ${done.size}` + (end ? (right >= 5 ? '. أنت مدير مشروع ممتاز!' : '. القاعدة: متطلبات ثابتة ← الشلال، ومتطلبات تتغير ← الرشيق.') : '');
+				}),
+			),
+		);
+	});
+</script>

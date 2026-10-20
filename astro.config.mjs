@@ -85,6 +85,12 @@ export default defineConfig({
 					collapsed: true,
 					items: [{ autogenerate: { directory: 'rts' } }],
 				},
+				// مراجع تفاعلية لمواد ما بيدرّسها المستخدم (مش جلسات): كل مادة بمجلد تحت refs/
+				{
+					label: 'المراجع',
+					collapsed: true,
+					items: [{ label: 'هندسة البرمجيات', collapsed: true, items: [{ autogenerate: { directory: 'refs/se' } }] }],
+				},
 			],
 		}),
 	],

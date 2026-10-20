@@ -1,0 +1,60 @@
+---
+// الشلال (درج: كل مرحلة مرة وحدة بالترتيب) جنب الرشيق (دولاب بيتكرر وبيطلع نسخة كل دورة)
+const wf = ['المتطلبات', 'التصميم', 'البرمجة', 'الاختبار', 'التسليم'];
+const BW = 104, BH = 34;
+const wfBox = wf.map((t, i) => ({ t, x: 526 - i * 44, y: 20 + i * 50 })); // x = الطرف اليساري
+
+const cx = 165, cy = 140, r = 104;
+const nodes = [
+	{ t: 'تخطيط', a: -90, w: 76 },
+	{ t: 'برمجة', a: 0, w: 76 },
+	{ t: 'اختبار', a: 90, w: 76 },
+	{ t: 'رأي الزبون', a: 180, w: 96 },
+];
+const rad = (d: number) => (d * Math.PI) / 180;
+const pt = (d: number) => [cx + r * Math.cos(rad(d)), cy + r * Math.sin(rad(d))];
+// أقواس باتجاه عقارب الساعة بين العقد، بعيدة شوي عن الصناديق
+const arcs = nodes.map((n, i) => {
+	const a1 = n.a + 31, a2 = nodes[(i + 1) % 4].a + (i === 3 ? 360 : 0) - 31;
+	const [x1, y1] = pt(a1), [x2, y2] = pt(a2);
+	return `M${x1.toFixed(1)} ${y1.toFixed(1)} A${r} ${r} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+});
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 640 330" role="img" aria-label="يمين: الشلال، مراحل متتالية تنزل كالدرج وتحدث مرة واحدة. يسار: الرشيق، دورة مدتها أسبوعان تتكرر من التخطيط إلى البرمجة إلى الاختبار إلى رأي الزبون، وتعطي نسخة شغّالة كل مرة">
+		<defs>
+			<marker id="sdlc-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+			</marker>
+		</defs>
+
+		<!-- الشلال -->
+		{wfBox.map((b, i) => (
+			<g>
+				<rect x={b.x} y={b.y} width={BW} height={BH} rx="6" class="d-box"></rect>
+				<text x={b.x + BW / 2} y={b.y + 23} class="d-s d-b">{b.t}</text>
+				{i < wfBox.length - 1 && <line x1={b.x + 22} y1={b.y + BH} x2={b.x + 22} y2={b.y + 49} class="d-line" marker-end="url(#sdlc-ar)"></line>}
+			</g>
+		))}
+		<text x="480" y="322" class="d-t d-b">الشلال: مرة واحدة، بالترتيب</text>
+
+		<!-- الرشيق -->
+		{arcs.map((d) => <path d={d} class="d-line d-green" marker-end="url(#sdlc-ar)"></path>)}
+		{nodes.map((n) => {
+			const [x, y] = pt(n.a);
+			return (
+				<g>
+					<rect x={x - n.w / 2} y={y - 17} width={n.w} height="34" rx="17" class="d-box2" style="stroke:#2fb36b"></rect>
+					<text x={x} y={y + 6} class="d-s d-b">{n.t}</text>
+				</g>
+			);
+		})}
+		<text x={cx} y={cy + 6} class="d-s">أسبوعان</text>
+		<text x={cx} y="286" class="d-s d-b" style="fill:#2fb36b">📦 نسخة شغّالة كل دورة</text>
+		<text x={cx} y="322" class="d-t d-b">الرشيق: دورات قصيرة تتكرر</text>
+	</svg>
+	<figcaption>
+		في <strong>الشلال</strong> لا نعود إلى مرحلة انتهت، فالزبون يرى البرنامج في النهاية فقط. وفي <strong>الرشيق</strong> نكرّر دورة قصيرة، وفي آخر كل دورة يجرّب الزبون نسخة شغّالة ويقول رأيه.
+	</figcaption>
+</figure>
