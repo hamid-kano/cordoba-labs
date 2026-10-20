@@ -1,0 +1,84 @@
+---
+// دورة TDD خطوة خطوة لدالة السنة الكبيسة: اختبار أحمر ← كود أخضر ← تحسين.
+// كل خطوة: الكود الحالي، ونتيجة كل الاختبارات المكتوبة لهلق.
+const steps = [
+	{ ph: 'red', say: 'نكتب اختباراً أولاً، قبل أي كود: سنة 2024 كبيسة. الدالة غير موجودة، فالاختبار يفشل.', code: '// no code yet', tests: 1 },
+	{ ph: 'green', say: 'نكتب أبسط كود يجعل الاختبار ينجح: كل سنة تقبل القسمة على 4 كبيسة.', code: 'boolean isLeap(int y) {\n    return y % 4 == 0;\n}', tests: 1 },
+	{ ph: 'red', say: 'اختبار جديد: سنة 1900 ليست كبيسة (تقبل القسمة على 100). الكود الحالي يقول «نعم»، فيفشل.', code: 'boolean isLeap(int y) {\n    return y % 4 == 0;\n}', tests: 2 },
+	{ ph: 'green', say: 'نضيف شرطاً: ولا تقبل القسمة على 100. نجح الاختباران.', code: 'boolean isLeap(int y) {\n    return y % 4 == 0 && y % 100 != 0;\n}', tests: 2 },
+	{ ph: 'red', say: 'اختبار جديد: سنة 2000 كبيسة (تقبل القسمة على 400). الكود الحالي يقول «لا»، فيفشل.', code: 'boolean isLeap(int y) {\n    return y % 4 == 0 && y % 100 != 0;\n}', tests: 3 },
+	{ ph: 'green', say: 'نضيف: أو تقبل القسمة على 400. نجحت الاختبارات الثلاثة.', code: 'boolean isLeap(int y) {\n    return (y % 4 == 0 && y % 100 != 0)\n        || y % 400 == 0;\n}', tests: 3 },
+	{ ph: 'refactor', say: 'نحسّن الكود ليصبح أوضح، دون أن نغيّر سلوكه. ونشغّل الاختبارات: ما زالت كلها خضراء، فنحن واثقون أننا لم نكسر شيئاً.', code: 'boolean isLeap(int y) {\n    boolean by4   = y % 4 == 0;\n    boolean by100 = y % 100 == 0;\n    boolean by400 = y % 400 == 0;\n    return by400 || (by4 && !by100);\n}', tests: 3 },
+];
+const TESTS = [
+	{ t: 'isLeap(2024) == true', y: 2024, want: true },
+	{ t: 'isLeap(1900) == false', y: 1900, want: false },
+	{ t: 'isLeap(2000) == true', y: 2000, want: true },
+];
+---
+
+<div class="not-content wl-box" data-tdd data-steps={JSON.stringify(steps)} data-tests={JSON.stringify(TESTS)}>
+	<h4>🔴🟢🔵 دورة TDD: دالة السنة الكبيسة</h4>
+	<div class="tdd-phases">
+		<span data-ph="red">🔴 أحمر: اختبار يفشل</span>
+		<span data-ph="green">🟢 أخضر: كود ينجح</span>
+		<span data-ph="refactor">🔵 تحسين</span>
+	</div>
+	<p class="wl-msg" data-out="say"></p>
+	<pre class="tdd-code" dir="ltr" data-out="code"></pre>
+	<ul class="tdd-tests" dir="ltr" data-out="tests"></ul>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-prev>→ السابق</button>
+		<button type="button" class="wl-btn primary" data-next>التالي ←</button>
+		<span class="se-note" data-out="n"></span>
+	</div>
+</div>
+
+<style is:global>
+	.tdd-phases { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+	.tdd-phases span { padding: 0.2rem 0.6rem; border-radius: 1rem; border: 2px solid var(--sl-color-gray-5); font-size: var(--sl-text-sm); opacity: 0.5; transition: opacity 0.25s; }
+	.tdd-phases span.on { opacity: 1; font-weight: 700; }
+	.tdd-phases span.on[data-ph='red'] { border-color: #e5534b; }
+	.tdd-phases span.on[data-ph='green'] { border-color: #2fb36b; }
+	.tdd-phases span.on[data-ph='refactor'] { border-color: #3a9ec2; }
+	.tdd-code { font-size: 0.8rem; padding: 0.6rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); overflow-x: auto; margin: 0; min-height: 3.5rem; }
+	.tdd-tests { margin: 0; padding: 0; list-style: none; font-family: var(--__sl-font-mono); font-size: 0.8rem; text-align: left; }
+	.tdd-tests li { padding: 0.15rem 0.4rem; border-radius: 0.25rem; margin-bottom: 0.2rem; }
+	.tdd-tests li.pass { background: rgb(47 179 107 / 0.22); }
+	.tdd-tests li.fail { background: rgb(229 83 75 / 0.25); }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-tdd]').forEach((root) => {
+		const steps: { ph: string; say: string; code: string; tests: number }[] = JSON.parse(root.dataset.steps!);
+		const TESTS: { t: string; y: number; want: boolean }[] = JSON.parse(root.dataset.tests!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		// نقيّم الكود بالخطوة نفسها: كل خطوة إلها دالة مقابلة بالـ JS
+		const fns: ((y: number) => boolean | null)[] = [
+			() => null,
+			(y) => y % 4 === 0, (y) => y % 4 === 0,
+			(y) => y % 4 === 0 && y % 100 !== 0, (y) => y % 4 === 0 && y % 100 !== 0,
+			(y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0, (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0,
+		];
+		let i = 0;
+		const draw = () => {
+			const s = steps[i];
+			root.querySelectorAll<HTMLElement>('[data-ph]').forEach((p) => p.classList.toggle('on', p.dataset.ph === s.ph));
+			const say = $('say');
+			say.className = 'wl-msg ' + (s.ph === 'red' ? 'wl-bad' : 'wl-good');
+			say.textContent = s.say;
+			$('code').textContent = s.code;
+			$('tests').innerHTML = TESTS.slice(0, s.tests).map((t) => {
+				const got = fns[i](t.y);
+				const ok = got === t.want;
+				return `<li class="${ok ? 'pass' : 'fail'}">${ok ? '✓' : '✗'} ${t.t}${ok ? '' : got === null ? '  // isLeap not found' : `  // got ${got}`}</li>`;
+			}).join('');
+			$('n').textContent = `الخطوة ${i + 1} من ${steps.length}`;
+			root.querySelector<HTMLButtonElement>('[data-prev]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-next]')!.disabled = i === steps.length - 1;
+		};
+		root.querySelector('[data-prev]')!.addEventListener('click', () => { if (i > 0) { i--; draw(); } });
+		root.querySelector('[data-next]')!.addEventListener('click', () => { if (i < steps.length - 1) { i++; draw(); } });
+		draw();
+	});
+</script>

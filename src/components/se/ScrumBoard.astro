@@ -1,0 +1,138 @@
+---
+// محاكاة دورة Scrum: لوحة مهام بتلات أعمدة ومخطط إنجاز (Burndown).
+// كل يوم الفريق بينجز 3 نقاط على المهام «قيد العمل» (الأولى ثم التانية)، والحد الأقصى بالعمود مهمتين.
+// إذا ضل العمود فاضي، اليوم بيروح على الفاضي. 10 أيام × 3 = 30 نقطة، والمهام 28.
+const cards = [
+	{ id: 'c1', t: 'تسجيل الدخول', p: 3 },
+	{ id: 'c2', t: 'صفحة المنتج', p: 5 },
+	{ id: 'c3', t: 'البحث', p: 3 },
+	{ id: 'c4', t: 'السلة', p: 5 },
+	{ id: 'c5', t: 'الدفع', p: 8 },
+	{ id: 'c6', t: 'الإيصال', p: 2 },
+	{ id: 'c7', t: 'تقييم المنتج', p: 2 },
+];
+---
+
+<div class="not-content wl-box" data-scrum data-cards={JSON.stringify(cards)}>
+	<h4>🗂️ أدِر دورة (Sprint) من 10 أيام</h4>
+	<p class="se-hint">
+		الفريق ينجز <b>3 نقاط</b> كل يوم من المهام الموجودة في «قيد العمل». اضغط على مهمة في «للقيام به» لتبدأ العمل عليها (مهمتان كحد أقصى في الوقت نفسه)، ثم اضغط «انتهى اليوم». هل تنهي كل المهام خلال 10 أيام؟
+	</p>
+	<div class="sb-cols">
+		<div class="sb-col"><b>📋 للقيام به</b><div data-col="todo"></div></div>
+		<div class="sb-col"><b>🔨 قيد العمل <small>(حد أقصى 2)</small></b><div data-col="doing"></div></div>
+		<div class="sb-col"><b>✅ تم</b><div data-col="done"></div></div>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-day>☀️ انتهى اليوم</button>
+		<button type="button" class="wl-btn" data-reset>↺ دورة جديدة</button>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>اليوم</span><strong data-out="day"></strong></div>
+		<div class="wl-out"><span>النقاط المتبقية</span><strong data-out="left"></strong></div>
+	</div>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="مخطط الإنجاز: النقاط المتبقية مع الأيام، مع الخط المثالي" data-chart></svg>
+		<figcaption class="ai-legend"><span class="ai-c1"><i></i>المتبقي فعلاً</span><span class="ai-ref"><i class="dash"></i>الخط المثالي</span></figcaption>
+	</figure>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.sb-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+	.sb-col { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.4rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); min-height: 8rem; font-size: var(--sl-text-xs); }
+	.sb-col > div { display: flex; flex-direction: column; gap: 0.3rem; }
+	.sb-card { font: inherit; text-align: start; padding: 0.3rem 0.4rem; border-radius: 0.35rem; border: 1px solid var(--sl-color-gray-4); background: var(--sl-color-bg); color: var(--sl-color-white); }
+	.sb-card[data-move] { cursor: pointer; }
+	.sb-card[data-move]:hover { border-color: var(--sl-color-accent); }
+	.sb-card em { font-style: normal; float: inline-end; font-weight: 700; color: #e0a030; }
+	.sb-card .sb-prog { display: block; height: 0.3rem; margin-top: 0.25rem; border-radius: 99px; background: var(--sl-color-gray-5); overflow: hidden; }
+	.sb-card .sb-prog i { display: block; height: 100%; background: #2fb36b; }
+	.sb-done { opacity: 0.6; text-decoration: line-through; }
+</style>
+
+<script>
+	import { drawChart } from '../../scripts/chart';
+	import { idealBurn } from '../../scripts/se';
+
+	const DAYS = 10, CAP = 3, WIP = 2;
+	document.querySelectorAll<HTMLElement>('[data-scrum]').forEach((root) => {
+		const base: { id: string; t: string; p: number }[] = JSON.parse(root.dataset.cards!);
+		const total = base.reduce((s, c) => s + c.p, 0);
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const chart = root.querySelector<SVGSVGElement>('[data-chart]')!;
+		let st: Record<string, { col: 'todo' | 'doing' | 'done'; done: number }>, day: number, hist: number[], idle: number;
+
+		const left = () => base.reduce((s, c) => s + (c.p - st[c.id].done), 0);
+		const reset = () => {
+			st = Object.fromEntries(base.map((c) => [c.id, { col: 'todo' as const, done: 0 }]));
+			day = 0;
+			hist = [total];
+			idle = 0;
+			draw();
+		};
+		function draw() {
+			for (const col of ['todo', 'doing', 'done'] as const) {
+				const doingFull = base.filter((c) => st[c.id].col === 'doing').length >= WIP;
+				root.querySelector(`[data-col="${col}"]`)!.innerHTML = base
+					.filter((c) => st[c.id].col === col)
+					.map((c) => {
+						const can = col === 'todo' && !doingFull && day < DAYS;
+						const prog = col === 'doing' ? `<span class="sb-prog"><i style="width:${(st[c.id].done / c.p) * 100}%"></i></span>` : '';
+						return `<button type="button" class="sb-card${col === 'done' ? ' sb-done' : ''}" ${can ? `data-move="${c.id}"` : 'disabled'}>${c.t} <em>${c.p}</em>${prog}</button>`;
+					})
+					.join('');
+			}
+			out('day').innerHTML = `<span dir="rtl">${day} من ${DAYS}</span>`;
+			out('left').textContent = String(left());
+			drawChart(chart, {
+				series: [
+					{ x: Array.from({ length: DAYS + 1 }, (_, i) => i), y: idealBurn(total, DAYS), cls: 'ai-ref' },
+					{ x: hist.map((_, i) => i), y: hist, cls: 'ai-c1' },
+				],
+				xMin: 0, xMax: DAYS, yMin: 0, yMax: total, xLabel: 'day', yLabel: 'pts', height: 190,
+				points: [{ x: hist.length - 1, y: hist[hist.length - 1], cls: 'ai-c1' }],
+			});
+			const msg = out('msg');
+			const l = left();
+			(root.querySelector('[data-day]') as HTMLButtonElement).disabled = day >= DAYS || l === 0;
+			if (l === 0) {
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = `🎉 أنهيت كل المهام في ${day} أيام! الفريق لم يتوقف ولا يوماً، والخط الأزرق نزل مع الخط المثالي.`;
+			} else if (day >= DAYS) {
+				msg.className = 'wl-msg wl-bad';
+				msg.textContent = `انتهت الدورة وبقيت ${l} نقاط. ` + (idle ? `ضاع ${idle} نقاط لأن عمود «قيد العمل» كان فارغاً أو ناقصاً. المهام غير المنتهية تعود إلى قائمة المنتج للدورة القادمة.` : 'المهام غير المنتهية تعود إلى قائمة المنتج للدورة القادمة.');
+			} else if (!base.some((c) => st[c.id].col === 'doing')) {
+				msg.className = 'wl-msg';
+				msg.textContent = day === 0 ? 'ابدأ: اختر مهمة أو مهمتين من «للقيام به».' : '⚠️ لا توجد مهمة قيد العمل! إذا أنهيت اليوم الآن، يضيع عمل الفريق.';
+			} else {
+				msg.className = 'wl-msg';
+				msg.textContent = hist.length > 1 && hist[hist.length - 1] > idealBurn(total, DAYS)[hist.length - 1] + 2 ? 'أنت متأخر عن الخط المثالي. لا تترك الفريق بلا عمل.' : 'جيد. أنهِ اليوم، أو أضف مهمة ثانية.';
+			}
+		}
+		root.addEventListener('click', (e) => {
+			const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-move]');
+			if (!b) return;
+			st[b.dataset.move!].col = 'doing';
+			draw();
+		});
+		root.querySelector('[data-day]')!.addEventListener('click', () => {
+			let cap = CAP;
+			for (const c of base) {
+				if (st[c.id].col !== 'doing' || cap <= 0) continue;
+				const use = Math.min(cap, c.p - st[c.id].done);
+				st[c.id].done += use;
+				cap -= use;
+				if (st[c.id].done >= c.p) st[c.id].col = 'done';
+			}
+			idle += cap;
+			day++;
+			hist.push(left());
+			draw();
+		});
+		root.querySelector('[data-reset]')!.addEventListener('click', reset);
+		let lastW = innerWidth;
+		addEventListener('resize', () => { if (innerWidth !== lastW) { lastW = innerWidth; draw(); } });
+		reset();
+	});
+</script>

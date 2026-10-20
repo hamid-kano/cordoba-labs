@@ -1,0 +1,31 @@
+---
+// النموذج الحلزوني: أربع أرباع، والحلزون بيكبر مع كل دورة (الكلفة بتزيد).
+const cx = 320, cy = 170;
+// حلزون أرخميدس: نصف القطر بيكبر مع الزاوية
+const pts: string[] = [];
+for (let a = 0; a <= 3 * 2 * Math.PI; a += 0.08) {
+	const r = 14 + 7.2 * a;
+	pts.push(`${(cx + r * Math.cos(a - Math.PI / 2)).toFixed(1)},${(cy + r * Math.sin(a - Math.PI / 2)).toFixed(1)}`);
+}
+const quads = [
+	{ t: '1. تحديد الأهداف', x: 470, y: 36 },
+	{ t: '2. تحليل المخاطر', x: 470, y: 318 },
+	{ t: '3. البناء والاختبار', x: 170, y: 318 },
+	{ t: '4. التخطيط للدورة التالية', x: 170, y: 36 },
+];
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 640 340" role="img" aria-label="النموذج الحلزوني: أربعة أرباع هي تحديد الأهداف، ثم تحليل المخاطر، ثم البناء والاختبار، ثم التخطيط للدورة التالية، والحلزون يكبر مع كل دورة">
+		<line x1={cx} y1="18" x2={cx} y2="322" class="d-line" style="opacity:.35"></line>
+		<line x1="40" y1={cy} x2="600" y2={cy} class="d-line" style="opacity:.35"></line>
+		<polyline points={pts.join(' ')} fill="none" class="d-line d-blue" style="stroke-width:3"></polyline>
+		{quads.map((q) => <text x={q.x} y={q.y} class="d-s d-b">{q.t}</text>)}
+		<text x={cx + 22} y={cy + 5} class="d-s" style="text-anchor:end">ابدأ</text>
+		<circle cx={cx} cy={cy - 14} r="5" class="d-fblue"></circle>
+		<text x="560" y={cy - 10} class="d-s" style="fill:#e5534b">⚠️ المخاطر</text>
+	</svg>
+	<figcaption>
+		كل لفّة دورة كاملة: نحدد الأهداف، ثم <strong>نبحث عن المخاطر</strong> ونعالجها، ثم نبني ونختبر، ثم نخطط للفّة التالية. والحلزون يكبر لأن كل دورة أكبر وأغلى من التي قبلها.
+	</figcaption>
+</figure>

@@ -1,0 +1,34 @@
+---
+// النموذج التزايدي: كل زيادة شلال صغير، والزبون بيستلم البرنامج قطعة قطعة.
+const inc = [
+	{ t: 'الزيادة 1: الأساس', s: 'تسجيل الدخول والبحث', x: 0 },
+	{ t: 'الزيادة 2', s: '+ السلة والدفع', x: 1 },
+	{ t: 'الزيادة 3', s: '+ التقييمات والعروض', x: 2 },
+];
+const phases = ['متطلبات', 'تصميم', 'برمجة', 'اختبار'];
+const PW = 62;
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 640 260" role="img" aria-label="النموذج التزايدي: ثلاث زيادات، كل واحدة فيها متطلبات وتصميم وبرمجة واختبار، تبدأ كل زيادة بعد التي قبلها بقليل، وبعد كل زيادة يستلم الزبون نسخة أكبر">
+		{inc.map((r, i) => {
+			const y = 20 + i * 76, x0 = 380 - i * 130;
+			return (
+				<g>
+					<text x={x0 + 4 * PW - 4} y={y - 4} class="d-s d-b" style="text-anchor:start">{r.t}</text>
+					{phases.map((p, j) => (
+						<g>
+							<rect x={x0 + (3 - j) * PW} y={y} width={PW - 3} height="32" rx="4" class="d-box" style={`opacity:${0.55 + j * 0.15}`}></rect>
+							<text x={x0 + (3 - j) * PW + (PW - 3) / 2} y={y + 21} class="d-s" style="font-size:13px">{p}</text>
+						</g>
+					))}
+					<text x={x0 - 8} y={y + 22} class="d-s" style="text-anchor:start;font-size:14px">📦</text>
+					<text x={x0 + 2 * PW} y={y + 54} class="d-s">{r.s}</text>
+				</g>
+			);
+		})}
+	</svg>
+	<figcaption>
+		نبني البرنامج <strong>قطعة قطعة</strong>: أول زيادة فيها الأساس، ويستخدمها الزبون فوراً (📦)، ثم تُضاف إليها ميزات في كل زيادة. وكل زيادة تمر بالمراحل كلها، مثل شلال صغير.
+	</figcaption>
+</figure>

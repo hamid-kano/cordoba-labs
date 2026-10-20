@@ -1,0 +1,110 @@
+---
+// نمط MVC حي: متحكم بزرين، ونموذج فيه رقم واحد، وعرضين (رقم ومقياس) بيتحدثوا مع بعض.
+// «كسر النمط» بيخلّي العرض الأول يعدّل حاله مباشرة، فالعرض التاني بيضل على القيمة القديمة.
+---
+
+<div class="not-content wl-box" data-mvc>
+	<h4>🌡️ مكيّف بنمط MVC</h4>
+	<div class="mvc-grid">
+		<div class="mvc-part" data-p="c">
+			<b>المتحكم</b>
+			<div class="wl-row">
+				<button type="button" class="wl-btn" data-d="1">＋ درجة</button>
+				<button type="button" class="wl-btn" data-d="-1">－ درجة</button>
+			</div>
+		</div>
+		<div class="mvc-part" data-p="m">
+			<b>النموذج</b>
+			<code dir="ltr" data-out="model">temp = 22</code>
+		</div>
+		<div class="mvc-part" data-p="v1">
+			<b>العرض 1: شاشة المكيّف</b>
+			<span class="mvc-num"><bdi dir="ltr" data-out="v1">22°</bdi></span>
+		</div>
+		<div class="mvc-part" data-p="v2">
+			<b>العرض 2: تطبيق الهاتف</b>
+			<div class="mvc-bar"><i data-out="v2"></i></div>
+			<small><bdi dir="ltr" data-out="v2n">22°</bdi></small>
+		</div>
+	</div>
+	<label class="ai-check"><input type="checkbox" data-k="break" /> اكسر النمط: اجعل الشاشة تغيّر رقمها بنفسها دون النموذج</label>
+	<ol class="mvc-log" data-out="log"></ol>
+	<p class="wl-msg" data-out="msg">اضغط «＋ درجة» وتابع ترتيب ما يحدث.</p>
+</div>
+
+<style is:global>
+	.mvc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+	.mvc-part { border: 2px solid var(--sl-color-gray-5); border-radius: 0.5rem; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; transition: border-color 0.25s, background 0.25s; }
+	.mvc-part.flash { border-color: #e0a030; background: color-mix(in srgb, #e0a030 15%, transparent); }
+	.mvc-part.stale { border-color: #e5534b; }
+	.mvc-num { font-size: 1.8rem; font-weight: 700; color: var(--sl-color-white); }
+	.mvc-bar { width: 100%; height: 0.9rem; border-radius: 0.45rem; background: var(--sl-color-gray-6); overflow: hidden; }
+	.mvc-bar i { display: block; height: 100%; background: #3a9ec2; transition: width 0.3s; }
+	.mvc-log { margin: 0; padding-inline-start: 1.4rem; font-size: var(--sl-text-sm); min-height: 1rem; }
+	@media (max-width: 30rem) { .mvc-grid { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-mvc]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const part = (p: string) => root.querySelector<HTMLElement>(`[data-p="${p}"]`)!;
+		const brk = root.querySelector<HTMLInputElement>('[data-k="break"]')!;
+		let temp = 22;
+		let shown1 = 22;
+		let timers: number[] = [];
+		const paint = () => {
+			$('model').textContent = `temp = ${temp}`;
+			$('v1').textContent = `${shown1}°`;
+			$('v2').style.width = `${((temp - 16) / 14) * 100}%`;
+			$('v2n').textContent = `${temp}°`;
+			part('v1').classList.toggle('stale', shown1 !== temp);
+		};
+		const flash = (p: string, at: number) =>
+			timers.push(window.setTimeout(() => {
+				part(p).classList.add('flash');
+				window.setTimeout(() => part(p).classList.remove('flash'), 380);
+			}, at));
+		const say = (lines: string[]) => {
+			$('log').innerHTML = '';
+			lines.forEach((t, i) => timers.push(window.setTimeout(() => {
+				const li = document.createElement('li');
+				li.textContent = t;
+				$('log').append(li);
+			}, i * 400)));
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-d]').forEach((b) =>
+			b.addEventListener('click', () => {
+				timers.forEach(clearTimeout);
+				timers = [];
+				const d = +b.dataset.d!;
+				const msg = $('msg');
+				if (brk.checked) {
+					// العرض بيغيّر حاله ونسي النموذج
+					shown1 = Math.min(30, Math.max(16, shown1 + d));
+					flash('v1', 0);
+					say(['الشاشة غيّرت رقمها بنفسها.', 'النموذج لم يعرف بالتغيير، فلم يخبر أحداً.']);
+					paint();
+					msg.className = 'wl-msg wl-bad';
+					msg.textContent = 'انظر: الشاشة تقول شيئاً، والهاتف والنموذج يقولان شيئاً آخر. البيانات صارت في مكانين، فاختلفت!';
+					return;
+				}
+				temp = Math.min(30, Math.max(16, temp + d));
+				shown1 = temp;
+				flash('c', 0); flash('m', 400); flash('v1', 800); flash('v2', 800);
+				say([
+					'المتحكم: استلم ضغطة الزر.',
+					`المتحكم ← النموذج: غيّر الحرارة إلى ${temp}.`,
+					'النموذج ← كل العروض: تغيّرت القيمة!',
+					'الشاشة والهاتف: أعادا الرسم من النموذج.',
+				]);
+				timers.push(window.setTimeout(paint, 800));
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = 'المصدر الوحيد للحقيقة هو النموذج، فالعرضان متفقان دائماً.';
+			}),
+		);
+		brk.addEventListener('change', () => {
+			if (!brk.checked) { shown1 = temp; paint(); $('msg').className = 'wl-msg'; $('msg').textContent = 'عاد النمط: الشاشة تقرأ من النموذج من جديد.'; }
+		});
+		paint();
+	});
+</script>

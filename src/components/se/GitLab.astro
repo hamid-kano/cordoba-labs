@@ -1,0 +1,220 @@
+---
+// طرفية Git تدريبية: مهمات بالترتيب بتتصحّح لحالها، ورسمة اللقطات والفروع بتتحدّث مع كل أمر.
+// المحرك بـ src/scripts/gitsim.ts.
+const missions = [
+	'أنشئ مستودعاً: <code>git init</code>',
+	'أنشئ ملفاً: <code>echo "Hello" &gt; readme.txt</code>',
+	'اسأل Git عن الحالة: <code>git status</code> (الملف أحمر: غير متتبَّع)',
+	'جهّز الملف: <code>git add readme.txt</code> ثم <code>git status</code> مرة أخرى',
+	'خذ أول لقطة: <code>git commit -m "first"</code>',
+	'عدّل الملف <code>echo "line 2" &gt;&gt; readme.txt</code> ثم جهّزه وخذ لقطة ثانية',
+	'أنشئ فرعاً: <code>git branch feature</code>',
+	'انتقل إليه: <code>git switch feature</code>',
+	'أنشئ ملفاً جديداً على الفرع (مثلاً <code>login.txt</code>) وخذ لقطة',
+	'عُد إلى الفرع الرئيسي: <code>git switch main</code> ثم اكتب <code>ls</code>: أين <code>login.txt</code>؟',
+	'وأنت على main، عدّل الملف <code>echo "fix" &gt;&gt; readme.txt</code> وخذ لقطة: الآن افترق الفرعان',
+	'ادمج الفرع: <code>git merge feature</code> ثم <code>ls</code> و <code>git log</code>',
+];
+---
+
+<div class="not-content wl-box" data-gitlab data-missions={JSON.stringify(missions)}>
+	<h4>🌿 تدرّب على Git</h4>
+	<div class="os-missions" data-out="missions"></div>
+	<figure class="wl-fig gl-fig" style="margin:0">
+		<div class="gl-scroll"><svg data-out="graph" role="img" aria-label="رسمة اللقطات والفروع"></svg></div>
+	</figure>
+	<div class="os-term" dir="ltr" data-out="screen" aria-live="polite"></div>
+	<form class="os-term-line" dir="ltr" data-form>
+		<span class="os-term-prompt" data-out="prompt">~/project $</span>
+		<input class="os-term-in" data-in="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="اكتب أمراً" />
+	</form>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-act="help">help</button>
+		<button type="button" class="wl-btn" data-act="reset">من البداية</button>
+	</div>
+	<p class="os-hint">اكتب الأمر واضغط Enter. السهم إلى الأعلى يعيد الأمر السابق. هذا مستودع تدريبي في المتصفح فقط.</p>
+</div>
+
+<style is:global>
+	.gl-scroll { overflow-x: auto; max-width: 100%; }
+	.gl-fig { min-width: 0; max-width: 100%; }
+	.gl-fig svg { display: block; min-width: 100%; height: auto; }
+	.gl-fig .gl-node { fill: var(--sl-color-accent); }
+	.gl-fig .gl-node.merge { fill: #e0a030; }
+	.gl-fig .gl-edge { stroke: var(--sl-color-gray-3); stroke-width: 2.5; fill: none; }
+	.gl-fig .gl-id { fill: var(--sl-color-gray-2); font-size: 11px; text-anchor: middle; font-family: var(--sl-font-system-mono); }
+	.gl-fig .gl-br { font-size: 12px; font-weight: 700; text-anchor: middle; fill: #111; }
+	.gl-fig .gl-tag { fill: #3a9ec2; }
+	.gl-fig .gl-tag.head { fill: #2fb36b; }
+	.gl-fig .gl-empty { fill: var(--sl-color-gray-3); font-size: 13px; text-anchor: middle; }
+	.os-term .gl-g { color: #7ee787; }
+	.os-term .gl-r { color: #ffa198; }
+	.os-term .gl-y { color: #e3b341; }
+</style>
+
+<script>
+	import { newGit, run, status, type GitState } from '../../scripts/gitsim';
+	const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	const NS = 'http://www.w3.org/2000/svg';
+	document.querySelectorAll<HTMLElement>('[data-gitlab]').forEach((root) => {
+		const missions: string[] = JSON.parse(root.dataset.missions!);
+		const screen = root.querySelector<HTMLElement>('[data-out="screen"]')!;
+		const input = root.querySelector<HTMLInputElement>('[data-in="cmd"]')!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="graph"]')!;
+		let g: GitState = newGit();
+		let done = 0;
+		let hist: string[] = [], hi = 0;
+		let saw = { status: false, statusStaged: false, lsMain: false, logAfter: false, lsAfter: false };
+
+		// شروط المهمات بالترتيب
+		const checks: (() => boolean)[] = [
+			() => g.init,
+			() => 'readme.txt' in g.work,
+			() => saw.status,
+			() => saw.statusStaged,
+			() => g.commits.length >= 1,
+			() => g.commits.filter((c) => c.lane === 0).length >= 2,
+			() => 'feature' in g.branches,
+			() => g.head === 'feature',
+			() => g.commits.some((c) => c.lane === g.branchLane.feature),
+			() => g.head === 'main' && saw.lsMain,
+			() => g.head === 'main' && g.commits.filter((c) => c.lane === 0).length >= 3,
+			() => saw.lsAfter && saw.logAfter,
+		];
+		const merged = () => {
+			const t = g.branches.feature, m = g.branches.main;
+			return !!t && g.commits.some((c) => c.id === m && c.parents.includes(t!)) || (!!t && t === m);
+		};
+
+		const drawMissions = () => {
+			while (done < checks.length && checks[done]()) done++;
+			const box = root.querySelector<HTMLElement>('[data-out="missions"]')!;
+			box.innerHTML = '<ol>' + missions.map((m, i) => `<li class="${i < done ? 'done' : i === done ? 'now' : ''}">${i < done ? '✔ ' : ''}${m}</li>`).join('') + '</ol>' +
+				(done === missions.length ? '<p class="wl-msg wl-good">🎉 أنهيت المهمات! لاحظ في الرسمة: الفرع انفصل، ثم عاد واندمج في لقطة دمج (باللون البرتقالي). هذه هي دورة العمل اليومية لكل مبرمج.</p>' : '');
+		};
+
+		const drawGraph = () => {
+			svg.innerHTML = '';
+			const lanes = Math.max(1, ...Object.values(g.branchLane).map((l) => l + 1));
+			const W = Math.max(320, 60 + g.commits.length * 70);
+			const H = 30 + lanes * 56;
+			svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+			svg.style.width = `${W}px`;
+			const el = (tag: string, attrs: Record<string, string | number>, text?: string) => {
+				const e = document.createElementNS(NS, tag);
+				for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+				if (text !== undefined) e.textContent = text;
+				svg.append(e);
+				return e;
+			};
+			if (!g.commits.length) {
+				el('text', { x: W / 2, y: H / 2 + 4, class: 'gl-empty' }, g.init ? 'لا توجد لقطات بعد' : 'لا يوجد مستودع بعد');
+				return;
+			}
+			const pos = (i: number) => ({ x: 40 + i * 70, y: 44 + g.commits[i].lane * 56 });
+			const idx = (id: string) => g.commits.findIndex((c) => c.id === id);
+			g.commits.forEach((c, i) => {
+				const p = pos(i);
+				c.parents.forEach((par) => {
+					const q = pos(idx(par));
+					el('path', { d: q.y === p.y ? `M${q.x} ${q.y} L${p.x} ${p.y}` : `M${q.x} ${q.y} C${(q.x + p.x) / 2} ${q.y} ${(q.x + p.x) / 2} ${p.y} ${p.x} ${p.y}`, class: 'gl-edge' });
+				});
+			});
+			g.commits.forEach((c, i) => {
+				const p = pos(i);
+				el('circle', { cx: p.x, cy: p.y, r: 11, class: 'gl-node' + (c.parents.length > 1 ? ' merge' : '') });
+				el('text', { x: p.x, y: p.y + 26, class: 'gl-id d-ltr' }, c.id);
+			});
+			// أسماء الفروع فوق آخر لقطة لكل فرع
+			const stack: Record<string, number> = {};
+			for (const [b, id] of Object.entries(g.branches)) {
+				if (!id) continue;
+				const p = pos(idx(id));
+				const k = stack[id] = (stack[id] ?? 0) + 1;
+				const label = b === g.head ? `HEAD → ${b}` : b;
+				const w = label.length * 7.5 + 12;
+				const y = p.y - 18 - (k - 1) * 20;
+				el('rect', { x: p.x - w / 2, y: y - 14, width: w, height: 18, rx: 4, class: 'gl-tag' + (b === g.head ? ' head' : '') });
+				el('text', { x: p.x, y: y - 1, class: 'gl-br d-ltr' }, label);
+			}
+		};
+
+		const fmt = (s: string) =>
+			esc(s)
+				.replace(/\x01(.*)$/gm, '<span class="gl-g">$1</span>')
+				.replace(/\x02(.*)$/gm, '<span class="gl-r">$1</span>')
+				.replace(/\x03(.*?)\x04/g, '<span class="gl-y">$1</span>');
+
+		const print = (cmd: string, r: { out?: string; err?: string }) => {
+			let h = `<div><span class="os-p">~/project (${g.init ? g.head : '-'}) $ </span>${esc(cmd)}</div>`;
+			if (r.out) h += r.out.split('\n').map((l) => `<div>${fmt(l) || '&nbsp;'}</div>`).join('');
+			if (r.err) h += `<div dir="rtl" class="os-err">${esc(r.err)}</div>`;
+			screen.innerHTML += h;
+			screen.scrollTop = screen.scrollHeight;
+		};
+
+		const HELP = [
+			'git init            create a repository',
+			'git status          what changed?',
+			'git add <file> | .  stage a file (or all)',
+			'git commit -m "msg" take a snapshot',
+			'git log             list snapshots',
+			'git branch [name]   list / create a branch',
+			'git switch <name>   move to a branch (-c to create)',
+			'git merge <name>    merge a branch into this one',
+			'echo "text" > file  create a file (>> adds a line)',
+			'ls | cat <file> | clear',
+		].join('\n');
+
+		const exec = (cmd: string) => {
+			const c = cmd.trim();
+			if (c === 'clear') { screen.innerHTML = ''; return; }
+			if (c === 'help') { print(c, { out: HELP }); return; }
+			const r = run(g, c);
+			print(c, r);
+			if (!r.err) {
+				if (c === 'git status') {
+					if (g.init) saw.status = true;
+					if (status(g).staged.includes('readme.txt')) saw.statusStaged = true;
+				}
+				if (c === 'ls' && g.head === 'main' && 'feature' in g.branches) saw.lsMain = true;
+				if (merged()) {
+					if (c === 'ls') saw.lsAfter = true;
+					if (c.startsWith('git log')) saw.logAfter = true;
+				}
+			}
+			const before = done;
+			drawMissions();
+			drawGraph();
+			if (done > before && done < missions.length) {
+				screen.innerHTML += `<div dir="rtl" class="os-hint-t">✔ أحسنت. المهمة التالية في الأعلى.</div>`;
+				screen.scrollTop = screen.scrollHeight;
+			}
+		};
+
+		const reset = () => {
+			g = newGit();
+			done = 0;
+			saw = { status: false, statusStaged: false, lsMain: false, logAfter: false, lsAfter: false };
+			screen.innerHTML = '<div dir="rtl" class="os-hint-t">مجلد مشروع فارغ. ابدأ بالمهمة الأولى، أو اكتب <bdi dir="ltr">help</bdi>.</div><div>&nbsp;</div>';
+			drawMissions();
+			drawGraph();
+		};
+
+		root.querySelector('[data-form]')!.addEventListener('submit', (e) => {
+			e.preventDefault();
+			const v = input.value;
+			if (!v.trim()) return;
+			hist.push(v); hi = hist.length;
+			input.value = '';
+			exec(v);
+		});
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'ArrowUp' && hi > 0) { hi--; input.value = hist[hi]; e.preventDefault(); }
+			if (e.key === 'ArrowDown') { hi = Math.min(hist.length, hi + 1); input.value = hist[hi] ?? ''; e.preventDefault(); }
+		});
+		root.querySelector('[data-act="help"]')!.addEventListener('click', () => exec('help'));
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', reset);
+		reset();
+	});
+</script>

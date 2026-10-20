@@ -1,0 +1,48 @@
+---
+// سلم CMMI: خمس درجات، الكبسة بتفتح الوصف ومثال شركة.
+const levels = [
+	{ n: 1, t: 'البداية', d: 'العمل فوضوي، والنجاح يعتمد على أبطال أفراد يسهرون الليل.', ex: 'شركة ناشئة: كل مشروع يُدار بطريقة مختلفة، وإذا غادر المبرمج الخبير توقف كل شيء.' },
+	{ n: 2, t: 'مُدار', d: 'لكل مشروع خطة وميزانية ومتابعة، ويمكن تكرار النجاح في مشاريع متشابهة.', ex: 'كل مشروع له جدول زمني ومتطلبات مكتوبة، لكن كل فريق يعمل بطريقته.' },
+	{ n: 3, t: 'معرّف', d: 'للشركة كلها طريقة عمل واحدة مكتوبة، يتبعها كل فريق ويعدّلها حسب مشروعه.', ex: 'دليل موحّد: كيف نكتب المتطلبات، وكيف نراجع الكود، وكيف نختبر، لكل الفرق.' },
+	{ n: 4, t: 'مُدار كمّياً', d: 'نقيس العمل بالأرقام: عدد الأخطاء، ودقة التقدير، ونتحكم بها.', ex: 'نعرف أن متوسط الأخطاء 2 لكل ألف سطر، فإذا ظهر 6 في مشروع، نبحث عن السبب فوراً.' },
+	{ n: 5, t: 'يتحسّن', d: 'نحسّن طريقة العمل باستمرار، ونجرّب أفكاراً جديدة ونقيس أثرها.', ex: 'جرّبنا المراجعة الثنائية في فريقين، فقلّت الأخطاء 30%، فعمّمناها على الشركة.' },
+];
+---
+
+<div class="not-content wl-box" data-cmmi>
+	<h4>🪜 درجات النضج</h4>
+	<div class="cm-steps">
+		{levels.map((l) => (
+			<button type="button" class="cm-step" data-n={l.n} style={`--h:${l.n}`} data-d={l.d} data-ex={l.ex} data-t={l.t}>
+				<bdi dir="ltr">{l.n}</bdi>
+				<span>{l.t}</span>
+			</button>
+		))}
+	</div>
+	<p class="wl-msg" data-out="msg">اضغط على أي درجة.</p>
+</div>
+
+<style is:global>
+	.cm-steps { display: flex; align-items: flex-end; gap: 0.3rem; height: 12rem; }
+	.cm-step { flex: 1; height: calc(var(--h) * 20%); border: 0; border-radius: 0.4rem 0.4rem 0 0; background: color-mix(in srgb, var(--sl-color-accent) calc(var(--h) * 18%), var(--sl-color-gray-6)); color: var(--sl-color-white); font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0.35rem; cursor: pointer; font-size: 0.75rem; gap: 0.15rem; }
+	.cm-step bdi { font-size: 1.1rem; }
+	.cm-step.on { outline: 3px solid #e0a030; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-cmmi]').forEach((root) => {
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		root.querySelectorAll<HTMLButtonElement>('.cm-step').forEach((b) =>
+			b.addEventListener('click', () => {
+				root.querySelectorAll('.cm-step').forEach((x) => x.classList.toggle('on', x === b));
+				msg.innerHTML = '';
+				const h = document.createElement('b');
+				h.textContent = `الدرجة ${b.dataset.n}: ${b.dataset.t}. `;
+				const ex = document.createElement('div');
+				ex.className = 'se-note';
+				ex.textContent = 'مثال: ' + b.dataset.ex;
+				msg.append(h, b.dataset.d!, ex);
+			}),
+		);
+	});
+</script>

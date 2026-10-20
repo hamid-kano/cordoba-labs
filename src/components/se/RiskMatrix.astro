@@ -1,0 +1,101 @@
+---
+// مصفوفة المخاطر: الطالب بيحط كل خطر بخانته (الاحتمال × الأثر)، وبعدين بيختار طريقة التعامل.
+const risks = [
+	{ t: 'مبرمج الفريق الوحيد الذي يعرف قاعدة البيانات قد يغادر', p: 2, i: 3, best: 1, why: 'نخفّف الخطر: يشرح عمله لزميل ويكتب توثيقاً، فلا يبقى أحد «لا يمكن الاستغناء عنه».' },
+	{ t: 'الخادم المستأجر يتوقف ساعة في السنة', p: 1, i: 1, best: 3, why: 'احتمال ضعيف وأثر صغير: نقبله ونراقبه فقط.' },
+	{ t: 'الزبون يغيّر المتطلبات كثيراً', p: 3, i: 2, best: 1, why: 'نخفّفه بدورات قصيرة وعرض النسخ على الزبون باستمرار.' },
+	{ t: 'تسريب بيانات بطاقات الدفع', p: 1, i: 3, best: 2, why: 'ننقله: نستخدم شركة دفع متخصصة تحفظ البطاقات بدلاً منا.' },
+	{ t: 'مكتبة قديمة لم تعد تُحدَّث', p: 3, i: 3, best: 0, why: 'نتجنّبه: نختار مكتبة أخرى حديثة من البداية.' },
+];
+const responses = ['تجنّب', 'تخفيف', 'نقل', 'قبول'];
+---
+
+<div class="not-content wl-box" data-risk data-risks={JSON.stringify(risks)} data-resp={JSON.stringify(responses)}>
+	<h4>⚠️ مصفوفة المخاطر</h4>
+	<p class="se-hint">الخطر: <b data-out="risk"></b></p>
+	<div class="rk-wrap">
+		<div class="rk-ylab">الاحتمال ↑</div>
+		<div class="rk-grid" data-grid>
+			{[3, 2, 1].map((p) => [1, 2, 3].map((i) => (
+				<button type="button" class="rk-cell" data-p={p} data-i={i} data-lvl={p * i >= 6 ? 'high' : p * i >= 3 ? 'mid' : 'low'} aria-label={`احتمال ${p} وأثر ${i}`}><bdi dir="ltr">{p * i}</bdi><span data-dots></span></button>
+			)))}
+		</div>
+		<div></div>
+		<div class="rk-xlab"><span>أثر صغير</span><span>متوسط</span><span>كبير</span></div>
+	</div>
+	<p class="wl-msg" data-out="msg">في أي خانة تضع هذا الخطر؟ (الاحتمال يزيد نحو الأعلى، والأثر يزيد نحو اليمين)</p>
+	<div class="wl-row" data-resps hidden>
+		{responses.map((r, k) => <button type="button" class="wl-btn" data-r={k}>{r}</button>)}
+	</div>
+	<button type="button" class="wl-btn primary" data-next hidden>الخطر التالي ←</button>
+</div>
+
+<style is:global>
+	.rk-wrap { display: grid; grid-template-columns: 1.4rem 1fr; gap: 0.3rem; max-width: 22rem; }
+	.rk-ylab { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
+	.rk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25rem; direction: ltr; }
+	.rk-cell { aspect-ratio: 1.4; border-radius: 0.35rem; border: 2px solid transparent; font-weight: 700; color: #111; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 1rem; }
+	.rk-cell[data-lvl='low'] { background: #6cc28f; }
+	.rk-cell[data-lvl='mid'] { background: #e9c25a; }
+	.rk-cell[data-lvl='high'] { background: #e5776f; }
+	.rk-cell.pick { border-color: var(--sl-color-white); }
+	.rk-cell span { font-size: 0.7rem; line-height: 1; }
+	.rk-xlab { display: grid; grid-template-columns: repeat(3, 1fr); direction: ltr; text-align: center; font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
+	.rk-xlab span { direction: rtl; }
+</style>
+
+<script>
+	import { riskScore, riskLevel } from '../../scripts/se';
+	document.querySelectorAll<HTMLElement>('[data-risk]').forEach((root) => {
+		const risks: { t: string; p: number; i: number; best: number; why: string }[] = JSON.parse(root.dataset.risks!);
+		const resp: string[] = JSON.parse(root.dataset.resp!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const resps = root.querySelector<HTMLElement>('[data-resps]')!;
+		const next = root.querySelector<HTMLButtonElement>('[data-next]')!;
+		const LV: Record<string, string> = { high: 'عالٍ', mid: 'متوسط', low: 'منخفض' };
+		let n = 0, placed = false, score = 0;
+		const start = () => {
+			placed = false;
+			$('risk').textContent = `${n + 1}/${risks.length}: ${risks[n].t}`;
+			resps.hidden = true; next.hidden = true;
+			root.querySelectorAll('.rk-cell').forEach((c) => c.classList.remove('pick'));
+			resps.querySelectorAll<HTMLButtonElement>('button').forEach((b) => { b.disabled = false; b.classList.remove('right', 'wrong'); });
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = 'في أي خانة تضع هذا الخطر؟';
+		};
+		root.querySelectorAll<HTMLButtonElement>('.rk-cell').forEach((c) =>
+			c.addEventListener('click', () => {
+				if (placed) return;
+				const r = risks[n];
+				const p = +c.dataset.p!, i = +c.dataset.i!;
+				root.querySelectorAll('.rk-cell').forEach((x) => x.classList.remove('pick'));
+				const right = root.querySelector<HTMLElement>(`.rk-cell[data-p="${r.p}"][data-i="${r.i}"]`)!;
+				right.classList.add('pick');
+				right.querySelector('[data-dots]')!.textContent += '●';
+				placed = true;
+				const s = riskScore(r.p, r.i);
+				const ok = p === r.p && i === r.i;
+				const close = riskLevel(riskScore(p, i)) === riskLevel(s);
+				if (ok) score++;
+				$('msg').className = 'wl-msg' + (ok ? ' wl-good' : close ? '' : ' wl-bad');
+				$('msg').textContent = `${ok ? '✓ صحيح.' : close ? 'قريب، والمستوى نفسه.' : '✗ ليس تماماً.'} الاحتمال ${r.p} × الأثر ${r.i} = ${s}، أي خطر ${LV[riskLevel(s)]}. والآن: كيف نتعامل معه؟`;
+				resps.hidden = false;
+			}),
+		);
+		resps.querySelectorAll<HTMLButtonElement>('button').forEach((b) =>
+			b.addEventListener('click', () => {
+				const r = risks[n];
+				const ok = +b.dataset.r! === r.best;
+				b.classList.add(ok ? 'right' : 'wrong');
+				resps.querySelector(`[data-r="${r.best}"]`)!.classList.add('right');
+				resps.querySelectorAll<HTMLButtonElement>('button').forEach((x) => (x.disabled = true));
+				$('msg').className = 'wl-msg' + (ok ? ' wl-good' : '');
+				$('msg').textContent = `${ok ? '✓' : `الأنسب: «${resp[r.best]}».`} ${r.why}`;
+				if (n < risks.length - 1) next.hidden = false;
+				else $('msg').textContent += ` انتهت المخاطر: وضعت ${score} من ${risks.length} في خانتها بالضبط.`;
+			}),
+		);
+		next.addEventListener('click', () => { n++; start(); });
+		start();
+	});
+</script>

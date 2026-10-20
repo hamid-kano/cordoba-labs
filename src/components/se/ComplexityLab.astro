@@ -1,0 +1,89 @@
+---
+// التعقيد الدوري: الطالب بيخمّن V(G) لكل مقطع، وبعدين بتضوي نقاط القرار.
+// V(G) = عدد نقاط القرار + 1، وكل && أو || بيحسب قرار.
+const snippets = [
+	{
+		name: 'المقطع أ',
+		code: ['int max(int a, int b, int c) {', '    int m = a;', '    if (b > m) m = b;', '    if (c > m) m = c;', '    return m;', '}'],
+		dec: [2, 3],
+		v: 3,
+	},
+	{
+		name: 'المقطع ب',
+		code: ['int sum = 0;', 'for (int i = 0; i < n; i++) {', '    if (a[i] > 0)', '        sum += a[i];', '}', 'return sum;'],
+		dec: [1, 2],
+		v: 3,
+	},
+	{
+		name: 'المقطع ج',
+		code: ['String grade(int m) {', '    if (m < 0 || m > 100) return "invalid";', '    if (m >= 60) return "pass";', '    return "fail";', '}'],
+		dec: [1, 1, 2],
+		v: 4,
+	},
+];
+const html = snippets.map((s) => s.code.map((l, i) => `<span class="cx-line" data-l="${i}">${l.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>`).join('\n'));
+---
+
+<div class="not-content wl-box" data-complexity data-sn={JSON.stringify(snippets.map((s) => ({ dec: s.dec, v: s.v })))}>
+	<h4>🔀 احسب التعقيد الدوري</h4>
+	<div class="wl-row" data-tabs>
+		{snippets.map((s, i) => <button type="button" class={`wl-btn${i === 0 ? ' primary' : ''}`} data-s={i}>{s.name}</button>)}
+	</div>
+	{html.map((h, i) => <pre class="cx-code" dir="ltr" data-code={i} hidden={i !== 0} set:html={h}></pre>)}
+	<p class="se-note">كم تعقيده؟ عُدّ نقاط القرار ثم أضف 1.</p>
+	<div class="wl-row" data-guess>
+		{[1, 2, 3, 4, 5].map((n) => <button type="button" class="wl-btn" data-g={n}><bdi dir="ltr">{n}</bdi></button>)}
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.cx-code { font-size: 0.8rem; padding: 0.6rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); overflow-x: auto; margin: 0; }
+	.cx-line { display: inline-block; width: 100%; }
+	.cx-line.dec { background: rgb(224 160 48 / 0.3); }
+	.cx-line.dec::after { content: attr(data-n); float: right; font-weight: 700; color: #e0a030; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-complexity]').forEach((root) => {
+		const sn: { dec: number[]; v: number }[] = JSON.parse(root.dataset.sn!);
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		let cur = 0;
+		const clear = () => {
+			root.querySelectorAll<HTMLElement>('.cx-line').forEach((l) => { l.classList.remove('dec'); l.removeAttribute('data-n'); });
+			root.querySelectorAll<HTMLButtonElement>('[data-g]').forEach((b) => { b.disabled = false; b.classList.remove('right', 'wrong'); });
+			msg.className = 'wl-msg';
+			msg.textContent = '';
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-s]').forEach((b) =>
+			b.addEventListener('click', () => {
+				cur = +b.dataset.s!;
+				root.querySelectorAll<HTMLButtonElement>('[data-s]').forEach((x) => x.classList.toggle('primary', x === b));
+				root.querySelectorAll<HTMLElement>('[data-code]').forEach((c) => (c.hidden = +c.dataset.code! !== cur));
+				clear();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-g]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const s = sn[cur];
+				const g = +b.dataset.g!;
+				const ok = g === s.v;
+				b.classList.add(ok ? 'right' : 'wrong');
+				root.querySelector(`[data-g="${s.v}"]`)!.classList.add('right');
+				root.querySelectorAll<HTMLButtonElement>('[data-g]').forEach((x) => (x.disabled = true));
+				// لوّن أسطر القرار، والسطر يلي فيه قرارين بياخد ×2
+				const code = root.querySelector<HTMLElement>(`[data-code="${cur}"]`)!;
+				const cnt: Record<number, number> = {};
+				s.dec.forEach((l) => (cnt[l] = (cnt[l] ?? 0) + 1));
+				Object.entries(cnt).forEach(([l, n]) => {
+					const el = code.querySelector<HTMLElement>(`[data-l="${l}"]`)!;
+					el.classList.add('dec');
+					el.dataset.n = n > 1 ? `+${n}` : '+1';
+				});
+				const extra = cur === 1 ? ' لاحظ أن الحلقة «for» نقطة قرار أيضاً: في كل دورة تسأل «هل أكمل؟».' : cur === 2 ? ' لاحظ أن «||» قرار إضافي: الشرط الأول فيه سؤالان.' : '';
+				msg.className = 'wl-msg' + (ok ? ' wl-good' : ' wl-bad');
+				msg.textContent = `${ok ? '✓ صحيح.' : '✗ ليس تماماً.'} نقاط القرار ${s.dec.length}، فالتعقيد ${s.dec.length} + 1 = ${s.v}.${extra} وهذا يعني أننا نحتاج ${s.v} اختبارات على الأقل لنمرّ في كل الطرق المستقلة.`;
+			}),
+		);
+	});
+</script>

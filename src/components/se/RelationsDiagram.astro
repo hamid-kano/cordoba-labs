@@ -1,0 +1,47 @@
+---
+// رموز علاقات الأصناف الخمسة بـ UML: كل سطر صندوقين والرمز بيناتهن، مع مثال.
+const rows = [
+	{ k: 'assoc', name: 'ارتباط', a: 'طالب', b: 'مقرر', note: 'يعرف أحدهما الآخر' },
+	{ k: 'inherit', name: 'وراثة', a: 'كلب', b: 'حيوان', note: 'الكلب «نوع من» الحيوان' },
+	{ k: 'agg', name: 'تجميع', a: 'فريق', b: 'لاعب', note: 'اللاعب يبقى إذا حُلّ الفريق' },
+	{ k: 'comp', name: 'تركيب', a: 'بيت', b: 'غرفة', note: 'الغرفة تزول مع البيت' },
+	{ k: 'dep', name: 'اعتماد', a: 'فاتورة', b: 'طابعة', note: 'تستخدمه مؤقتاً فقط' },
+];
+const BW = 92, BH = 34;
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 640 330" role="img" aria-label="رموز العلاقات: ارتباط خط عادي، ووراثة مثلث فارغ نحو الأب، وتجميع معيّن فارغ عند الكل، وتركيب معيّن ممتلئ عند الكل، واعتماد سهم متقطع">
+		<defs>
+			<marker id="rel-tri" viewBox="0 0 12 12" refX="11" refY="6" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" orient="auto"><path d="M0 0 L12 6 L0 12 z" style="fill:var(--sl-color-bg);stroke:var(--sl-color-gray-2);stroke-width:1.5"></path></marker>
+			<marker id="rel-dia-o" viewBox="0 0 16 10" refX="1" refY="5" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="13" orient="auto"><path d="M1 5 L8 1 L15 5 L8 9 z" style="fill:var(--sl-color-bg);stroke:var(--sl-color-gray-2);stroke-width:1.5"></path></marker>
+			<marker id="rel-dia-f" viewBox="0 0 16 10" refX="1" refY="5" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="13" orient="auto"><path d="M1 5 L8 1 L15 5 L8 9 z" style="fill:var(--sl-color-gray-2);stroke:var(--sl-color-gray-2);stroke-width:1.5"></path></marker>
+			<marker id="rel-open" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M0 0 L10 5 L0 10" style="fill:none;stroke:var(--sl-color-gray-2);stroke-width:1.5"></path></marker>
+		</defs>
+		{rows.map((r, i) => {
+			const y = 14 + i * 62;
+			// الصندوق a يمين، و b يسار. الرمز عند b للوراثة والاعتماد، وعند a (الكل) للتجميع والتركيب
+			const ax = 300, bx = 20;
+			const line = { x1: ax, x2: bx + BW, y: y + BH / 2 };
+			const props =
+				r.k === 'inherit' ? { 'marker-end': 'url(#rel-tri)' } :
+				r.k === 'dep' ? { 'marker-end': 'url(#rel-open)', 'stroke-dasharray': '6 4' } :
+				r.k === 'agg' ? { 'marker-start': 'url(#rel-dia-o)' } :
+				r.k === 'comp' ? { 'marker-start': 'url(#rel-dia-f)' } : {};
+			return (
+				<g>
+					<rect x={ax} y={y} width={BW} height={BH} rx="4" class="d-box"></rect>
+					<text x={ax + BW / 2} y={y + 23} class="d-s d-b">{r.a}</text>
+					<rect x={bx} y={y} width={BW} height={BH} rx="4" class="d-box"></rect>
+					<text x={bx + BW / 2} y={y + 23} class="d-s d-b">{r.b}</text>
+					<line x1={line.x1} y1={line.y} x2={line.x2} y2={line.y} class="d-line" style="stroke:var(--sl-color-gray-2)" {...props}></line>
+					<text x="620" y={y + 16} class="d-s d-b" style="text-anchor:start">{r.name}</text>
+					<text x="620" y={y + 38} class="d-s" style="text-anchor:start;font-size:13px">{r.note}</text>
+				</g>
+			);
+		})}
+	</svg>
+	<figcaption>
+		<strong>الوراثة</strong>: مثلث فارغ يشير إلى الأب. <strong>التجميع</strong>: معيّن فارغ عند «الكل». <strong>التركيب</strong>: معيّن ممتلئ عند «الكل». <strong>الاعتماد</strong>: سهم متقطع.
+	</figcaption>
+</figure>

@@ -1,0 +1,66 @@
+---
+// قصة بتختار طريقها: كل عقدة إلها نص وخيارات، والنهاية بتعطي تقييم ومبدأ من ميثاق ACM/IEEE.
+interface Choice { t: string; to: string }
+interface Node { text: string; choices?: Choice[]; end?: { kind: 'good' | 'mid' | 'bad'; principle: string; why: string } }
+interface Props { title: string; nodes: Record<string, Node>; start?: string }
+const { title, nodes, start = 'start' } = Astro.props;
+---
+
+<div class="not-content wl-box" data-story data-nodes={JSON.stringify(nodes)} data-start={start}>
+	<h4>{title}</h4>
+	<p class="es-text" data-out="text"></p>
+	<div class="es-choices" data-out="choices"></div>
+	<div class="es-end" data-out="end" hidden></div>
+	<p class="se-note" data-out="path"></p>
+	<button type="button" class="wl-btn" data-restart hidden>↺ جرّب طريقاً آخر</button>
+</div>
+
+<style is:global>
+	.es-text { margin: 0; font-size: var(--sl-text-base); color: var(--sl-color-white); line-height: 1.8; }
+	.es-choices { display: flex; flex-direction: column; gap: 0.4rem; }
+	.es-choices .wl-btn { text-align: start; }
+	.es-end { border-radius: 0.5rem; padding: 0.6rem 0.75rem; border: 2px solid; display: flex; flex-direction: column; gap: 0.3rem; }
+	.es-end.good { border-color: #2fb36b; background: rgb(47 179 107 / 0.12); }
+	.es-end.mid { border-color: #e0a030; background: rgb(224 160 48 / 0.12); }
+	.es-end.bad { border-color: #e5534b; background: rgb(229 83 75 / 0.12); }
+	.es-end b { font-size: var(--sl-text-base); }
+</style>
+
+<script>
+	type Node = { text: string; choices?: { t: string; to: string }[]; end?: { kind: string; principle: string; why: string } };
+	const KIND: Record<string, string> = { good: '🟢 نهاية جيدة', mid: '🟡 نهاية مقبولة، ويمكن أفضل', bad: '🔴 نهاية سيئة' };
+	document.querySelectorAll<HTMLElement>('[data-story]').forEach((root) => {
+		const nodes: Record<string, Node> = JSON.parse(root.dataset.nodes!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const restart = root.querySelector<HTMLButtonElement>('[data-restart]')!;
+		let path: string[] = [];
+		const show = (id: string) => {
+			const n = nodes[id];
+			$('text').textContent = n.text;
+			const ch = $('choices');
+			ch.innerHTML = '';
+			(n.choices ?? []).forEach((c) => {
+				const b = document.createElement('button');
+				b.type = 'button';
+				b.className = 'wl-btn';
+				b.textContent = c.t;
+				b.addEventListener('click', () => { path.push(c.t); show(c.to); });
+				ch.append(b);
+			});
+			const end = $('end');
+			end.hidden = !n.end;
+			if (n.end) {
+				end.className = `es-end ${n.end.kind}`;
+				end.innerHTML = '';
+				const k = document.createElement('b'); k.textContent = KIND[n.end.kind];
+				const p = document.createElement('div'); p.innerHTML = '<strong>المبدأ:</strong> '; p.append(n.end.principle);
+				const w = document.createElement('div'); w.textContent = n.end.why;
+				end.append(k, p, w);
+			}
+			restart.hidden = !n.end;
+			$('path').textContent = path.length ? 'اختياراتك: ' + path.join(' ← ') : '';
+		};
+		restart.addEventListener('click', () => { path = []; show(root.dataset.start!); });
+		show(root.dataset.start!);
+	});
+</script>

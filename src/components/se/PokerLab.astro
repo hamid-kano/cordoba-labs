@@ -1,0 +1,94 @@
+---
+// لعبة تقدير جماعي (Planning Poker): الطالب بيختار ورقته، وبعدين بتنكشف أوراق الفريق.
+// إذا الفرق كبير، بيحكي الأعلى والأدنى ليش، وبيعيدوا التصويت.
+const stories = [
+	{ t: 'صفحة «من نحن» فيها نص وصورة', votes: [1, 1, 2], again: [1, 1, 1], why: 'الجميع متفق: عمل بسيط ومعروف.' },
+	{ t: 'تسجيل الدخول بالبريد وكلمة السر', votes: [3, 5, 13], again: [5, 5, 8], why: 'ليلى (13): «يجب أن نشفّر كلمة السر، ونضيف نسيت كلمة السر، ونمنع التخمين». وعمر (3): «ظننتها شاشة فقط». بعد النقاش اقتربت التقديرات.' },
+	{ t: 'الدفع الإلكتروني بالبطاقة', votes: [8, 13, 20], again: [13, 13, 20], why: 'سارة (20): «الدفع يحتاج اتصالاً بالبنك، واختبارات أمان، وحالات فشل كثيرة». القصة كبيرة جداً، والأفضل تقسيمها إلى قصص أصغر.' },
+];
+const team = ['سارة', 'عمر', 'ليلى'];
+const cards = [1, 2, 3, 5, 8, 13, 20];
+---
+
+<div class="not-content wl-box" data-poker data-stories={JSON.stringify(stories)} data-team={JSON.stringify(team)}>
+	<h4>🃏 لعبة التقدير الجماعي</h4>
+	<p class="se-hint">القصة: <b data-out="story"></b></p>
+	<p class="se-note">اختر ورقتك: كم «نقطة» تحتاج هذه القصة؟ (رقم أكبر = عمل أكبر وأصعب)</p>
+	<div class="wl-row" data-cards>
+		{cards.map((c) => <button type="button" class="wl-btn pk-card" data-v={c}><bdi dir="ltr">{c}</bdi></button>)}
+	</div>
+	<div class="pk-table" data-out="table"></div>
+	<p class="wl-msg" data-out="msg"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-again hidden>🗣️ ناقشوا وأعيدوا التصويت</button>
+		<button type="button" class="wl-btn primary" data-next hidden>القصة التالية ←</button>
+	</div>
+</div>
+
+<style is:global>
+	.pk-card { min-width: 2.6rem; font-weight: 700; }
+	.pk-card.mine { background: #3a9ec2; border-color: #3a9ec2; color: #111; }
+	.pk-table { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+	.pk-p { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; font-size: var(--sl-text-sm); }
+	.pk-p b { width: 2.8rem; height: 3.8rem; border-radius: 0.4rem; border: 2px solid var(--sl-color-gray-4); display: grid; place-items: center; font-size: 1.2rem; background: var(--sl-color-gray-6); transition: transform 0.4s; }
+	.pk-p b.far { border-color: #e5534b; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-poker]').forEach((root) => {
+		const stories: { t: string; votes: number[]; again: number[]; why: string }[] = JSON.parse(root.dataset.stories!);
+		const team: string[] = JSON.parse(root.dataset.team!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const againBtn = root.querySelector<HTMLButtonElement>('[data-again]')!;
+		const nextBtn = root.querySelector<HTMLButtonElement>('[data-next]')!;
+		let s = 0, mine = 0, round = 0;
+		const table = (votes: number[]) => {
+			const all = [...votes, mine];
+			const lo = Math.min(...all), hi = Math.max(...all);
+			const far = hi / lo >= 3;
+			$('table').innerHTML = [...team, 'أنت'].map((n, i) => {
+				const v = all[i];
+				return `<div class="pk-p"><b dir="ltr" class="${far && (v === lo || v === hi) ? 'far' : ''}">${v}</b>${n}</div>`;
+			}).join('');
+			return { far, lo, hi };
+		};
+		const start = () => {
+			mine = 0; round = 0;
+			$('story').textContent = stories[s].t;
+			$('table').innerHTML = [...team, 'أنت'].map((n) => `<div class="pk-p"><b>?</b>${n}</div>`).join('');
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = 'كل واحد يختار ورقته سراً، ثم تُكشف الأوراق معاً حتى لا يتأثر أحد برأي غيره.';
+			root.querySelectorAll('.pk-card').forEach((c) => c.classList.remove('mine'));
+			againBtn.hidden = true; nextBtn.hidden = true;
+		};
+		root.querySelectorAll<HTMLButtonElement>('.pk-card').forEach((b) =>
+			b.addEventListener('click', () => {
+				if (round > 0) return;
+				mine = +b.dataset.v!;
+				b.classList.add('mine');
+				round = 1;
+				const r = table(stories[s].votes);
+				$('msg').className = 'wl-msg' + (r.far ? ' wl-bad' : ' wl-good');
+				$('msg').textContent = r.far
+					? `الفرق كبير (من ${r.lo} إلى ${r.hi})! لا نأخذ المتوسط، بل يشرح صاحب أعلى ورقة وصاحب أدنى ورقة سبب اختيارهما.`
+					: 'التقديرات قريبة، فنتفق على الرقم الأكثر تكراراً. ' + stories[s].why;
+				againBtn.hidden = !r.far;
+				nextBtn.hidden = r.far || s === stories.length - 1;
+			}),
+		);
+		againBtn.addEventListener('click', () => {
+			// بالجولة التانية الطالب بيقرّب لرأي الأغلبية
+			const v = stories[s].again;
+			const sorted = [...v].sort((a, b) => a - b);
+			mine = sorted[1];
+			root.querySelectorAll<HTMLElement>('.pk-card').forEach((c) => c.classList.toggle('mine', +c.dataset.v! === mine));
+			table(v);
+			$('msg').className = 'wl-msg wl-good';
+			$('msg').textContent = stories[s].why;
+			againBtn.hidden = true;
+			nextBtn.hidden = s === stories.length - 1;
+		});
+		nextBtn.addEventListener('click', () => { s++; start(); });
+		start();
+	});
+</script>

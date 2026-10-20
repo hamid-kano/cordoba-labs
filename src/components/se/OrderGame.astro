@@ -1,0 +1,76 @@
+---
+// لعبة ترتيب عامة: الطالب بيكبس العناصر بالترتيب الصح، والغلط بيهز الزر وبيعطي تلميح.
+// items بالترتيب الصحيح، وكل عنصر إله hint بيطلع جنبه بعد ما ينحط بمكانه.
+interface Props { title: string; intro: string; items: { name: string; hint: string }[]; done: string; start?: string }
+const { title, intro, items, done, start = 'ما الخطوة الأولى؟' } = Astro.props;
+---
+
+<div class="not-content wl-box" data-order-game data-done={done} data-start={start}>
+	<h4>{title}</h4>
+	<p class="se-hint" set:html={intro} />
+	<ol class="og-done" data-list></ol>
+	<div class="wl-row og-pool" data-pool>
+		{items.map((p, i) => <button type="button" class="wl-btn" data-i={i} data-hint={p.hint}>{p.name}</button>)}
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<button type="button" class="wl-btn" data-reset hidden>↺ أعد الترتيب</button>
+</div>
+
+<style is:global>
+	.og-done { margin: 0; padding-inline-start: 1.6rem; display: flex; flex-direction: column; gap: 0.3rem; }
+	.og-done li { font-weight: 700; }
+	.og-done li small { font-weight: 400; color: var(--sl-color-gray-3); }
+	.og-pool .wl-btn.shake { animation: og-shake 0.35s; background: #e5534b; border-color: #e5534b; color: #111; }
+	@keyframes og-shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-order-game]').forEach((root) => {
+		const pool = root.querySelector<HTMLElement>('[data-pool]')!;
+		const list = root.querySelector<HTMLOListElement>('[data-list]')!;
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const reset = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+		const btns = [...pool.querySelectorAll<HTMLButtonElement>('[data-i]')];
+		let next = 0, mistakes = 0;
+		const start = () => {
+			next = 0;
+			mistakes = 0;
+			list.innerHTML = '';
+			btns.forEach((b) => (b.hidden = false));
+			msg.className = 'wl-msg';
+			msg.textContent = root.dataset.start!;
+			reset.hidden = true;
+			let order = btns.map((_, i) => i);
+			do order.sort(() => Math.random() - 0.5); while (btns.length > 1 && order.every((v, i) => v === i));
+			order.forEach((i) => pool.append(btns[i]));
+		};
+		btns.forEach((b) =>
+			b.addEventListener('click', () => {
+				if (+b.dataset.i! === next) {
+					b.hidden = true;
+					const li = document.createElement('li');
+					li.innerHTML = `${b.textContent} <small>— ${b.dataset.hint}</small>`;
+					list.append(li);
+					next++;
+					if (next === btns.length) {
+						msg.className = 'wl-msg wl-good';
+						msg.textContent = (mistakes === 0 ? '✓ ممتاز، بدون أي خطأ! ' : `✓ أحسنت! (أخطاء: ${mistakes}) `) + root.dataset.done;
+						reset.hidden = false;
+					} else {
+						msg.className = 'wl-msg';
+						msg.textContent = 'صحيح. ما التالي؟';
+					}
+				} else {
+					mistakes++;
+					b.classList.remove('shake');
+					void b.offsetWidth;
+					b.classList.add('shake');
+					msg.className = 'wl-msg wl-bad';
+					msg.textContent = `ليس بعد. تلميح: ${btns[next].dataset.hint}`;
+				}
+			}),
+		);
+		reset.addEventListener('click', start);
+		start();
+	});
+</script>

@@ -1,0 +1,113 @@
+---
+// خط CI/CD: الطالب بيختار نوع التعديل (سليم أو فيه خطأ)، وبيشوف وين بيوقف الخط.
+// والإنتاج ما بيوصله إلا الكود يلي نجح بكل المراحل. وزر «تراجع» إذا طلعت مشكلة بالإنتاج.
+const stages = [
+	{ k: 'commit', t: 'push', icon: '📤' },
+	{ k: 'build', t: 'بناء', icon: '🔨' },
+	{ k: 'unit', t: 'اختبار الوحدة', icon: '🧪' },
+	{ k: 'integ', t: 'اختبار التكامل', icon: '🔗' },
+	{ k: 'staging', t: 'بيئة التجربة', icon: '🧭' },
+	{ k: 'prod', t: 'الإنتاج', icon: '🚀' },
+];
+const changes = [
+	{ k: 'ok', t: 'تعديل سليم' },
+	{ k: 'build', t: 'نسيت فاصلة منقوطة' },
+	{ k: 'unit', t: 'خطأ في حساب الخصم' },
+	{ k: 'integ', t: 'اسم عمود خاطئ في قاعدة البيانات' },
+];
+---
+
+<div class="not-content wl-box" data-pipeline data-stages={JSON.stringify(stages)}>
+	<h4>🏭 خط التكامل والنشر المستمر</h4>
+	<p class="se-hint">اختر نوع التعديل الذي سترسله، ثم اضغط «push».</p>
+	<div class="wl-row">
+		{changes.map((c, i) => <label class="ai-check"><input type="radio" name="pl-change" value={c.k} checked={i === 0} /> {c.t}</label>)}
+	</div>
+	<div class="pl-row">
+		{stages.map((s) => (
+			<div class="pl-st" data-st={s.k}><span class="pl-ic">{s.icon}</span><span>{s.t}</span></div>
+		))}
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-push>📤 push</button>
+		<button type="button" class="wl-btn" data-rollback disabled>↩ تراجع إلى النسخة السابقة</button>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>النسخة في الإنتاج</span><strong data-out="ver">v1</strong></div>
+		<div class="wl-out"><span>أخطاء أُوقفت قبل الإنتاج</span><strong data-out="stopped">0</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.pl-row { display: flex; gap: 0.3rem; overflow-x: auto; padding: 0.2rem 0; }
+	.pl-st { flex: 1 0 4.4rem; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0.45rem 0.2rem; border-radius: 0.5rem; border: 2px solid var(--sl-color-gray-5); background: var(--sl-color-gray-6); font-size: 0.72rem; text-align: center; position: relative; transition: border-color 0.25s, background 0.25s; }
+	.pl-ic { font-size: 1.3rem; }
+	.pl-st.run { border-color: #e0a030; animation: pl-pulse 0.6s infinite alternate; }
+	.pl-st.pass { border-color: #2fb36b; background: rgb(47 179 107 / 0.18); }
+	.pl-st.fail { border-color: #e5534b; background: rgb(229 83 75 / 0.22); }
+	.pl-st.skip { opacity: 0.4; }
+	@keyframes pl-pulse { to { background: rgb(224 160 48 / 0.25); } }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-pipeline]').forEach((root) => {
+		const stages: { k: string; t: string }[] = JSON.parse(root.dataset.stages!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const push = root.querySelector<HTMLButtonElement>('[data-push]')!;
+		const back = root.querySelector<HTMLButtonElement>('[data-rollback]')!;
+		const st = (k: string) => root.querySelector<HTMLElement>(`[data-st="${k}"]`)!;
+		const WHY: Record<string, string> = {
+			build: 'فشل البناء: الكود لا يُترجم أصلاً. وصل إشعار للمبرمج خلال دقيقة، ولم يتأثر أي مستخدم.',
+			unit: 'فشل اختبار الوحدة: الخصم يُحسب خطأً. أوقف الخط النشر، ووصل إشعار للمبرمج مع اسم الاختبار الفاشل.',
+			integ: 'كل اختبارات الوحدة نجحت، لكن الخطأ ظهر عندما تكلّم البرنامج مع قاعدة بيانات حقيقية. لهذا نحتاج اختبار التكامل.',
+		};
+		let ver = 1, prev = 1, top = 1, stopped = 0, busy = false;
+		push.addEventListener('click', () => {
+			if (busy) return;
+			busy = true; push.disabled = true; back.disabled = true;
+			const change = root.querySelector<HTMLInputElement>('input[name="pl-change"]:checked')!.value;
+			root.querySelectorAll('.pl-st').forEach((x) => x.classList.remove('run', 'pass', 'fail', 'skip'));
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = 'الخط يعمل تلقائياً، دون أن يضغط أحد أي زر...';
+			let i = 0;
+			const step = () => {
+				const s = stages[i];
+				st(s.k).classList.add('run');
+				window.setTimeout(() => {
+					st(s.k).classList.remove('run');
+					if (s.k === change) {
+						st(s.k).classList.add('fail');
+						stages.slice(i + 1).forEach((x) => st(x.k).classList.add('skip'));
+						stopped++;
+						$('stopped').textContent = String(stopped);
+						$('msg').className = 'wl-msg wl-bad';
+						$('msg').textContent = `✗ ${WHY[change]} النسخة في الإنتاج ما زالت v${ver} السليمة.`;
+						busy = false; push.disabled = false; back.disabled = ver === prev;
+						return;
+					}
+					st(s.k).classList.add('pass');
+					i++;
+					if (i < stages.length) step();
+					else {
+						prev = ver;
+						ver = ++top;
+						$('ver').textContent = `v${ver}`;
+						$('msg').className = 'wl-msg wl-good';
+						$('msg').textContent = `✓ نجحت كل المراحل، فنُشرت النسخة v${ver} للمستخدمين تلقائياً. وإذا ظهرت مشكلة لم تكشفها الاختبارات، نتراجع بضغطة.`;
+						busy = false; push.disabled = false; back.disabled = false;
+					}
+				}, 550);
+			};
+			step();
+		});
+		back.addEventListener('click', () => {
+			if (ver === prev) return;
+			ver = prev;
+			$('ver').textContent = `v${ver}`;
+			back.disabled = true;
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = `↩ عاد الإنتاج إلى النسخة v${ver} خلال ثوانٍ. الآن نصلح المشكلة على مهل، ونضيف اختباراً يكشفها في المرة القادمة.`;
+		});
+	});
+</script>

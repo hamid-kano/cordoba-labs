@@ -1,0 +1,78 @@
+---
+// نمط المراقب: قناة وأربع مشتركين. «انشر» بيوصل بس للمشتركين.
+// والمقارنة: بدون المراقب كل واحد بيسأل كل دقيقة، فمنعد الطلبات الضايعة.
+const subs = ['سارة', 'أحمد', 'ليلى', 'عمر'];
+---
+
+<div class="not-content wl-box" data-observer>
+	<h4>🔔 قناة ومشتركون</h4>
+	<p class="se-hint">اختر من يشترك في القناة، ثم انشر فيديو.</p>
+	<div class="obs-subs">
+		{subs.map((s, i) => (
+			<label class="obs-sub" data-i={i}>
+				<input type="checkbox" checked={i < 2} /> <span>{s}</span> <em data-bell>🔕</em>
+			</label>
+		))}
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-pub>📢 انشر فيديو</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<hr />
+	<p class="se-hint"><b>قارن:</b> القناة تنشر فيديو بعد <bdi dir="ltr">60</bdi> دقيقة. كم رسالة تُرسل؟</p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-cmp="poll">بدون المراقب: كل مشترك يسأل كل دقيقة</button>
+		<button type="button" class="wl-btn" data-cmp="obs">بالمراقب: القناة تخبرهم</button>
+	</div>
+	<p class="wl-msg" data-out="cmp"></p>
+</div>
+
+<style is:global>
+	.obs-subs { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: 0.4rem; }
+	.obs-sub { display: flex; align-items: center; gap: 0.35rem; border: 2px solid var(--sl-color-gray-5); border-radius: 0.5rem; padding: 0.35rem 0.5rem; cursor: pointer; transition: border-color 0.25s, transform 0.25s; }
+	.obs-sub em { font-style: normal; margin-inline-start: auto; }
+	.obs-sub.ring { border-color: #2fb36b; transform: scale(1.05); }
+	[data-observer] hr { border: 0; border-top: 1px solid var(--sl-color-gray-5); margin: 0.25rem 0; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-observer]').forEach((root) => {
+		const rows = [...root.querySelectorAll<HTMLLabelElement>('.obs-sub')];
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const cmp = root.querySelector<HTMLElement>('[data-out="cmp"]')!;
+		const count = (n: number, one: string, two: string, few: string, many: string) => (n === 1 ? one : n === 2 ? two : n <= 10 ? n + " " + few : n + " " + many);
+		const on = () => rows.filter((r) => r.querySelector('input')!.checked);
+		const bells = () => rows.forEach((r) => (r.querySelector('[data-bell]')!.textContent = r.querySelector('input')!.checked ? '🔔' : '🔕'));
+		rows.forEach((r) => r.querySelector('input')!.addEventListener('change', () => {
+			bells();
+			const n = on().length;
+			msg.className = 'wl-msg';
+			msg.textContent = `قائمة المشتركين عند القناة الآن: ${n}. القناة لا تعرف شيئاً عنهم غير أنهم يريدون الإشعار.`;
+		}));
+		let n = 0;
+		root.querySelector('[data-pub]')!.addEventListener('click', () => {
+			n++;
+			const list = on();
+			rows.forEach((r) => r.classList.remove('ring'));
+			list.forEach((r, i) => window.setTimeout(() => r.classList.add('ring'), 150 * i));
+			window.setTimeout(() => rows.forEach((r) => r.classList.remove('ring')), 150 * list.length + 900);
+			msg.className = 'wl-msg wl-good';
+			msg.textContent = list.length
+				? `الفيديو ${n}: أرسلت القناة ${count(list.length, "إشعاراً واحداً", "إشعارين", "إشعارات", "إشعاراً")} إلى: ${list.map((r) => r.querySelector('span')!.textContent).join('، ')}. والباقون لم يُزعَجوا.`
+				: 'لا يوجد مشتركون، فلم يُرسل أي إشعار.';
+		});
+		root.querySelectorAll<HTMLButtonElement>('[data-cmp]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const k = on().length || 1;
+				if (b.dataset.cmp === 'poll') {
+					cmp.className = 'wl-msg wl-bad';
+					cmp.innerHTML = `${count(k, "مشترك واحد", "مشتركان", "مشتركين", "مشتركاً")} × 60 سؤالاً = <bdi dir="ltr">${k * 60}</bdi> رسالة، منها <bdi dir="ltr">${k * 59}</bdi> جوابها «لا جديد». ومن يسأل كل 10 دقائق قد يتأخر 10 دقائق عن الفيديو.`;
+				} else {
+					cmp.className = 'wl-msg wl-good';
+					cmp.innerHTML = `<bdi dir="ltr">${k}</bdi> رسالة فقط، واحدة لكل مشترك، في اللحظة نفسها التي نُشر فيها الفيديو.`;
+				}
+			}),
+		);
+		bells();
+	});
+</script>

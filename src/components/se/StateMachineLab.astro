@@ -1,0 +1,123 @@
+---
+// آلة حالات حية لطلب شراء: الطالب بيكبس الأحداث، والحالة الحالية بتضوي.
+// الحدث الممنوع (متل الشحن قبل الدفع) بيترفض مع السبب.
+const S = [
+	{ k: 'new', t: 'جديد', x: 470, y: 30 },
+	{ k: 'paid', t: 'مدفوع', x: 470, y: 150 },
+	{ k: 'shipped', t: 'مشحون', x: 470, y: 270 },
+	{ k: 'done', t: 'مُسلَّم', x: 200, y: 270 },
+	{ k: 'cancel', t: 'ملغى', x: 200, y: 90 },
+];
+// الانتقالات: [من، حدث، إلى]
+const T: [string, string, string][] = [
+	['new', 'pay', 'paid'],
+	['paid', 'ship', 'shipped'],
+	['shipped', 'deliver', 'done'],
+	['new', 'cancel', 'cancel'],
+	['paid', 'cancel', 'cancel'],
+];
+const EV: Record<string, string> = { pay: 'ادفع', ship: 'اشحن', deliver: 'سلّم', cancel: 'ألغِ' };
+const W = 120, H = 46;
+const c = (k: string) => { const s = S.find((x) => x.k === k)!; return { x: s.x + W / 2, y: s.y + H / 2 }; };
+---
+
+<div class="not-content wl-box" data-states data-trans={JSON.stringify(T)}>
+	<h4>📦 حالات طلب شراء: جرّب الأحداث</h4>
+	<figure class="wl-fig" style="margin:0">
+		<svg class="d-big" viewBox="0 0 640 340" role="img" aria-label="رسمة حالة لطلب شراء: من جديد إلى مدفوع بحدث ادفع، ثم إلى مشحون بحدث اشحن، ثم إلى مسلّم بحدث سلّم، ويمكن الإلغاء من جديد أو مدفوع">
+			<defs>
+				<marker id="st-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path></marker>
+			</defs>
+			<circle cx="610" cy="53" r="9" class="d-fgray"></circle>
+			<line x1="600" y1="53" x2="594" y2="53" class="d-line" marker-end="url(#st-ar)"></line>
+			{/* الأسهم */}
+			<line x1={c('new').x} y1={30 + H} x2={c('paid').x} y2="148" class="d-line" marker-end="url(#st-ar)"></line>
+			<text x={c('new').x + 10} y="118" class="d-s d-b" style="text-anchor:end">ادفع</text>
+			<line x1={c('paid').x} y1={150 + H} x2={c('shipped').x} y2="268" class="d-line" marker-end="url(#st-ar)"></line>
+			<text x={c('paid').x + 10} y="238" class="d-s d-b" style="text-anchor:end">اشحن</text>
+			<line x1="470" y1={c('shipped').y} x2={200 + W + 2} y2={c('done').y} class="d-line" marker-end="url(#st-ar)"></line>
+			<text x="395" y={c('shipped').y - 8} class="d-s d-b">سلّم</text>
+			<line x1="470" y1={c('new').y + 8} x2={200 + W + 2} y2={c('cancel').y - 8} class="d-line d-dash" marker-end="url(#st-ar)"></line>
+			<line x1="470" y1={c('paid').y - 8} x2={200 + W + 2} y2={c('cancel').y + 8} class="d-line d-dash" marker-end="url(#st-ar)"></line>
+			<text x="395" y="108" class="d-s d-b" style="fill:#e5534b">ألغِ</text>
+			{S.map((s) => (
+				<g class="st-node" data-s={s.k}>
+					<rect x={s.x} y={s.y} width={W} height={H} rx="20" class="d-box2"></rect>
+					<text x={s.x + W / 2} y={s.y + 30} class="d-t d-b">{s.t}</text>
+				</g>
+			))}
+			<circle cx="140" cy={c('done').y} r="11" class="d-fgray" style="opacity:.4"></circle>
+			<circle cx="140" cy={c('done').y} r="6" class="d-fgray"></circle>
+			<line x1="200" y1={c('done').y} x2="154" y2={c('done').y} class="d-line" marker-end="url(#st-ar)"></line>
+		</svg>
+	</figure>
+	<div class="wl-row">
+		{Object.entries(EV).map(([k, t]) => <button type="button" class="wl-btn" data-ev={k}>{t}</button>)}
+		<button type="button" class="wl-btn" data-reset>↺ طلب جديد</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<p class="se-note" data-out="log"></p>
+</div>
+
+<style is:global>
+	.st-node rect { transition: fill 0.3s, stroke 0.3s; }
+	.st-node.on rect { fill: #2fb36b; stroke: #2fb36b; }
+	.st-node.on text { fill: #111; }
+	.st-node.bad rect { stroke: #e5534b; stroke-width: 3; }
+</style>
+
+<script>
+	const NAME: Record<string, string> = { new: 'جديد', paid: 'مدفوع', shipped: 'مشحون', done: 'مُسلَّم', cancel: 'ملغى' };
+	const EV: Record<string, string> = { pay: 'ادفع', ship: 'اشحن', deliver: 'سلّم', cancel: 'ألغِ' };
+	const WHY: Record<string, string> = {
+		'new:ship': 'لا يمكن شحن طلب لم يُدفع ثمنه بعد.',
+		'new:deliver': 'لا يمكن تسليم طلب لم يُشحن.',
+		'paid:pay': 'الطلب مدفوع أصلاً، فلا ندفع مرتين!',
+		'paid:deliver': 'يجب أن يُشحن الطلب أولاً.',
+		'shipped:cancel': 'الطلب في الطريق، فلا يمكن إلغاؤه الآن (يمكن إرجاعه بعد الاستلام).',
+		'shipped:pay': 'مدفوع أصلاً.',
+		'shipped:ship': 'مشحون أصلاً.',
+		'new:pay': '', 'new:cancel': '',
+	};
+	document.querySelectorAll<HTMLElement>('[data-states]').forEach((root) => {
+		const T: [string, string, string][] = JSON.parse(root.dataset.trans!);
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const log = root.querySelector<HTMLElement>('[data-out="log"]')!;
+		let cur = 'new';
+		let hist: string[] = [];
+		const draw = () => {
+			root.querySelectorAll<SVGGElement>('.st-node').forEach((g) => {
+				g.classList.toggle('on', g.dataset.s === cur);
+				g.classList.remove('bad');
+			});
+			log.textContent = hist.length ? 'المسار: ' + ['جديد', ...hist].join(' ← ') : '';
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-ev]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const ev = b.dataset.ev!;
+				const t = T.find(([from, e]) => from === cur && e === ev);
+				if (t) {
+					cur = t[2];
+					hist.push(NAME[cur]);
+					draw();
+					msg.className = 'wl-msg wl-good';
+					msg.textContent = cur === 'done' || cur === 'cancel' ? `✓ «${EV[ev]}»: الطلب الآن «${NAME[cur]}». هذه حالة نهائية، فلا ينتقل منها إلى أي حالة أخرى.` : `✓ «${EV[ev]}»: الطلب الآن «${NAME[cur]}».`;
+				} else {
+					draw();
+					root.querySelector(`.st-node[data-s="${cur}"]`)!.classList.add('bad');
+					msg.className = 'wl-msg wl-bad';
+					msg.textContent = `✗ لا يوجد سهم «${EV[ev]}» من الحالة «${NAME[cur]}». ` + (WHY[`${cur}:${ev}`] || 'الطلب في حالة نهائية.');
+				}
+			}),
+		);
+		root.querySelector('[data-reset]')!.addEventListener('click', () => {
+			cur = 'new';
+			hist = [];
+			draw();
+			msg.className = 'wl-msg';
+			msg.textContent = 'طلب جديد. جرّب «اشحن» الآن: ماذا يحدث؟';
+		});
+		draw();
+		msg.textContent = 'الطلب الآن «جديد». جرّب «اشحن» قبل «ادفع»: ماذا يحدث؟';
+	});
+</script>

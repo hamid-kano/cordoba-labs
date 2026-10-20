@@ -449,3 +449,9 @@ code,
 .rts-cs { stroke: #111; stroke-width: 1.5; }
 .rts-boost { stroke: #e5534b; stroke-width: 3; }
 .rts-wait { fill: var(--sl-color-gray-5); fill-opacity: 0.45; stroke: var(--sl-color-gray-3); stroke-dasharray: 4 3; }
+
+/* مراجع: أصناف مشتركة بين أدوات هندسة البرمجيات */
+.se-hint { margin: 0; }
+.se-note { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin: 0; }
+.wl-btn.right { background: #2fb36b; border-color: #2fb36b; color: #111; }
+.wl-btn.wrong { background: #e5534b; border-color: #e5534b; color: #111; }

@@ -1,0 +1,116 @@
+---
+// رسمة نشاط لسحب نقود من الصراف: الطالب بيختار جواب كل قرار، وبيشوف الطريق بيضوي خطوة خطوة.
+const N = [
+	{ k: 'start', t: '', x: 320, y: 24, type: 'start' },
+	{ k: 'card', t: 'أدخل البطاقة', x: 320, y: 70, type: 'act' },
+	{ k: 'pin', t: 'اكتب الرقم السري', x: 320, y: 130, type: 'act' },
+	{ k: 'd1', t: 'صحيح؟', x: 320, y: 196, type: 'dec' },
+	{ k: 'amt', t: 'اختر المبلغ', x: 320, y: 262, type: 'act' },
+	{ k: 'd2', t: 'يكفي؟', x: 320, y: 328, type: 'dec', side: 1 },
+	{ k: 'cash', t: 'أخرج البطاقة والنقود', x: 320, y: 394, type: 'act' },
+	{ k: 'err', t: 'رسالة: رقم خاطئ', x: 520, y: 196, type: 'act' },
+	{ k: 'low', t: 'رسالة: الرصيد لا يكفي', x: 120, y: 328, type: 'act' },
+	{ k: 'out', t: 'أخرج البطاقة', x: 520, y: 394, type: 'act' },
+	{ k: 'end', t: '', x: 320, y: 448, type: 'end' },
+];
+const AW = 170, AH = 36;
+---
+
+<div class="not-content wl-box" data-activity>
+	<h4>🏧 رسمة نشاط: سحب نقود</h4>
+	<div class="wl-row">
+		<label class="ai-check"><input type="checkbox" data-k="pin" checked /> الرقم السري صحيح</label>
+		<label class="ai-check"><input type="checkbox" data-k="money" checked /> الرصيد يكفي</label>
+		<button type="button" class="wl-btn primary" data-run>▶ شغّل</button>
+	</div>
+	<figure class="wl-fig" style="margin:0">
+		<svg class="d-big" viewBox="0 0 640 470" role="img" aria-label="رسمة نشاط: إدخال البطاقة، ثم كتابة الرقم السري، ثم قرار هل هو صحيح، فإذا كان خاطئاً تظهر رسالة وتخرج البطاقة، وإذا كان صحيحاً نختار المبلغ، ثم قرار هل الرصيد يكفي، فإذا لم يكف تظهر رسالة ونعود لاختيار المبلغ، وإذا كفى تخرج البطاقة والنقود">
+			<defs>
+				<marker id="ac-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path></marker>
+			</defs>
+			{/* الأسهم الرئيسية */}
+			<g class="d-line" style="fill:none">
+				<line x1="320" y1="32" x2="320" y2="50" marker-end="url(#ac-ar)" data-e="start-card"></line>
+				<line x1="320" y1="88" x2="320" y2="110" marker-end="url(#ac-ar)" data-e="card-pin"></line>
+				<line x1="320" y1="148" x2="320" y2="174" marker-end="url(#ac-ar)" data-e="pin-d1"></line>
+				<line x1="320" y1="218" x2="320" y2="242" marker-end="url(#ac-ar)" data-e="d1-amt"></line>
+				<line x1="320" y1="280" x2="320" y2="306" marker-end="url(#ac-ar)" data-e="amt-d2"></line>
+				<line x1="320" y1="350" x2="320" y2="374" marker-end="url(#ac-ar)" data-e="d2-cash"></line>
+				<line x1="320" y1="412" x2="320" y2="436" marker-end="url(#ac-ar)" data-e="cash-end"></line>
+				<line x1="344" y1="196" x2="433" y2="196" marker-end="url(#ac-ar)" data-e="d1-err"></line>
+				<line x1="520" y1="214" x2="520" y2="374" marker-end="url(#ac-ar)" data-e="err-out"></line>
+				<path d="M520 412 V448 H334" marker-end="url(#ac-ar)" data-e="out-end"></path>
+				<line x1="296" y1="328" x2="207" y2="328" marker-end="url(#ac-ar)" data-e="d2-low"></line>
+				<path d="M120 310 V262 H233" marker-end="url(#ac-ar)" data-e="low-amt"></path>
+			</g>
+			<text x="330" y="236" class="d-s" style="text-anchor:end">نعم</text>
+			<text x="390" y="188" class="d-s">لا</text>
+			<text x="330" y="368" class="d-s" style="text-anchor:end">نعم</text>
+			<text x="250" y="320" class="d-s">لا</text>
+			{N.map((n) =>
+				n.type === 'start' ? <circle cx={n.x} cy={n.y} r="9" class="d-fgray ac-node" data-n={n.k}></circle> :
+				n.type === 'end' ? (
+					<g class="ac-node" data-n={n.k}><circle cx={n.x} cy={n.y} r="12" class="d-box2"></circle><circle cx={n.x} cy={n.y} r="7" class="d-fgray"></circle></g>
+				) : n.type === 'dec' ? (
+					<g class="ac-node" data-n={n.k}>
+						<path d={`M${n.x} ${n.y - 22} L${n.x + 24} ${n.y} L${n.x} ${n.y + 22} L${n.x - 24} ${n.y} Z`} class="d-box2"></path>
+						<text x={n.side ? n.x + 32 : n.x - 32} y={n.y + 5} class="d-s d-b" style={`text-anchor:${n.side ? 'end' : 'start'}`}>{n.t}</text>
+					</g>
+				) : (
+					<g class="ac-node" data-n={n.k}>
+						<rect x={n.x - AW / 2} y={n.y - AH / 2} width={AW} height={AH} rx="16" class="d-box"></rect>
+						<text x={n.x} y={n.y + 6} class="d-s d-b">{n.t}</text>
+					</g>
+				),
+			)}
+		</svg>
+	</figure>
+	<p class="wl-msg" data-out="msg">اختر الإجابات، ثم اضغط «شغّل» وتابع الطريق.</p>
+</div>
+
+<style is:global>
+	.ac-node rect, .ac-node path, .ac-node circle { transition: fill 0.25s, stroke 0.25s; }
+	.ac-node.on rect, .ac-node.on path { fill: #e0a030; stroke: #e0a030; }
+	.ac-node.on text { fill: #111; }
+	.ac-node.on circle { fill: #e0a030; }
+	[data-e] { transition: stroke 0.25s; }
+	[data-e].on { stroke: #e0a030; stroke-width: 3.5; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-activity]').forEach((root) => {
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const pinOk = root.querySelector<HTMLInputElement>('[data-k="pin"]')!;
+		const moneyOk = root.querySelector<HTMLInputElement>('[data-k="money"]')!;
+		let timer = 0;
+		const path = () => {
+			const p = ['start', 'card', 'pin', 'd1'];
+			if (!pinOk.checked) return [...p, 'err', 'out', 'end'];
+			p.push('amt', 'd2');
+			if (!moneyOk.checked) p.push('low', 'amt', 'd2'); // نعود لاختيار مبلغ أقل، ونفترض أنه كفى هذه المرة
+			return [...p, 'cash', 'end'];
+		};
+		const clear = () => root.querySelectorAll('.on').forEach((x) => x.classList.remove('on'));
+		root.querySelector('[data-run]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			clear();
+			const p = path();
+			let i = 0;
+			msg.className = 'wl-msg';
+			timer = window.setInterval(() => {
+				if (i > 0) root.querySelector(`[data-e="${p[i - 1]}-${p[i]}"]`)?.classList.add('on');
+				root.querySelector(`[data-n="${p[i]}"]`)?.classList.add('on');
+				i++;
+				if (i >= p.length) {
+					clearInterval(timer);
+					msg.className = 'wl-msg wl-good';
+					msg.textContent = !pinOk.checked
+						? 'الرقم خاطئ: ظهرت رسالة وخرجت البطاقة، ولم نصل إلى اختيار المبلغ أبداً.'
+						: !moneyOk.checked
+							? 'الرصيد لم يكفِ: ظهرت رسالة وعاد الزبون إلى اختيار المبلغ (هذه حلقة)، واختار مبلغاً أقل فخرجت النقود.'
+							: 'الطريق الأساسي: كل شيء صحيح، فخرجت البطاقة والنقود.';
+				}
+			}, 450);
+		});
+	});
+</script>

@@ -1,0 +1,67 @@
+---
+// نموذج V تفاعلي: التطوير نازل على اليمين (لأنه الصفحة عربية)، والاختبارات طالعة على اليسار.
+// الكبس على أي مرحلة بيضوّي الاختبار يلي بيقابلها وبيشرح ليش منكتب خطته هون.
+const pairs = [
+	{ dev: 'المتطلبات', test: 'اختبار القبول', why: 'عندما نكتب المتطلبات مع الزبون، نكتب معها كيف سيقبل البرنامج في النهاية: «سأقبله إذا فعل كذا وكذا». فاختبار القبول يتحقق من المتطلبات.' },
+	{ dev: 'تصميم النظام', test: 'اختبار النظام', why: 'تصميم النظام يحدد البرنامج كاملاً وأجزاءه الكبيرة، فنكتب معه اختبارات تجرّب البرنامج كاملاً من البداية إلى النهاية.' },
+	{ dev: 'التصميم المعماري', test: 'اختبار التكامل', why: 'التصميم المعماري يحدد كيف تتكلم الوحدات مع بعضها، فنكتب معه اختبارات تتأكد أن الوحدات تعمل معاً.' },
+	{ dev: 'تصميم الوحدات', test: 'اختبار الوحدة', why: 'تصميم الوحدة يحدد ما تفعله كل دالة، فنكتب معه اختبارات لكل دالة وحدها.' },
+];
+const W = 150, H = 44;
+const rows = pairs.map((p, i) => ({ ...p, i, y: 18 + i * 66, xd: 470 - i * 46, xt: 20 + i * 46 }));
+---
+
+<div class="not-content wl-box" data-vmodel data-why={JSON.stringify(pairs.map((p) => p.why))}>
+	<h4>اضغط على أي مرحلة</h4>
+	<figure class="wl-fig" style="margin:0">
+		<svg class="d-big" viewBox="0 0 640 360" role="img" aria-label="نموذج V: على اليمين مراحل التطوير نازلة من المتطلبات إلى تصميم الوحدات ثم البرمجة في الأسفل، وعلى اليسار الاختبارات صاعدة من اختبار الوحدة إلى اختبار القبول، وكل مرحلة تقابل اختباراً">
+			<defs>
+				<marker id="vm-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+					<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+				</marker>
+			</defs>
+			{rows.map((r) => (
+				<g>
+					<line x1={r.xt + W} y1={r.y + H / 2} x2={r.xd} y2={r.y + H / 2} class="d-line d-dash vm-link" data-link={r.i}></line>
+					<g class="vm-box" data-pair={r.i}>
+						<rect x={r.xd} y={r.y} width={W} height={H} rx="8" class="d-box"></rect>
+						<text x={r.xd + W / 2} y={r.y + 28} class="d-s d-b">{r.dev}</text>
+					</g>
+					<g class="vm-box" data-pair={r.i}>
+						<rect x={r.xt} y={r.y} width={W} height={H} rx="8" class="d-box2" style="stroke:#2fb36b"></rect>
+						<text x={r.xt + W / 2} y={r.y + 28} class="d-s d-b">{r.test}</text>
+					</g>
+				</g>
+			))}
+			<rect x="245" y="290" width="150" height="44" rx="8" class="d-box" style="stroke:#e0a030"></rect>
+			<text x="320" y="318" class="d-s d-b">البرمجة</text>
+			<text x="560" y="352" class="d-s d-b" style="fill:#3a9ec2">⬇ التطوير</text>
+			<text x="80" y="352" class="d-s d-b" style="fill:#2fb36b">الاختبار ⬆</text>
+		</svg>
+	</figure>
+	<p class="wl-msg" data-out="msg">كل مرحلة على اليمين لها اختبار يقابلها على اليسار. اضغط على أي صندوق.</p>
+</div>
+
+<style is:global>
+	.vm-box { cursor: pointer; }
+	.vm-box:hover rect { stroke-width: 3; }
+	.vm-link { opacity: 0.25; transition: opacity 0.3s; }
+	.vm-link.on { opacity: 1; stroke: #e0a030; stroke-width: 3; }
+	.vm-box.on rect { stroke: #e0a030 !important; stroke-width: 3.5; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-vmodel]').forEach((root) => {
+		const whys: string[] = JSON.parse(root.dataset.why!);
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		root.querySelectorAll<SVGGElement>('.vm-box').forEach((g) =>
+			g.addEventListener('click', () => {
+				const i = g.dataset.pair!;
+				root.querySelectorAll('.vm-box').forEach((x) => x.classList.toggle('on', (x as SVGGElement).dataset.pair === i));
+				root.querySelectorAll('.vm-link').forEach((x) => x.classList.toggle('on', (x as SVGLineElement).dataset.link === i));
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = whys[+i];
+			}),
+		);
+	});
+</script>

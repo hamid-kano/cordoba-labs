@@ -1,0 +1,107 @@
+---
+// حاسبتين للتقدير: COCOMO الأساسي (tool="cocomo") ونقاط الوظيفة (tool="fp").
+import { COCOMO, FP_TYPES } from '../../scripts/se';
+interface Props { tool: 'cocomo' | 'fp' }
+const { tool } = Astro.props;
+const fpStart: Record<string, number> = { ei: 3, eo: 2, eq: 2, ilf: 2, eif: 1 };
+---
+
+{tool === 'cocomo' && (
+	<div class="not-content wl-box" data-est="cocomo">
+		<h4>🧮 حاسبة COCOMO</h4>
+		<label class="ai-slider"><span>حجم البرنامج بآلاف الأسطر<output data-o="kloc"></output></span><input type="range" min="2" max="200" step="1" value="32" data-k="kloc" /></label>
+		<div class="wl-row">
+			{Object.entries(COCOMO).map(([k, m], i) => (
+				<label class="ai-check"><input type="radio" name="cocomo-mode" value={k} checked={i === 0} /> {m.name}</label>
+			))}
+		</div>
+		<div class="wl-grid">
+			<div class="wl-out"><span>الجهد (شخص × شهر)</span><strong data-out="effort"></strong></div>
+			<div class="wl-out"><span>المدة (شهر)</span><strong data-out="months"></strong></div>
+			<div class="wl-out"><span>متوسط حجم الفريق</span><strong data-out="people"></strong></div>
+		</div>
+		<p class="wl-msg" data-out="msg"></p>
+	</div>
+)}
+
+{tool === 'fp' && (
+	<div class="not-content wl-box" data-est="fp">
+		<h4>📋 حاسبة نقاط الوظيفة: نظام صيدلية</h4>
+		<div class="fp-rows">
+			{FP_TYPES.map((t) => (
+				<div class="fp-row">
+					<span>{t.name}</span>
+					<span class="fp-w">× <bdi dir="ltr">{t.w}</bdi></span>
+					<span class="fp-n">
+						<button type="button" class="wl-btn" data-d="-1" data-t={t.k} aria-label="أنقص">−</button>
+						<b data-n={t.k}>{fpStart[t.k]}</b>
+						<button type="button" class="wl-btn" data-d="1" data-t={t.k} aria-label="زد">+</button>
+					</span>
+				</div>
+			))}
+		</div>
+		<label class="ai-slider"><span>درجة التعقيد العام (0 بسيط جداً، 70 معقد جداً)<output data-o="gsc"></output></span><input type="range" min="0" max="70" step="1" value="35" data-k="gsc" /></label>
+		<div class="wl-grid">
+			<div class="wl-out"><span>النقاط قبل التعديل</span><strong data-out="ufp"></strong></div>
+			<div class="wl-out"><span>معامل التعقيد</span><strong data-out="vaf"></strong></div>
+			<div class="wl-out"><span>نقاط الوظيفة</span><strong data-out="fp"></strong></div>
+		</div>
+		<p class="wl-msg" data-out="msg"></p>
+	</div>
+)}
+
+<style is:global>
+	.fp-rows { display: flex; flex-direction: column; gap: 0.35rem; }
+	.fp-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 0.5rem; font-size: var(--sl-text-sm); }
+	.fp-w { color: var(--sl-color-gray-3); }
+	.fp-n { display: inline-flex; align-items: center; gap: 0.3rem; }
+	.fp-n b { min-width: 1.5rem; text-align: center; }
+	.fp-n .wl-btn { padding: 0.1rem 0.6rem; }
+</style>
+
+<script>
+	import { cocomo, functionPoints, FP_TYPES, type CocomoMode } from '../../scripts/se';
+	const f1 = (x: number) => x.toFixed(1);
+	document.querySelectorAll<HTMLElement>('[data-est="cocomo"]').forEach((root) => {
+		const kloc = root.querySelector<HTMLInputElement>('[data-k="kloc"]')!;
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const draw = () => {
+			const mode = root.querySelector<HTMLInputElement>('input[type=radio]:checked')!.value as CocomoMode;
+			const k = +kloc.value;
+			const r = cocomo(k, mode);
+			root.querySelector('[data-o="kloc"]')!.textContent = `${k}`;
+			$('effort').textContent = f1(r.effort);
+			$('months').textContent = f1(r.months);
+			$('people').textContent = f1(r.people);
+			const half = cocomo(k / 2, mode);
+			$('msg').textContent = `لاحظ: نصف الحجم (${k / 2} ألف سطر) يحتاج ${f1(half.effort)} شخص × شهر، أي أقل من نصف ${f1(r.effort)}. كلما كبر المشروع، زاد الجهد أسرع من الحجم.`;
+		};
+		kloc.addEventListener('input', draw);
+		root.querySelectorAll('input[type=radio]').forEach((x) => x.addEventListener('change', draw));
+		draw();
+	});
+	document.querySelectorAll<HTMLElement>('[data-est="fp"]').forEach((root) => {
+		const gsc = root.querySelector<HTMLInputElement>('[data-k="gsc"]')!;
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const counts: Record<string, number> = {};
+		FP_TYPES.forEach((t) => (counts[t.k] = +root.querySelector<HTMLElement>(`[data-n="${t.k}"]`)!.textContent!));
+		const draw = () => {
+			const r = functionPoints(counts, +gsc.value);
+			root.querySelector('[data-o="gsc"]')!.textContent = gsc.value;
+			FP_TYPES.forEach((t) => (root.querySelector<HTMLElement>(`[data-n="${t.k}"]`)!.textContent = String(counts[t.k])));
+			$('ufp').textContent = String(r.ufp);
+			$('vaf').textContent = r.vaf.toFixed(2);
+			$('fp').textContent = f1(r.fp);
+			$('msg').innerHTML = `بلغة مثل Java، كل نقطة تحتاج قرابة <bdi dir="ltr">50</bdi> سطراً، أي قرابة <bdi dir="ltr">${Math.round(r.fp * 50).toLocaleString('en')}</bdi> سطر. ويمكن إدخال هذا الرقم في حاسبة COCOMO.`;
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-d]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const k = b.dataset.t!;
+				counts[k] = Math.max(0, Math.min(20, counts[k] + +b.dataset.d!));
+				draw();
+			}),
+		);
+		gsc.addEventListener('input', draw);
+		draw();
+	});
+</script>

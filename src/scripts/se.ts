@@ -191,3 +191,68 @@ export function gradeClass(m: number) {
 	return m >= 60 ? 'pass' : 'fail';
 }
 export const GRADE_EDGES = [0, 59, 60, 100];
+
+// ===================== التقدير: COCOMO الأساسي =====================
+export type CocomoMode = 'organic' | 'semi' | 'embedded';
+/** المعاملات من Boehm 1981 (النموذج الأساسي) */
+export const COCOMO: Record<CocomoMode, { a: number; b: number; c: number; d: number; name: string }> = {
+	organic: { a: 2.4, b: 1.05, c: 2.5, d: 0.38, name: 'عضوي (فريق صغير ومشروع مألوف)' },
+	semi: { a: 3.0, b: 1.12, c: 2.5, d: 0.35, name: 'شبه منفصل (متوسط)' },
+	embedded: { a: 3.6, b: 1.2, c: 2.5, d: 0.32, name: 'مدمج (قيود صارمة وعتاد)' },
+};
+/** kloc = آلاف أسطر الكود. الجهد بالشخص-شهر، والمدة بالأشهر */
+export function cocomo(kloc: number, mode: CocomoMode) {
+	const k = COCOMO[mode];
+	const effort = k.a * kloc ** k.b;
+	const months = k.c * effort ** k.d;
+	return { effort, months, people: effort / months };
+}
+
+// ===================== نقاط الوظيفة =====================
+/** الأوزان المتوسطة للأنواع الخمسة */
+export const FP_TYPES = [
+	{ k: 'ei', name: 'مدخلات (شاشات إدخال)', w: 4 },
+	{ k: 'eo', name: 'مخرجات (تقارير، فواتير)', w: 5 },
+	{ k: 'eq', name: 'استعلامات (بحث)', w: 4 },
+	{ k: 'ilf', name: 'ملفات داخلية (جداول)', w: 10 },
+	{ k: 'eif', name: 'ملفات خارجية (من نظام آخر)', w: 7 },
+] as const;
+/** counts: عدد كل نوع. gsc: مجموع خصائص النظام العامة الـ 14 (0..70) */
+export function functionPoints(counts: Record<string, number>, gsc: number) {
+	const ufp = FP_TYPES.reduce((s, t) => s + (counts[t.k] ?? 0) * t.w, 0);
+	const vaf = 0.65 + 0.01 * gsc;
+	return { ufp, vaf, fp: ufp * vaf };
+}
+
+// ===================== تغطية الصندوق الأبيض =====================
+/** دالة الشحن: S1 cost=10؛ D1 total>100 → S2 cost=0؛ D2 member → S3 cost/=2؛ S4 return */
+export function shippingRun(total: number, member: boolean) {
+	const stmts = new Set(['S1', 'S4']);
+	const branches: string[] = [];
+	let cost = 10;
+	const d1 = total > 100;
+	if (d1) { cost = 0; stmts.add('S2'); }
+	branches.push(d1 ? 'D1T' : 'D1F');
+	if (member) { cost = cost / 2; stmts.add('S3'); }
+	branches.push(member ? 'D2T' : 'D2F');
+	return { cost, stmts: [...stmts], branches, path: `${d1 ? 'T' : 'F'}${member ? 'T' : 'F'}` };
+}
+export function coverage(tests: { total: number; member: boolean }[]) {
+	const st = new Set<string>(), br = new Set<string>(), pa = new Set<string>();
+	for (const t of tests) {
+		const r = shippingRun(t.total, t.member);
+		r.stmts.forEach((s) => st.add(s));
+		r.branches.forEach((b) => br.add(b));
+		pa.add(r.path);
+	}
+	return { stmt: st.size / 4, branch: br.size / 4, path: pa.size / 4, st, br, pa };
+}
+
+// ===================== المخاطر =====================
+/** الدرجة = الاحتمال × الأثر (كل واحد من 1 لـ 3) */
+export const riskScore = (p: number, i: number) => p * i;
+export const riskLevel = (s: number) => (s >= 6 ? 'high' : s >= 3 ? 'mid' : 'low');
+
+// ===================== Scrum: مخطط الإنجاز =====================
+/** الخط المثالي: من مجموع النقاط لصفر خلال days يوم */
+export const idealBurn = (total: number, days: number) => Array.from({ length: days + 1 }, (_, d) => total - (total * d) / days);

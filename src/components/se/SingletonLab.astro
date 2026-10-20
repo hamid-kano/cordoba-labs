@@ -1,0 +1,65 @@
+---
+// نمط الوحيد: ثلاث شاشات بتطلب «سجل الطباعة». بدونه كل شاشة بتعمل نسخة، فالطلبات بتتوزع.
+const screens = ['شاشة المبيعات', 'شاشة التقارير', 'شاشة الفواتير'];
+---
+
+<div class="not-content wl-box" data-singleton>
+	<h4>🖨️ طابور طابعة واحدة</h4>
+	<label class="ai-check"><input type="checkbox" data-k="single" /> استخدم نمط الوحيد</label>
+	<div class="wl-row">
+		{screens.map((s, i) => <button type="button" class="wl-btn" data-s={i}>اطبع من {s}</button>)}
+		<button type="button" class="wl-btn" data-reset>↺ ابدأ من جديد</button>
+	</div>
+	<div class="sg-queues" data-out="q"></div>
+	<p class="wl-msg" data-out="msg">اضغط أزرار الطباعة عدة مرات، ثم فعّل «نمط الوحيد» وكرّر.</p>
+</div>
+
+<style is:global>
+	.sg-queues { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+	.sg-q { flex: 1 1 8rem; border: 2px solid var(--sl-color-gray-5); border-radius: 0.5rem; padding: 0.4rem; font-size: var(--sl-text-sm); }
+	.sg-q b { display: block; margin-bottom: 0.25rem; }
+	.sg-q span { display: inline-block; background: #3a9ec2; color: #111; border-radius: 0.25rem; padding: 0 0.3rem; margin: 0.1rem; font-weight: 700; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-singleton]').forEach((root) => {
+		const single = root.querySelector<HTMLInputElement>('[data-k="single"]')!;
+		const out = root.querySelector<HTMLElement>('[data-out="q"]')!;
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		// queues: كل نسخة من الطابور، وowner: أي شاشة عملتها
+		let queues: { jobs: string[] }[] = [];
+		let mine: (number | null)[] = [null, null, null];
+		let job = 0;
+		const draw = () => {
+			out.innerHTML = queues.map((q, i) => `<div class="sg-q"><b>نسخة الطابور ${i + 1}</b>${q.jobs.map((j) => `<span>${j}</span>`).join('') || '—'}</div>`).join('');
+			if (!queues.length) return;
+			if (queues.length > 1) {
+				msg.className = 'wl-msg wl-bad';
+				msg.textContent = `يوجد ${queues.length === 2 ? "نسختان" : queues.length + " نسخ"} من الطابور لطابعة واحدة! كل نسخة تظن أن الطابعة لها وحدها، فتختلط الأوراق، ولا أحد يعرف الترتيب الحقيقي.`;
+			} else {
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = single.checked ? 'نسخة واحدة فقط مهما طلبتها الشاشات: الطلبات كلها مرتبة في طابور واحد.' : 'نسخة واحدة حتى الآن، لأن شاشة واحدة فقط طبعت. جرّب شاشة أخرى.';
+			}
+		};
+		const reset = () => { queues = []; mine = [null, null, null]; job = 0; out.innerHTML = ''; msg.className = 'wl-msg'; };
+		root.querySelectorAll<HTMLButtonElement>('[data-s]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const s = +b.dataset.s!;
+				let q: number;
+				if (single.checked) {
+					// getInstance: إذا في نسخة رجّعها، وإلا اعمل وحدة
+					if (!queues.length) queues.push({ jobs: [] });
+					q = 0;
+				} else {
+					// new PrintQueue(): كل شاشة بتعمل نسختها
+					if (mine[s] === null) { queues.push({ jobs: [] }); mine[s] = queues.length - 1; }
+					q = mine[s]!;
+				}
+				queues[q].jobs.push(String(++job));
+				draw();
+			}),
+		);
+		single.addEventListener('change', reset);
+		root.querySelector('[data-reset]')!.addEventListener('click', reset);
+	});
+</script>

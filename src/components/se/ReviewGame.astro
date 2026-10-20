@@ -1,0 +1,86 @@
+---
+// لعبة مراجعة الكود: الطالب بيكبس الأسطر يلي فيها مشكلة. 5 مشاكل مخبّاة.
+const code = [
+	'void login(String u, String p) {',
+	'    System.out.println("login " + u + " " + p);',
+	'    User x = db.find(u);',
+	'    if (x.pass.equals(hash(p))) {',
+	'        if (x.failed > 3) return;',
+	'        session.start(x);',
+	'    } else {',
+	'        x.failed = x.failed + 1;',
+	'    }',
+	'    if (x.role == 7) showAdminMenu();',
+	'}',
+];
+// رقم السطر ← المشكلة
+const issues: Record<number, string> = {
+	1: 'أمان: كلمة السر تُطبع في السجل! أي شخص يقرأ السجل يراها.',
+	2: 'اسم غير واضح: «x» لا يعني شيئاً. الأفضل «user».',
+	3: 'لا يوجد فحص: إذا لم يوجد المستخدم، تكون x فارغة فيتعطل البرنامج.',
+	4: 'منطق خاطئ: نفحص عدد المحاولات الفاشلة بعد التحقق من كلمة السر. يجب أن نمنع الدخول قبل ذلك، وإلا يستمر المهاجم بالتخمين.',
+	9: 'رقم سحري: ماذا يعني 7؟ الأفضل اسم واضح مثل ADMIN.',
+};
+const html = code.map((l, i) => `<button type="button" class="rv-line" data-l="${i}"><i>${i + 1}</i>${l.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</button>`).join('');
+---
+
+<div class="not-content wl-box" data-review data-issues={JSON.stringify(issues)}>
+	<h4>🔍 راجع كود زميلك</h4>
+	<p class="se-hint">في هذا الكود <b>5 مشكلات</b>. اضغط على كل سطر تراه مشكلة.</p>
+	<div class="rv-code" dir="ltr" set:html={html}></div>
+	<p class="wl-msg" data-out="msg">وجدت <span data-out="found">0</span> من 5. الأخطاء المحسوبة: <span data-out="miss">0</span>.</p>
+	<ol class="rv-notes" data-out="notes"></ol>
+	<button type="button" class="wl-btn" data-show>أظهر كل المشكلات</button>
+</div>
+
+<style is:global>
+	.rv-code { display: flex; flex-direction: column; font-family: var(--__sl-font-mono); font-size: 0.78rem; background: var(--sl-color-gray-6); border-radius: 0.5rem; padding: 0.4rem 0; overflow-x: auto; }
+	.rv-line { all: unset; white-space: pre; padding: 0.1rem 0.6rem; cursor: pointer; text-align: left; }
+	.rv-line:hover { background: var(--sl-color-gray-5); }
+	.rv-line i { display: inline-block; width: 1.6rem; font-style: normal; color: var(--sl-color-gray-3); }
+	.rv-line.found { background: rgb(229 83 75 / 0.28); }
+	.rv-line.ok { background: rgb(47 179 107 / 0.15); }
+	.rv-notes { margin: 0; padding-inline-start: 1.4rem; font-size: var(--sl-text-sm); display: flex; flex-direction: column; gap: 0.25rem; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-review]').forEach((root) => {
+		const issues: Record<string, string> = JSON.parse(root.dataset.issues!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const found = new Set<string>();
+		let miss = 0;
+		const note = (l: string) => {
+			const li = document.createElement('li');
+			li.innerHTML = `<b>السطر <bdi dir="ltr">${+l + 1}</bdi>:</b> `;
+			li.append(issues[l]);
+			$('notes').append(li);
+		};
+		const update = () => {
+			$('found').textContent = String(found.size);
+			$('miss').textContent = String(miss);
+			if (found.size === 5) {
+				$('msg').className = 'wl-msg wl-good';
+				$('msg').textContent = miss <= 1 ? 'ممتاز! وجدت المشكلات كلها تقريباً دون أخطاء. هذا مراجع ممتاز.' : `وجدت المشكلات الخمس، مع ${miss} ضغطات على أسطر سليمة.`;
+			}
+		};
+		root.querySelectorAll<HTMLButtonElement>('.rv-line').forEach((b) =>
+			b.addEventListener('click', () => {
+				const l = b.dataset.l!;
+				if (found.has(l) || b.classList.contains('ok')) return;
+				if (issues[l]) { found.add(l); b.classList.add('found'); note(l); }
+				else { miss++; b.classList.add('ok'); }
+				update();
+			}),
+		);
+		root.querySelector('[data-show]')!.addEventListener('click', () => {
+			Object.keys(issues).forEach((l) => {
+				if (found.has(l)) return;
+				found.add(l);
+				root.querySelector(`.rv-line[data-l="${l}"]`)!.classList.add('found');
+				note(l);
+			});
+			$('found').textContent = '5';
+			$('msg').className = 'wl-msg';
+		});
+	});
+</script>

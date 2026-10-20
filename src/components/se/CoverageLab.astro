@@ -1,0 +1,99 @@
+---
+// مختبر التغطية: الطالب بيضيف اختبارات لدالة الشحن، والأسطر يلي انفذت بتتلوّن،
+// وتلات أشرطة: تغطية الأسطر، والفروع، والمسارات (من coverage بـ se.ts).
+const lines: [string, string][] = [
+	['', 'double shipping(double total, boolean member) {'],
+	['S1', '    double cost = 10;'],
+	['D1', '    if (total > 100)'],
+	['S2', '        cost = 0;'],
+	['D2', '    if (member)'],
+	['S3', '        cost = cost / 2;'],
+	['S4', '    return cost;'],
+	['', '}'],
+];
+const code = lines.map(([k, t]) => `<span class="cv-line" data-l="${k}"><i>${k}</i>${t.replace(/</g, '&lt;')}</span>`).join('\n');
+---
+
+<div class="not-content wl-box" data-coverage>
+	<h4>🧪 غطِّ الكود بالاختبارات</h4>
+	<pre class="cv-code" dir="ltr" set:html={code}></pre>
+	<div class="wl-row">
+		<label>المبلغ <input type="number" min="0" max="1000" value="150" data-k="total" dir="ltr" class="cv-in" /></label>
+		<label class="ai-check"><input type="checkbox" data-k="member" checked /> عضو</label>
+		<button type="button" class="wl-btn primary" data-add>＋ أضف اختباراً</button>
+		<button type="button" class="wl-btn" data-reset>↺ امسح الاختبارات</button>
+	</div>
+	<ol class="cv-tests" data-out="tests"></ol>
+	<div class="cv-bars">
+		<div><span>الأسطر</span><div class="cv-bar"><i data-bar="stmt"></i></div><b data-pct="stmt"></b></div>
+		<div><span>الفروع</span><div class="cv-bar"><i data-bar="branch"></i></div><b data-pct="branch"></b></div>
+		<div><span>المسارات</span><div class="cv-bar"><i data-bar="path"></i></div><b data-pct="path"></b></div>
+	</div>
+	<p class="wl-msg" data-out="msg">اضغط «أضف اختباراً» بالقيم الحالية.</p>
+</div>
+
+<style is:global>
+	.cv-code { font-size: 0.8rem; padding: 0.6rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); overflow-x: auto; margin: 0; }
+	.cv-line { display: inline-block; width: 100%; transition: background 0.3s; }
+	.cv-line i { display: inline-block; width: 2.2rem; font-style: normal; color: var(--sl-color-gray-3); }
+	.cv-line.hit { background: rgb(47 179 107 / 0.25); }
+	.cv-line.half { background: rgb(224 160 48 / 0.3); }
+	.cv-in { width: 5.5rem; }
+	.cv-tests { margin: 0; padding-inline-start: 1.4rem; font-size: var(--sl-text-sm); }
+	.cv-bars { display: flex; flex-direction: column; gap: 0.3rem; }
+	.cv-bars > div { display: grid; grid-template-columns: 4.5rem 1fr 3rem; align-items: center; gap: 0.4rem; font-size: var(--sl-text-sm); }
+	.cv-bar { height: 0.9rem; border-radius: 0.45rem; background: var(--sl-color-gray-6); overflow: hidden; }
+	.cv-bar i { display: block; height: 100%; width: 0; background: #2fb36b; transition: width 0.4s; }
+	.cv-bars b { direction: ltr; text-align: end; }
+</style>
+
+<script>
+	import { shippingRun, coverage } from '../../scripts/se';
+	document.querySelectorAll<HTMLElement>('[data-coverage]').forEach((root) => {
+		const total = root.querySelector<HTMLInputElement>('[data-k="total"]')!;
+		const member = root.querySelector<HTMLInputElement>('[data-k="member"]')!;
+		const list = root.querySelector<HTMLElement>('[data-out="tests"]')!;
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		let tests: { total: number; member: boolean }[] = [];
+		const draw = () => {
+			const c = coverage(tests);
+			root.querySelectorAll<HTMLElement>('.cv-line').forEach((l) => {
+				const k = l.dataset.l!;
+				l.classList.remove('hit', 'half');
+				if (k.startsWith('S') && c.st.has(k)) l.classList.add('hit');
+				if (k.startsWith('D')) {
+					const n = +c.br.has(k + 'T') + +c.br.has(k + 'F');
+					if (n === 2) l.classList.add('hit');
+					else if (n === 1) l.classList.add('half');
+				}
+			});
+			for (const k of ['stmt', 'branch', 'path'] as const) {
+				root.querySelector<HTMLElement>(`[data-bar="${k}"]`)!.style.width = `${c[k] * 100}%`;
+				root.querySelector<HTMLElement>(`[data-pct="${k}"]`)!.textContent = tests.length ? `${Math.round(c[k] * 100)}%` : '';
+			}
+			list.innerHTML = tests.map((t) => {
+				const r = shippingRun(t.total, t.member);
+				return `<li>المبلغ <bdi dir="ltr">${t.total}</bdi>، ${t.member ? 'عضو' : 'غير عضو'} ← الشحن <bdi dir="ltr">${r.cost}</bdi></li>`;
+			}).join('');
+			if (!tests.length) { msg.className = 'wl-msg'; msg.textContent = 'اضغط «أضف اختباراً» بالقيم الحالية.'; return; }
+			msg.className = 'wl-msg' + (c.path === 1 ? ' wl-good' : '');
+			msg.textContent =
+				c.path === 1 ? 'ممتاز! غطّيت كل المسارات الأربعة: كل تركيبة من الشرطين جُرّبت.'
+				: c.branch === 1 ? 'كل الفروع مغطاة (نعم ولا لكل شرط)، لكن ليست كل التركيبات. ما التركيبة الناقصة؟'
+				: c.stmt === 1 ? 'كل الأسطر نُفّذت، لكن الشرطان (بالبرتقالي) لم يُجرّبا بجواب «لا». هذا يعني أن 100% أسطر لا تعني أن كل شيء مُختبر!'
+				: 'بعض الأسطر لم تُنفّذ أبداً (بلا لون). أي قيمة تجعلها تعمل؟';
+		};
+		root.querySelector('[data-add]')!.addEventListener('click', () => {
+			const t = { total: Math.max(0, +total.value || 0), member: member.checked };
+			if (tests.some((x) => x.total === t.total && x.member === t.member)) {
+				msg.className = 'wl-msg wl-bad';
+				msg.textContent = 'هذا الاختبار موجود. الاختبار المكرر لا يغطي شيئاً جديداً.';
+				return;
+			}
+			tests.push(t);
+			draw();
+		});
+		root.querySelector('[data-reset]')!.addEventListener('click', () => { tests = []; draw(); });
+		draw();
+	});
+</script>
