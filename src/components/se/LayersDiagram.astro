@@ -1,0 +1,33 @@
+---
+// المعمارية متعددة الطبقات: الطلب بينزل طبقة طبقة، والرد بيطلع.
+const L = [
+	{ t: 'واجهة المستخدم', s: 'ما يراه المستخدم: الأزرار والشاشات', y: 20 },
+	{ t: 'منطق العمل', s: 'القواعد والحسابات: الخصم، والتحقق', y: 115 },
+	{ t: 'البيانات', s: 'الحفظ والقراءة من قاعدة البيانات', y: 210 },
+];
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 640 300" role="img" aria-label="ثلاث طبقات فوق بعضها: واجهة المستخدم ثم منطق العمل ثم البيانات. الطلب ينزل من الأعلى إلى الأسفل، والرد يصعد">
+		<defs>
+			<marker id="lay-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+			</marker>
+		</defs>
+		{L.map((l) => (
+			<g>
+				<rect x="150" y={l.y} width="470" height="70" rx="8" class="d-box"></rect>
+				<text x="385" y={l.y + 30} class="d-t d-b">{l.t}</text>
+				<text x="385" y={l.y + 55} class="d-s">{l.s}</text>
+			</g>
+		))}
+		<!-- الطلب نازل والرد طالع -->
+		<line x1="100" y1="40" x2="100" y2="262" class="d-line d-blue" style="stroke-width:3" marker-end="url(#lay-ar)"></line>
+		<text x="70" y="160" class="d-s d-b" style="fill:#3a9ec2" transform="rotate(-90 70 160)">الطلب ينزل</text>
+		<line x1="40" y1="262" x2="40" y2="40" class="d-line d-green" style="stroke-width:3" marker-end="url(#lay-ar)"></line>
+		<text x="20" y="160" class="d-s d-b" style="fill:#2fb36b" transform="rotate(-90 20 160)">الرد يصعد</text>
+	</svg>
+	<figcaption>
+		كل طبقة تكلّم <strong>الطبقة التي تحتها فقط</strong>. فإذا غيّرنا قاعدة البيانات، نعدّل طبقة البيانات وحدها، وتبقى الواجهة كما هي.
+	</figcaption>
+</figure>

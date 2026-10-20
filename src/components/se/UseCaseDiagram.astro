@@ -1,0 +1,34 @@
+---
+// رسمة حالات الاستخدام: موقع المختبر، فيه طالب ومدرّس.
+const student = ['تصفّح الجلسات', 'حل اختبار المراجعة', 'تسليم الوظيفة'];
+const teacher = ['تصحيح الوظيفة', 'نشر جلسة جديدة'];
+const cases = ['تصفّح الجلسات', 'حل اختبار المراجعة', 'تسليم الوظيفة', 'تصحيح الوظيفة', 'نشر جلسة جديدة'];
+const cy = (t: string) => 52 + cases.indexOf(t) * 50;
+const actor = (x: number, y: number) => `M${x} ${y + 14} v26 M${x - 14} ${y + 24} h28 M${x} ${y + 40} l-12 18 M${x} ${y + 40} l12 18`;
+---
+
+<figure class="wl-fig">
+	<svg class="d-big" viewBox="0 0 640 320" role="img" aria-label="رسمة حالات الاستخدام: الطالب يتصفح الجلسات ويحل اختبار المراجعة ويسلّم الوظيفة، والمدرّس يصحّح الوظيفة وينشر جلسة جديدة، ضمن نظام موقع المختبر">
+		<rect x="170" y="14" width="300" height="272" rx="10" class="d-box2"></rect>
+		<text x="320" y="308" class="d-s d-b">نظام: موقع المختبر</text>
+		{cases.map((t) => (
+			<g>
+				<ellipse cx="320" cy={cy(t)} rx="118" ry="19" class="d-box"></ellipse>
+				<text x="320" y={cy(t) + 5} class="d-s d-b">{t}</text>
+			</g>
+		))}
+		<!-- الطالب يمين -->
+		<circle cx="580" cy="110" r="12" class="d-box2"></circle>
+		<path d={actor(580, 110)} class="d-line"></path>
+		<text x="580" y="196" class="d-t d-b">طالب</text>
+		{student.map((t) => <line x1="562" y1="140" x2="440" y2={cy(t)} class="d-line"></line>)}
+		<!-- المدرّس يسار -->
+		<circle cx="60" cy="150" r="12" class="d-box2"></circle>
+		<path d={actor(60, 150)} class="d-line"></path>
+		<text x="60" y="236" class="d-t d-b">مدرّس</text>
+		{teacher.map((t) => <line x1="78" y1="180" x2="200" y2={cy(t)} class="d-line"></line>)}
+	</svg>
+	<figcaption>
+		<strong>الممثل</strong> (الرجل الصغير) شخص يستخدم النظام، و<strong>الشكل البيضاوي</strong> شيء يستطيع فعله، و<strong>الصندوق</strong> حدود النظام. والخط يعني: هذا الممثل يقوم بهذه الحالة.
+	</figcaption>
+</figure>

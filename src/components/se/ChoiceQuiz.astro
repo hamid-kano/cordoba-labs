@@ -1,0 +1,72 @@
+---
+// اختبار اختيار عام لصفحات المراجع: كل سؤال إله خياراته (أو خيارات مشتركة)، والسبب بيطلع بعد الجواب.
+interface Item { q: string; a: number; why: string; options?: string[] }
+interface Props { title: string; intro?: string; options?: string[]; items: Item[]; pass?: number; passMsg?: string; failMsg?: string }
+const { title, intro, options = [], items, pass = Math.ceil(items.length * 0.7), passMsg = 'ممتاز!', failMsg = 'راجع الشرح في الأعلى وأعد المحاولة.' } = Astro.props;
+---
+
+<div class="not-content wl-box" data-choice-quiz data-pass={pass} data-pass-msg={passMsg} data-fail-msg={failMsg}>
+	<h4>{title}</h4>
+	{intro && <p class="se-hint" set:html={intro} />}
+	<ol class="cq-list">
+		{
+			items.map((it) => {
+				const opts = it.options ?? options;
+				return (
+					<li data-a={it.a} data-right={opts[it.a]}>
+						<span class="cq-q" set:html={it.q} />
+						<span class={`cq-opts${opts.some((o) => o.length > 22) ? ' cq-col' : ''}`}>
+							{opts.map((o, i) => (
+								<button type="button" class="wl-btn" data-k={i}>
+									{o}
+								</button>
+							))}
+						</span>
+						<span class="cq-why" hidden>{it.why}</span>
+					</li>
+				);
+			})
+		}
+	</ol>
+	<p class="wl-msg" data-out="score"></p>
+</div>
+
+<style is:global>
+	.cq-list { margin: 0; padding-inline-start: 1.4rem; display: flex; flex-direction: column; gap: 0.85rem; }
+	.cq-list li { display: flex; flex-direction: column; gap: 0.35rem; }
+	.cq-q { font-weight: 600; color: var(--sl-color-white); }
+	.cq-opts { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+	.cq-opts.cq-col { flex-direction: column; align-items: stretch; }
+	.cq-opts.cq-col .wl-btn { text-align: start; }
+	.cq-why { font-size: var(--sl-text-sm); }
+	.cq-opts .wl-btn.right { background: #2fb36b; border-color: #2fb36b; color: #111; }
+	.cq-opts .wl-btn.wrong { background: #e5534b; border-color: #e5534b; color: #111; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-choice-quiz]').forEach((root) => {
+		const lis = [...root.querySelectorAll<HTMLLIElement>('li[data-a]')];
+		const score = root.querySelector<HTMLElement>('[data-out="score"]')!;
+		const pass = +root.dataset.pass!;
+		const done = new Map<HTMLLIElement, boolean>();
+		lis.forEach((li) =>
+			li.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((b) =>
+				b.addEventListener('click', () => {
+					if (done.has(li)) return;
+					const ok = b.dataset.k === li.dataset.a;
+					done.set(li, ok);
+					b.classList.add(ok ? 'right' : 'wrong');
+					li.querySelector(`[data-k="${li.dataset.a}"]`)!.classList.add('right');
+					li.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((x) => (x.disabled = true));
+					const why = li.querySelector<HTMLElement>('.cq-why')!;
+					why.hidden = false;
+					why.textContent = `${ok ? '✓ صحيح.' : `✗ الجواب: ${li.dataset.right}.`} ${why.textContent}`;
+					const right = [...done.values()].filter(Boolean).length;
+					const end = done.size === lis.length;
+					score.className = 'wl-msg' + (end ? (right >= pass ? ' wl-good' : ' wl-bad') : '');
+					score.textContent = `النتيجة: ${right} من ${done.size}` + (end ? '. ' + (right >= pass ? root.dataset.passMsg : root.dataset.failMsg) : '');
+				}),
+			),
+		);
+	});
+</script>

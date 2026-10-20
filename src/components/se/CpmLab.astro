@@ -1,0 +1,104 @@
+---
+// مخطط Gantt تفاعلي مع المسار الحرج: الطالب بيغيّر مدة كل مهمة بـ − و +،
+// والمسار الحرج (أحمر) والسماحية (فاتح) بيتحدّثوا فوراً. الحساب cpm() بـ se.ts
+import { PM_TASKS } from '../../scripts/se';
+---
+
+<div class="not-content wl-box" data-cpm data-tasks={JSON.stringify(PM_TASKS)}>
+	<h4>📅 مخطط المشروع: ما الذي يؤخر التسليم؟</h4>
+	<p class="se-hint">غيّر مدة أي مهمة بالزرين <b>−</b> و <b>+</b>. المهام <b style="color:#e5534b">الحمراء</b> هي المسار الحرج: أي تأخير فيها يؤخر المشروع كله. والجزء <b>الفاتح</b> بعد المهمة هو وقت تستطيع أن تتأخر فيه بلا مشكلة.</p>
+	<div class="cpm-rows" data-rows></div>
+	<div class="cpm-axis-wrap" dir="ltr"><div></div><div class="cpm-axis" data-axis></div></div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>مدة المشروع</span><strong data-out="end"></strong></div>
+		<div class="wl-out"><span>المهام الحرجة (لا تحتمل أي تأخير)</span><strong class="cpm-path" data-out="path"></strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<div class="cpm-challenge">
+		<b>🎯 تحدٍّ:</b> كم أسبوعاً تستطيع أن تجعل «برمجة الواجهات» دون أن يتأخر المشروع عن 13 أسبوعاً؟
+	</div>
+	<button type="button" class="wl-btn" data-reset>↺ المدد الأصلية</button>
+</div>
+
+<style is:global>
+	.cpm-rows { display: flex; flex-direction: column; gap: 0.35rem; }
+	.cpm-row { display: grid; grid-template-columns: 9.5rem 1fr; gap: 0.4rem; align-items: center; }
+	.cpm-name { display: flex; align-items: center; gap: 0.25rem; font-size: var(--sl-text-xs); }
+	.cpm-name span { flex: 1; line-height: 1.2; }
+	.cpm-name button { font: inherit; width: 1.5rem; height: 1.5rem; padding: 0; border-radius: 0.3rem; border: 1px solid var(--sl-color-gray-4); background: var(--sl-color-gray-6); color: var(--sl-color-white); cursor: pointer; }
+	.cpm-name b { min-width: 1.2rem; text-align: center; direction: ltr; }
+	.cpm-track { position: relative; height: 1.5rem; border-radius: 0.3rem; background: var(--sl-color-gray-6); direction: ltr; }
+	.cpm-bar, .cpm-slack { position: absolute; top: 0; bottom: 0; border-radius: 0.3rem; }
+	.cpm-bar { background: #3a9ec2; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: #111; }
+	.cpm-bar.crit { background: #e5534b; }
+	.cpm-slack { background: #3a9ec2; opacity: 0.25; }
+	.cpm-end { position: absolute; top: -0.2rem; bottom: -0.2rem; border-left: 2px dashed var(--sl-color-white); }
+	.cpm-axis-wrap { display: grid; grid-template-columns: 1fr 9.5rem; gap: 0.4rem; }
+	.cpm-axis-wrap > div:first-child { order: 2; }
+	.cpm-axis { position: relative; height: 1rem; font-size: 0.65rem; color: var(--sl-color-gray-3); }
+	.cpm-axis span { position: absolute; transform: translateX(-50%); }
+	.cpm-path { font-size: var(--sl-text-sm) !important; direction: rtl !important; }
+	.cpm-challenge { padding: 0.5rem 0.7rem; border-radius: 0.5rem; border: 2px dashed #e0a030; }
+</style>
+
+<script>
+	import { cpm, type PmTask } from '../../scripts/se';
+
+	const MAXW = 20;
+	const pct = (w: number) => `${(w / MAXW) * 100}%`;
+	document.querySelectorAll<HTMLElement>('[data-cpm]').forEach((root) => {
+		const BASE: PmTask[] = JSON.parse(root.dataset.tasks!);
+		let tasks = BASE.map((t) => ({ ...t }));
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const rowsEl = root.querySelector<HTMLElement>('[data-rows]')!;
+		root.querySelector('[data-axis]')!.innerHTML = Array.from({ length: MAXW / 2 + 1 }, (_, i) => `<span style="left:${pct(i * 2)}">${i * 2}</span>`).join('');
+
+		function draw() {
+			const { rows, end } = cpm(tasks);
+			rowsEl.innerHTML = rows
+				.map(
+					(r) => `<div class="cpm-row">
+						<div class="cpm-name"><span>${r.name}</span><button type="button" data-d="-1" data-id="${r.id}" aria-label="أقصر">−</button><b>${r.dur}</b><button type="button" data-d="1" data-id="${r.id}" aria-label="أطول">+</button></div>
+						<div class="cpm-track">
+							<div class="cpm-bar${r.critical ? ' crit' : ''}" style="left:${pct(r.es)};width:${pct(r.dur)}">${r.id}</div>
+							${r.slack ? `<div class="cpm-slack" style="left:${pct(r.ef)};width:${pct(r.slack)}" title="سماحية ${r.slack} أسابيع"></div>` : ''}
+							<div class="cpm-end" style="left:${pct(end)}"></div>
+						</div>
+					</div>`,
+				)
+				.join('');
+			out('end').innerHTML = `<span dir="rtl"><bdi dir="ltr">${end}</bdi> أسبوعاً</span>`;
+			out('path').textContent = rows.filter((r) => r.critical).map((r) => r.name).join('، ');
+			const D = rows.find((r) => r.id === 'D')!;
+			const msg = out('msg');
+			if (end === 13 && D.dur === 6) {
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = '🎯 أحسنت! «برمجة الواجهات» تستطيع أن تصل إلى 6 أسابيع (كان لها أسبوعان من السماحية). جرّب 7 وانظر ماذا يحدث.';
+			} else if (end > 13 && rows.some((r) => r.critical && ['B', 'D'].includes(r.id))) {
+				msg.className = 'wl-msg wl-bad';
+				msg.textContent = `⚠️ تأخر المشروع إلى ${end} أسبوعاً، وتغيّر المسار الحرج! «برمجة الواجهات» صارت حرجة لأنها استهلكت كل سماحيتها.`;
+			} else if (end > 13) {
+				msg.className = 'wl-msg wl-bad';
+				msg.textContent = `⚠️ مهمة حرجة تأخرت، فتأخر المشروع كله إلى ${end} أسبوعاً.`;
+			} else if (end < 13) {
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = `✓ قصّرت مهمة حرجة، فانتهى المشروع أبكر: ${end} أسبوعاً.`;
+			} else {
+				msg.className = 'wl-msg';
+				msg.textContent = 'جرّب أن تطيل مهمة حمراء أسبوعاً واحداً، ثم مهمة زرقاء أسبوعاً واحداً. ما الفرق؟';
+			}
+		}
+		rowsEl.addEventListener('click', (e) => {
+			const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-d]');
+			if (!b) return;
+			const t = tasks.find((x) => x.id === b.dataset.id)!;
+			t.dur = Math.min(9, Math.max(1, t.dur + +b.dataset.d!));
+			draw();
+		});
+		root.querySelector('[data-reset]')!.addEventListener('click', () => {
+			tasks = BASE.map((t) => ({ ...t }));
+			draw();
+		});
+		draw();
+	});
+</script>

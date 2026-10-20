@@ -1,0 +1,73 @@
+---
+// قانون Brooks: كل ما زاد الفريق، زادت قنوات التواصل n(n−1)/2 وأكلت من الوقت.
+// رسمة شبكة للفريق (كل خط قناة)، ورسم بياني لمدة المشروع مقابل حجم الفريق.
+---
+
+<div class="not-content wl-box" data-brooks>
+	<h4>👥 أضف مبرمجين: هل ينتهي المشروع أسرع؟</h4>
+	<p class="se-hint">مشروع يحتاج <b>60 أسبوعاً</b> لمبرمج واحد. أضف أشخاصاً وانظر: كل خط في الرسمة <b>قناة تواصل</b> (اجتماع، سؤال، تنسيق) تأخذ من وقت الفريق.</p>
+	<label class="ai-slider"><span>عدد أفراد الفريق<output data-o="n"></output></span><input type="range" min="1" max="15" step="1" value="3" data-k="n" /></label>
+	<div class="bk-grid">
+		<svg class="bk-net" viewBox="0 0 220 220" role="img" aria-label="الفريق: كل نقطة شخص، وكل خط قناة تواصل بين شخصين" data-net></svg>
+		<div class="bk-outs">
+			<div class="wl-out"><span>قنوات التواصل</span><strong data-out="ch"></strong></div>
+			<div class="wl-out"><span>مدة المشروع</span><strong data-out="weeks"></strong></div>
+		</div>
+	</div>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="مدة المشروع بالأسابيع مقابل عدد أفراد الفريق" data-chart></svg>
+		<figcaption class="ai-legend"><span class="ai-c1"><i></i>مدة المشروع (أسابيع)</span></figcaption>
+	</figure>
+	<p class="wl-msg" data-out="msg"></p>
+	<p class="se-note">نموذج مبسّط: كل قناة تواصل تأخذ نحو 13% من أسبوع شخص واحد. الأرقام للتوضيح، لكن شكل المنحني هو الفكرة.</p>
+</div>
+
+<style is:global>
+	.bk-grid { display: grid; grid-template-columns: minmax(0, 13rem) 1fr; gap: 0.75rem; align-items: center; }
+	@media (max-width: 30rem) { .bk-grid { grid-template-columns: 1fr; } .bk-net { max-width: 13rem; margin-inline: auto; } }
+	.bk-net { width: 100%; height: auto; }
+	.bk-net line { stroke: #e0a030; stroke-width: 1; opacity: 0.55; }
+	.bk-net circle { fill: #3a9ec2; stroke: var(--sl-color-bg); stroke-width: 2; }
+	.bk-outs { display: flex; flex-direction: column; gap: 0.5rem; }
+</style>
+
+<script>
+	import { brooksWeeks, channels } from '../../scripts/se';
+	import { drawChart } from '../../scripts/chart';
+
+	document.querySelectorAll<HTMLElement>('[data-brooks]').forEach((root) => {
+		const sl = root.querySelector<HTMLInputElement>('[data-k="n"]')!;
+		const net = root.querySelector<SVGSVGElement>('[data-net]')!;
+		const chart = root.querySelector<SVGSVGElement>('[data-chart]')!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const ns = Array.from({ length: 15 }, (_, i) => i + 1);
+		const ws = ns.map((n) => Math.min(brooksWeeks(n), 70));
+
+		function draw() {
+			const n = +sl.value;
+			root.querySelector('[data-o="n"]')!.textContent = String(n);
+			// الشبكة: n نقطة على دائرة، وخط بين كل اتنين
+			const pts = ns.slice(0, n).map((_, i) => {
+				const a = (i / n) * 2 * Math.PI - Math.PI / 2;
+				return n === 1 ? [110, 110] : [110 + 85 * Math.cos(a), 110 + 85 * Math.sin(a)];
+			});
+			let g = '';
+			for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) g += `<line x1="${pts[i][0].toFixed(1)}" y1="${pts[i][1].toFixed(1)}" x2="${pts[j][0].toFixed(1)}" y2="${pts[j][1].toFixed(1)}"/>`;
+			g += pts.map(([x, y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9"/>`).join('');
+			net.innerHTML = g;
+			const w = brooksWeeks(n);
+			out('ch').innerHTML = `<bdi dir="ltr">${channels(n)}</bdi>`;
+			out('weeks').innerHTML = `<span dir="rtl"><bdi dir="ltr">${w.toFixed(1)}</bdi> أسبوعاً</span>`;
+			drawChart(chart, { series: [{ x: ns, y: ws, cls: 'ai-c1' }], xMin: 1, xMax: 15, yMin: 0, yMax: 70, xLabel: 'n', yLabel: 'weeks', height: 200, points: [{ x: n, y: Math.min(w, 70), cls: 'ai-c4' }] });
+			const msg = out('msg');
+			if (n === 1) { msg.className = 'wl-msg'; msg.textContent = 'مبرمج واحد: لا توجد اجتماعات، لكنه يحتاج 60 أسبوعاً وحده. أضف أشخاصاً.'; }
+			else if (n <= 8) { msg.className = 'wl-msg wl-good'; msg.textContent = n === 8 ? '✓ هذا أسرع ما يمكن في هذا النموذج: 8 أشخاص. جرّب أن تضيف المزيد…' : 'كل شخص جديد يسرّع المشروع، لكن الفائدة تصغر مع كل إضافة.'; }
+			else if (n <= 11) { msg.className = 'wl-msg'; msg.textContent = 'أضفت أشخاصاً، والمشروع لم يصبح أسرع! صار التنسيق يأكل الوقت الذي أضافوه.'; }
+			else { msg.className = 'wl-msg wl-bad'; msg.textContent = `⚠️ ${channels(n)} قناة تواصل! الفريق يقضي وقته في الاجتماعات، والمشروع صار أبطأ بكثير. هذا هو قانون Brooks.`; }
+		}
+		sl.addEventListener('input', draw);
+		let lastW = innerWidth;
+		addEventListener('resize', () => { if (innerWidth !== lastW) { lastW = innerWidth; draw(); } });
+		draw();
+	});
+</script>

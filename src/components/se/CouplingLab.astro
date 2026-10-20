@@ -1,0 +1,127 @@
+---
+// لغز الترابط: 9 وظائف بمتجر إلكتروني موزّعة غلط على 3 وحدات. الطالب بيبدّل وظيفتين بكل مرة
+// لحتى يقلّ الترابط (روابط بين الوحدات). كل وحدة فيها 3 وظائف دايماً، فما بيقدر يكدّسهن بوحدة وحدة.
+import { COUPLING_FNS } from '../../scripts/se';
+// بداية سيئة عن قصد: كل الروابط بين وحدات مختلفة (الترابط 11)
+const START: Record<string, number> = { login: 0, total: 0, mail: 0, profile: 1, add: 1, bill: 1, pass: 2, disc: 2, card: 2 };
+---
+
+<div class="not-content wl-box" data-coupling data-start={JSON.stringify(START)}>
+	<h4>🧩 لغز: رتّب الوظائف في وحدات</h4>
+	<p class="se-hint">هذه وظائف متجر إلكتروني، وُزّعت على ثلاث وحدات <b>بشكل سيئ</b>. اضغط على <b>وظيفتين</b> في وحدتين مختلفتين لتبدّل مكانهما. الهدف: أقل عدد من الروابط بين الوحدات.</p>
+	<div class="cp-mods" data-mods>
+		{[0, 1, 2].map((m) => (
+			<div class="cp-mod" data-mod={m}>
+				<b data-mod-name={m}>{`الوحدة ${['أ', 'ب', 'ج'][m]}`}</b>
+				<div class="cp-slot" data-slot={m}></div>
+			</div>
+		))}
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>الترابط: روابط بين الوحدات</span><strong data-out="cross"></strong></div>
+		<div class="wl-out"><span>التماسك: روابط داخل الوحدة</span><strong data-out="inside"></strong></div>
+		<div class="wl-out"><span>عدد التبديلات</span><strong data-out="moves"></strong></div>
+	</div>
+	<div class="cp-meter"><div data-out="bar"></div></div>
+	<p class="wl-msg" data-out="msg"></p>
+	<details class="cp-links">
+		<summary>الروابط التي تعبر بين الوحدات الآن</summary>
+		<ul data-out="list"></ul>
+	</details>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-reset>↺ من البداية</button>
+		<button type="button" class="wl-btn" data-hint>💡 تلميح</button>
+	</div>
+	<template data-fns>{JSON.stringify(COUPLING_FNS)}</template>
+</div>
+
+<style is:global>
+	.cp-mods { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.6rem; }
+	.cp-mod { border: 2px solid var(--sl-color-gray-5); border-radius: 0.6rem; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; transition: border-color 0.3s; }
+	.cp-mod.good { border-color: #2fb36b; }
+	.cp-slot { display: flex; flex-direction: column; gap: 0.35rem; }
+	.cp-fn { font: inherit; font-size: var(--sl-text-sm); text-align: start; padding: 0.35rem 0.6rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-4); background: var(--sl-color-gray-6); color: var(--sl-color-white); cursor: pointer; }
+	.cp-fn.sel { outline: 3px solid #e0a030; outline-offset: 1px; }
+	.cp-fn small { color: var(--sl-color-gray-3); }
+	.cp-meter { height: 0.6rem; border-radius: 99px; background: var(--sl-color-gray-5); overflow: hidden; }
+	.cp-meter div { height: 100%; background: #e5534b; transition: width 0.4s, background 0.4s; }
+	.cp-links ul { margin: 0.4rem 0 0; font-size: var(--sl-text-sm); }
+</style>
+
+<script>
+	import { couplingScore, COUPLING_LINKS } from '../../scripts/se';
+
+	document.querySelectorAll<HTMLElement>('[data-coupling]').forEach((root) => {
+		const fns: { id: string; name: string; home: number }[] = JSON.parse(root.querySelector('template[data-fns]')!.innerHTML);
+		const START: Record<string, number> = JSON.parse(root.dataset.start!);
+		const name = (id: string) => fns.find((f) => f.id === id)!.name;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const NAMES = ['المستخدمون', 'السلة', 'الدفع'];
+		let where = { ...START };
+		let sel: string | null = null;
+		let moves = 0;
+
+		// كم رابط إلها كل وظيفة مع وظائف بوحدتها (لعرضه جنب الاسم)
+		const ties = (id: string) => COUPLING_LINKS.filter(([a, b]) => (a === id || b === id) && where[a] === where[b]).length;
+
+		function draw() {
+			for (let m = 0; m < 3; m++) {
+				const slot = root.querySelector<HTMLElement>(`[data-slot="${m}"]`)!;
+				slot.innerHTML = fns
+					.filter((f) => where[f.id] === m)
+					.map((f) => `<button type="button" class="cp-fn${sel === f.id ? ' sel' : ''}" data-fn="${f.id}">${f.name} <small title="عدد روابطها مع وظائف في الوحدة نفسها">🔗 ${ties(f.id)}</small></button>`)
+					.join('');
+			}
+			const s = couplingScore(where);
+			out('cross').textContent = String(s.cross);
+			out('inside').textContent = String(s.inside);
+			out('moves').textContent = String(moves);
+			const bar = out('bar');
+			bar.style.width = `${(s.cross / 11) * 100}%`;
+			bar.style.background = s.cross <= 2 ? '#2fb36b' : s.cross <= 5 ? '#e0a030' : '#e5534b';
+			out('list').innerHTML = s.crossList.map(([a, b]) => `<li>${name(a)} ↔ ${name(b)}</li>`).join('') || '<li>لا يوجد</li>';
+			const msg = out('msg');
+			// الوحدة «جيدة» إذا كل وظائفها من نفس المجموعة الأصلية
+			const groupOf = (m: number) => new Set(fns.filter((f) => where[f.id] === m).map((f) => f.home));
+			for (let m = 0; m < 3; m++) {
+				const g = groupOf(m);
+				const good = g.size === 1;
+				root.querySelector(`[data-mod="${m}"]`)!.classList.toggle('good', good);
+				root.querySelector(`[data-mod-name="${m}"]`)!.textContent = good ? `وحدة ${NAMES[[...g][0]]} ✓` : `الوحدة ${['أ', 'ب', 'ج'][m]}`;
+			}
+			if (s.cross <= 2) {
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = `🎉 ممتاز! بقي رابطان فقط بين الوحدات، وهذا أقل ما يمكن (بعد ${moves} تبديلات). كل وحدة الآن لها عمل واحد واضح: هذا هو التماسك العالي والترابط المنخفض.`;
+			} else {
+				msg.className = 'wl-msg';
+				msg.textContent = sel ? `اخترت «${name(sel)}». اضغط وظيفة في وحدة أخرى لتبدّلهما.` : 'اختر وظيفة لتبدأ.';
+			}
+		}
+
+		root.querySelector('[data-mods]')!.addEventListener('click', (e) => {
+			const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-fn]');
+			if (!b) return;
+			const id = b.dataset.fn!;
+			if (!sel || sel === id) sel = sel === id ? null : id;
+			else if (where[sel] === where[id]) sel = id;
+			else {
+				[where[sel], where[id]] = [where[id], where[sel]];
+				sel = null;
+				moves++;
+			}
+			draw();
+		});
+		root.querySelector('[data-reset]')!.addEventListener('click', () => {
+			where = { ...START };
+			sel = null;
+			moves = 0;
+			draw();
+		});
+		root.querySelector('[data-hint]')!.addEventListener('click', () => {
+			const msg = out('msg');
+			msg.className = 'wl-msg';
+			msg.textContent = '💡 الوظائف التي تنادي بعضها كثيراً مكانها معاً: ما الذي له علاقة بالحساب؟ وما الذي له علاقة بالسلة؟ وما الذي له علاقة بالدفع؟';
+		});
+		draw();
+	});
+</script>

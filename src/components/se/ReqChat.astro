@@ -1,0 +1,124 @@
+---
+// محادثة مع زبون (صاحب صيدلية): الرسائل بتطلع وحدة وحدة متل الواتساب، والطالب بيصنّف كل رسالة.
+// بالآخر بتطلع قائمة المتطلبات يلي استخرجها.
+type K = 'f' | 'nf' | 'x';
+const msgs: { t: string; a: K; why: string; req?: string }[] = [
+	{ t: 'مرحباً! عندي صيدلية منذ عشرين سنة، والحمد لله الزبائن يحبوننا 😊', a: 'x', why: 'كلام لطيف، لكنه لا يطلب شيئاً من البرنامج.' },
+	{ t: 'أريد أن يبحث الموظف عن الدواء باسمه ويعرف إن كان موجوداً.', a: 'f', why: 'شيء يفعله البرنامج: البحث.', req: 'البحث عن دواء باسمه ومعرفة الكمية الموجودة' },
+	{ t: 'وأن تظهر النتيجة بسرعة، خلال ثانية واحدة.', a: 'nf', why: 'لا يضيف وظيفة جديدة، بل يحدد **كيف** تعمل: سرعتها (أداء).', req: 'تظهر نتيجة البحث خلال ثانية واحدة' },
+	{ t: 'وينبّهني البرنامج عندما يقترب دواء من انتهاء صلاحيته.', a: 'f', why: 'وظيفة جديدة يقوم بها البرنامج: التنبيه.', req: 'التنبيه عند اقتراب انتهاء صلاحية دواء' },
+	{ t: 'ويطبع فاتورة لكل عملية بيع.', a: 'f', why: 'وظيفة: طباعة الفاتورة.', req: 'طباعة فاتورة لكل عملية بيع' },
+	{ t: 'يجب أن يعمل على الحاسوب القديم الموجود عندي، لا أريد شراء جهاز جديد.', a: 'nf', why: 'قيد على **بيئة** التشغيل، وليس وظيفة.', req: 'يعمل على الحاسوب الحالي في الصيدلية' },
+	{ t: 'الموظفون لا يرون أرباح الصيدلية، أنا فقط.', a: 'nf', why: 'قيد **أمان** وصلاحيات: من يرى ماذا.', req: 'الأرباح يراها المالك فقط' },
+	{ t: 'وأريده سهلاً، يتعلّمه الموظف الجديد في يوم واحد.', a: 'nf', why: 'يحدد **سهولة الاستخدام**، ونستطيع قياسه: يوم واحد.', req: 'يتعلّمه الموظف الجديد خلال يوم واحد' },
+	{ t: 'بالمناسبة، ابني يدرس هندسة البرمجيات مثلك!', a: 'x', why: 'حديث جانبي، ليس متطلباً.' },
+];
+const NAMES: Record<K, string> = { f: 'متطلب وظيفي', nf: 'متطلب غير وظيفي', x: 'ليس متطلباً' };
+---
+
+<div class="not-content wl-box" data-req-chat>
+	<h4>💬 الزبون يتكلم: استخرج المتطلبات</h4>
+	<p class="se-hint">صاحب صيدلية يشرح لك ماذا يريد. صنّف كل رسالة: هل هي <b>وظيفة</b> يقوم بها البرنامج، أم <b>صفة</b> لطريقة عمله، أم كلام عادي؟</p>
+	<div class="rc-chat" data-chat>
+		{
+			msgs.map((m, i) => (
+				<div class="rc-row" data-i={i} data-a={m.a} data-req={m.req ?? ''} hidden>
+					<div class="rc-bubble">{m.t}</div>
+					<div class="wl-row rc-btns">
+						{(['f', 'nf', 'x'] as K[]).map((k) => (
+							<button type="button" class="wl-btn" data-k={k}>
+								{NAMES[k]}
+							</button>
+						))}
+					</div>
+					<div class="rc-why" hidden set:html={m.why.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')} />
+				</div>
+			))
+		}
+		<div class="rc-typing" data-typing hidden>الزبون يكتب<span>.</span><span>.</span><span>.</span></div>
+	</div>
+	<div class="rc-result" data-result hidden>
+		<p class="wl-msg" data-out="score"></p>
+		<div class="wl-grid">
+			<div class="rc-list"><b>المتطلبات الوظيفية: ماذا يفعل البرنامج</b><ul data-list="f"></ul></div>
+			<div class="rc-list"><b>المتطلبات غير الوظيفية: كيف يعمل</b><ul data-list="nf"></ul></div>
+		</div>
+		<button type="button" class="wl-btn" data-again>↺ أعد المحادثة</button>
+	</div>
+</div>
+
+<style is:global>
+	.rc-chat { display: flex; flex-direction: column; gap: 0.7rem; padding: 0.75rem; border-radius: 0.6rem; background: var(--sl-color-gray-6); }
+	.rc-row { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; animation: rc-in 0.3s ease-out; }
+	@keyframes rc-in { from { opacity: 0; transform: translateY(8px); } }
+	.rc-bubble { max-width: 90%; padding: 0.5rem 0.8rem; border-radius: 1rem 1rem 1rem 0.2rem; background: var(--sl-color-bg); color: var(--sl-color-white); box-shadow: 0 1px 2px rgb(0 0 0 / 0.15); }
+	.rc-btns .wl-btn { font-size: var(--sl-text-xs); padding: 0.25rem 0.6rem; }
+	.rc-btns .wl-btn.right { background: #2fb36b; border-color: #2fb36b; color: #111; }
+	.rc-btns .wl-btn.wrong { background: #e5534b; border-color: #e5534b; color: #111; }
+	.rc-why { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+	.rc-typing { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+	.rc-typing span { animation: rc-dot 1s infinite; }
+	.rc-typing span:nth-child(2) { animation-delay: 0.2s; } .rc-typing span:nth-child(3) { animation-delay: 0.4s; }
+	@keyframes rc-dot { 50% { opacity: 0.2; } }
+	.rc-result { display: flex; flex-direction: column; gap: 0.6rem; }
+	.rc-list { padding: 0.6rem 0.8rem; border-radius: 0.5rem; background: var(--sl-color-accent-low); }
+	.rc-list ul { margin: 0.35rem 0 0; padding-inline-start: 1.2rem; }
+</style>
+
+<script>
+	const NAMES: Record<string, string> = { f: 'متطلب وظيفي', nf: 'متطلب غير وظيفي', x: 'ليس متطلباً' };
+	document.querySelectorAll<HTMLElement>('[data-req-chat]').forEach((root) => {
+		const rows = [...root.querySelectorAll<HTMLElement>('.rc-row')];
+		const typing = root.querySelector<HTMLElement>('[data-typing]')!;
+		const result = root.querySelector<HTMLElement>('[data-result]')!;
+		const whys = rows.map((r) => r.querySelector<HTMLElement>('.rc-why')!.innerHTML);
+		let right = 0;
+
+		const show = (i: number) => {
+			typing.hidden = false;
+			setTimeout(() => {
+				typing.hidden = true;
+				rows[i].hidden = false;
+			}, i === 0 ? 300 : 700);
+		};
+		const finish = () => {
+			result.hidden = false;
+			const s = result.querySelector<HTMLElement>('[data-out="score"]')!;
+			s.className = 'wl-msg ' + (right >= 7 ? 'wl-good' : 'wl-bad');
+			s.textContent = `صنّفت ${right} من ${rows.length} بشكل صحيح.` + (right >= 7 ? ' أنت محلّل متطلبات جيد!' : ' القاعدة: «ماذا يفعل» = وظيفي، و«كيف يعمل» = غير وظيفي.');
+			for (const k of ['f', 'nf']) {
+				result.querySelector(`[data-list="${k}"]`)!.innerHTML = rows.filter((r) => r.dataset.a === k).map((r) => `<li>${r.dataset.req}</li>`).join('');
+			}
+		};
+		rows.forEach((row, i) =>
+			row.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((b) =>
+				b.addEventListener('click', () => {
+					const ok = b.dataset.k === row.dataset.a;
+					if (ok) right++;
+					b.classList.add(ok ? 'right' : 'wrong');
+					row.querySelector(`[data-k="${row.dataset.a}"]`)!.classList.add('right');
+					row.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((x) => (x.disabled = true));
+					const why = row.querySelector<HTMLElement>('.rc-why')!;
+					why.innerHTML = `${ok ? '✓' : `✗ الجواب: ${NAMES[row.dataset.a!]}.`} ${whys[i]}`;
+					why.hidden = false;
+					if (i + 1 < rows.length) show(i + 1);
+					else finish();
+				}),
+			),
+		);
+		root.querySelector('[data-again]')!.addEventListener('click', () => {
+			right = 0;
+			result.hidden = true;
+			rows.forEach((r) => {
+				r.hidden = true;
+				r.querySelector('.rc-why')!.setAttribute('hidden', '');
+				r.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((x) => {
+					x.disabled = false;
+					x.classList.remove('right', 'wrong');
+				});
+			});
+			show(0);
+		});
+		show(0);
+	});
+</script>

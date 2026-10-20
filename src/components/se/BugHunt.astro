@@ -1,0 +1,137 @@
+---
+// اصطد الأخطاء: دالة علامة فيها خطأين مخفيين. الطالب بيجرّب قيم (اختبار الصندوق الأسود)،
+// وعدّاد التغطية بيبيّن أي حالات جرّب. لما يلاقي الخطأين بينفتح الكود (الصندوق الأبيض).
+// الكود كنص لأنه الأقواس {} جوّا قالب Astro بتنقرأ كتعبير، والنصوص جوّاه إنكليزي لأنه العربي بيتلخبط بسطر LTR
+const code = [
+	'<code>function result(mark) {',
+	'  if (mark &lt; 0) return "invalid";',
+	'<span class="bh-bad">  // ✗ bug 1: should be  mark &gt;= 60</span>',
+	'  if (mark &gt; 60) return "pass";',
+	'<span class="bh-bad">  // ✗ bug 2: forgot  if (mark &gt; 100) return "invalid";</span>',
+	'  return "fail";',
+	'}</code>',
+].join('\n');
+---
+
+<div class="not-content wl-box" data-bug-hunt>
+	<h4>🐞 اصطد الأخطاء</h4>
+	<div class="bh-spec">
+		<b>المطلوب من الدالة:</b> تأخذ علامة الطالب وتعطي النتيجة.
+		<ul>
+			<li>العلامة من <bdi dir="ltr">0</bdi> إلى <bdi dir="ltr">100</bdi>.</li>
+			<li><bdi dir="ltr">60</bdi> فما فوق: <b>ناجح</b>، وأقل من <bdi dir="ltr">60</bdi>: <b>راسب</b>.</li>
+			<li>أي رقم خارج المجال: <b>علامة غير صحيحة</b>.</li>
+		</ul>
+		كتب المبرمج الكود، وفيه <b>خطآن مخفيان</b>. لا ترى الكود، بل تجرّب أرقاماً وتقارن.
+	</div>
+	<form class="wl-row bh-form" data-form>
+		<label class="wl-row">العلامة: <input class="wl-input bh-in" type="number" step="any" data-in required /></label>
+		<button type="submit" class="wl-btn primary">جرّب</button>
+	</form>
+	<div class="bh-cov" data-cov></div>
+	<div class="bh-table" data-table hidden>
+		<table class="wl-table"><thead><tr><th>العلامة</th><th>المتوقع</th><th>الناتج</th><th></th></tr></thead><tbody data-rows></tbody></table>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>الأخطاء التي وجدتها</span><strong data-out="found"></strong></div>
+		<div class="wl-out"><span>عدد الاختبارات</span><strong data-out="tests">0</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-hint>💡 تلميح</button>
+		<button type="button" class="wl-btn" data-reset>↺ من البداية</button>
+	</div>
+	<div data-code hidden>
+		<p><b>الآن انظر داخل الصندوق:</b> هذا كود المبرمج (<bdi dir="ltr">pass</bdi> = ناجح، و<bdi dir="ltr">fail</bdi> = راسب، و<bdi dir="ltr">invalid</bdi> = علامة غير صحيحة). والسطران الأحمران يشرحان الخطأين:</p>
+		<pre class="bh-code" dir="ltr" set:html={code}></pre>
+	</div>
+</div>
+
+<style is:global>
+	.bh-spec { padding: 0.6rem 0.8rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); }
+	.bh-spec ul { margin: 0.3rem 0; padding-inline-start: 1.2rem; }
+	.bh-in { width: 7rem; }
+	.bh-cov { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+	.bh-cov span { font-size: var(--sl-text-xs); padding: 0.2rem 0.55rem; border-radius: 99px; border: 1px dashed var(--sl-color-gray-4); color: var(--sl-color-gray-3); }
+	.bh-cov span.on { border: 1px solid #2fb36b; background: #2fb36b; color: #111; font-weight: 700; }
+	.bh-table { max-height: 14rem; overflow-y: auto; }
+	.bh-table td:first-child { direction: ltr; unicode-bidi: isolate; font-family: var(--sl-font-system-mono); }
+	.bh-table tr.bug td { background: rgb(229 83 75 / 0.18); }
+	.bh-code { font-size: 0.8rem; padding: 0.7rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); overflow-x: auto; }
+	.bh-code .bh-bad { display: inline-block; width: 100%; background: rgb(229 83 75 / 0.25); }
+</style>
+
+<script>
+	import { gradeSpec, gradeBuggy, gradeClass, GRADE_EDGES } from '../../scripts/se';
+
+	const COV = [
+		{ k: 'neg', t: 'رقم سالب' },
+		{ k: 'fail', t: 'راسب (0–59)' },
+		{ k: 'pass', t: 'ناجح (60–100)' },
+		{ k: 'over', t: 'أكبر من 100' },
+		...GRADE_EDGES.map((e) => ({ k: `edge${e}`, t: `الحد ${e}` })),
+	];
+	document.querySelectorAll<HTMLElement>('[data-bug-hunt]').forEach((root) => {
+		const input = root.querySelector<HTMLInputElement>('[data-in]')!;
+		const rows = root.querySelector<HTMLElement>('[data-rows]')!;
+		const cov = root.querySelector<HTMLElement>('[data-cov]')!;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const found = (k: number) => (out('found').innerHTML = `<span dir="rtl">${k} من 2</span>`);
+		let tested = new Set<string>(), bugs = new Set<string>(), n = 0;
+
+		const drawCov = () => (cov.innerHTML = COV.map((c) => `<span class="${tested.has(c.k) ? 'on' : ''}">${tested.has(c.k) ? '✓ ' : ''}${c.t}</span>`).join(''));
+		const reset = () => {
+			tested = new Set();
+			bugs = new Set();
+			n = 0;
+			rows.innerHTML = '';
+			root.querySelector<HTMLElement>('[data-table]')!.hidden = true;
+			root.querySelector<HTMLElement>('[data-code]')!.hidden = true;
+			found(0);
+			out('tests').textContent = '0';
+			out('msg').className = 'wl-msg';
+			out('msg').textContent = 'جرّب أول رقم. فكّر: أين يخطئ المبرمجون عادة؟';
+			drawCov();
+		};
+
+		root.querySelector('[data-form]')!.addEventListener('submit', (e) => {
+			e.preventDefault();
+			const m = Number(input.value);
+			if (input.value === '' || !Number.isFinite(m)) return;
+			n++;
+			const want = gradeSpec(m), got = gradeBuggy(m), bad = want !== got;
+			tested.add(gradeClass(m));
+			if (GRADE_EDGES.includes(m)) tested.add(`edge${m}`);
+			if (bad) bugs.add(m > 100 ? 'over' : 'edge60');
+			const tr = document.createElement('tr');
+			if (bad) tr.className = 'bug';
+			tr.innerHTML = `<td>${m}</td><td>${want}</td><td>${got}</td><td>${bad ? '🐞' : '✓'}</td>`;
+			rows.prepend(tr);
+			root.querySelector<HTMLElement>('[data-table]')!.hidden = false;
+			out('tests').textContent = String(n);
+			found(bugs.size);
+			drawCov();
+			const msg = out('msg');
+			if (bugs.size === 2) {
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = `🎉 وجدت الخطأين بـ ${n} اختبارات! لاحظ أين كانا: عند الحد 60، وخارج المجال. هنا تختبئ أغلب الأخطاء.`;
+				root.querySelector<HTMLElement>('[data-code]')!.hidden = false;
+			} else if (bad) {
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = '🐞 وجدت خطأً! الناتج لا يطابق المطلوب. ابحث عن الخطأ الثاني.';
+			} else {
+				msg.className = 'wl-msg';
+				msg.textContent = n >= 4 && bugs.size === 0 ? 'الأرقام «العادية» تعمل. جرّب الأرقام على حدود المجالات وخارجها.' : 'الناتج صحيح. جرّب رقماً آخر.';
+			}
+			input.value = '';
+			input.focus();
+		});
+		root.querySelector('[data-hint]')!.addEventListener('click', () => {
+			const msg = out('msg');
+			msg.className = 'wl-msg';
+			msg.textContent = '💡 الأخطاء تختبئ عند الحدود (مثل 59 و 60 و 100) وخارج المجال (مثل 101 أو −5). الأرقام في الوسط مثل 75 نادراً ما تكشف شيئاً.';
+		});
+		root.querySelector('[data-reset]')!.addEventListener('click', reset);
+		reset();
+	});
+</script>

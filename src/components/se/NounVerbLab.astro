@@ -1,0 +1,140 @@
+---
+// من الجملة إلى رسمة الأصناف: الطالب بيكبس الكلمات ليصنّفها (صنف / صفة / عملية)،
+// ولما تصير كلها صح بتطلع رسمة الأصناف. الكلمة بتدور بين الحالات بكل كبسة.
+type W = { w: string; want: 'class' | 'attr' | 'op' | 'none'; why: string };
+const S = (t: string) => ({ t });
+const K = (w: string, want: W['want'], why: string): W => ({ w, want, why });
+// النص مقطّع: نصوص عادية، وكلمات بتنكبس
+const parts: ({ t: string } | W)[] = [
+	K('يستعير', 'op', 'فعل يقوم به الطالب، فهو عملية عند الطالب.'),
+	S(' '),
+	K('الطالب', 'class', 'شيء له صفات ويقوم بأفعال، فهو صنف.'),
+	S(' '),
+	K('كتاباً', 'class', 'شيء له صفاته الخاصة (العنوان والمؤلف)، فهو صنف.'),
+	S(' من '),
+	K('المكتبة', 'none', 'في هذا البرنامج لا نحتاج أن نحفظ عنها شيئاً، فلا نجعلها صنفاً. ليس كل اسم صنفاً!'),
+	S('. لكل كتاب '),
+	K('عنوان', 'attr', 'معلومة يحملها الكتاب، فهي صفة.'),
+	S(' و'),
+	K('مؤلف', 'attr', 'معلومة يحملها الكتاب، فهي صفة.'),
+	S('. ولكل طالب '),
+	K('اسم', 'attr', 'معلومة يحملها الطالب، فهي صفة.'),
+	S(' و'),
+	K('رقم جامعي', 'attr', 'معلومة يحملها الطالب، فهي صفة.'),
+	S('. و'),
+	K('يعيد', 'op', 'فعل يقوم به الطالب، فهو عملية.'),
+	S(' الطالب الكتاب بعد أسبوعين.'),
+];
+---
+
+<div class="not-content wl-box" data-noun-verb>
+	<h4>من الجملة إلى رسمة الأصناف</h4>
+	<p class="se-hint">اضغط على الكلمات الملوّنة لتصنّفها. كل ضغطة تغيّر النوع: <span class="nv-tag nv-class">صنف</span> ثم <span class="nv-tag nv-attr">صفة</span> ثم <span class="nv-tag nv-op">عملية</span> ثم <span class="nv-tag nv-none">لا شيء</span>.</p>
+	<p class="nv-text">
+		{
+			parts.map((p) =>
+				'w' in p ? (
+					<button type="button" class="nv-w nv-none" data-want={p.want} data-why={p.why} data-state="none">
+						{p.w}
+					</button>
+				) : (
+					<span>{p.t}</span>
+				),
+			)
+		}
+	</p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-check>تحقّق</button>
+		<button type="button" class="wl-btn" data-show>أرني الحل</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<ul class="nv-whys" data-whys hidden></ul>
+
+	<figure class="wl-fig" data-diagram hidden>
+		<svg class="d-big" viewBox="0 0 460 230" role="img" aria-label="رسمة الأصناف: صنف الطالب فيه الاسم والرقم الجامعي والعمليتان يستعير ويعيد، وصنف الكتاب فيه العنوان والمؤلف، وبينهما علاقة يستعير">
+			<!-- الطالب (يمين) -->
+			<rect x="260" y="20" width="190" height="190" rx="6" class="d-box"></rect>
+			<text x="355" y="48" class="d-t d-b">طالب</text>
+			<line x1="260" y1="62" x2="450" y2="62" class="d-line"></line>
+			<text x="438" y="90" class="d-s d-start" style="text-anchor:start">− اسم</text>
+			<text x="438" y="116" class="d-s" style="text-anchor:start">− رقم جامعي</text>
+			<line x1="260" y1="132" x2="450" y2="132" class="d-line"></line>
+			<text x="438" y="160" class="d-s" style="text-anchor:start">+ يستعير()</text>
+			<text x="438" y="186" class="d-s" style="text-anchor:start">+ يعيد()</text>
+			<!-- الكتاب (يسار) -->
+			<rect x="10" y="20" width="170" height="190" rx="6" class="d-box"></rect>
+			<text x="95" y="48" class="d-t d-b">كتاب</text>
+			<line x1="10" y1="62" x2="180" y2="62" class="d-line"></line>
+			<text x="168" y="90" class="d-s" style="text-anchor:start">− عنوان</text>
+			<text x="168" y="116" class="d-s" style="text-anchor:start">− مؤلف</text>
+			<line x1="10" y1="132" x2="180" y2="132" class="d-line"></line>
+			<!-- العلاقة -->
+			<line x1="260" y1="115" x2="180" y2="115" class="d-line"></line>
+			<text x="220" y="104" class="d-s d-b">يستعير</text>
+			<text x="250" y="140" class="d-s d-ltr">1</text>
+			<text x="196" y="140" class="d-s d-ltr">0..*</text>
+		</svg>
+		<figcaption>
+			كل <strong>صنف</strong> صندوق من ثلاثة أجزاء: الاسم، ثم <strong>الصفات</strong> (ما يعرفه)، ثم <strong>العمليات</strong> (ما يفعله). والخط علاقة: يستعير الطالب الواحد عدداً من الكتب (من صفر إلى أي عدد).
+		</figcaption>
+	</figure>
+</div>
+
+<style is:global>
+	.nv-text { line-height: 2.4; font-size: 1.05rem; }
+	.nv-w { font: inherit; padding: 0.05rem 0.45rem; margin: 0 0.1rem; border-radius: 0.4rem; cursor: pointer; border: 2px dashed var(--sl-color-gray-4); background: transparent; color: var(--sl-color-white); }
+	.nv-tag { display: inline-block; padding: 0 0.4rem; border-radius: 0.3rem; font-size: var(--sl-text-xs); font-weight: 700; }
+	.nv-w.nv-class, .nv-tag.nv-class { background: #3a9ec2; border: 2px solid #3a9ec2; color: #111; }
+	.nv-w.nv-attr, .nv-tag.nv-attr { background: #2fb36b; border: 2px solid #2fb36b; color: #111; }
+	.nv-w.nv-op, .nv-tag.nv-op { background: #e0a030; border: 2px solid #e0a030; color: #111; }
+	.nv-tag.nv-none { border: 2px dashed var(--sl-color-gray-4); }
+	.nv-w.nv-bad { outline: 3px solid #e5534b; outline-offset: 2px; }
+	.nv-whys { margin: 0; font-size: var(--sl-text-sm); }
+</style>
+
+<script>
+	const STATES = ['none', 'class', 'attr', 'op'];
+	const NAME: Record<string, string> = { none: 'لا شيء', class: 'صنف', attr: 'صفة', op: 'عملية' };
+	document.querySelectorAll<HTMLElement>('[data-noun-verb]').forEach((root) => {
+		const words = [...root.querySelectorAll<HTMLButtonElement>('.nv-w')];
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const whys = root.querySelector<HTMLElement>('[data-whys]')!;
+		const diagram = root.querySelector<HTMLElement>('[data-diagram]')!;
+		const set = (b: HTMLButtonElement, s: string) => {
+			b.dataset.state = s;
+			b.className = `nv-w nv-${s}`;
+		};
+		words.forEach((b) =>
+			b.addEventListener('click', () => {
+				set(b, STATES[(STATES.indexOf(b.dataset.state!) + 1) % STATES.length]);
+				msg.textContent = '';
+			}),
+		);
+		const explain = (list: HTMLButtonElement[]) => {
+			whys.innerHTML = list.map((b) => `<li><b>${b.textContent!.trim()}</b> ← ${NAME[b.dataset.want!]}: ${b.dataset.why}</li>`).join('');
+			whys.hidden = false;
+		};
+		root.querySelector('[data-check]')!.addEventListener('click', () => {
+			const wrong = words.filter((b) => b.dataset.state !== b.dataset.want);
+			words.forEach((b) => b.classList.toggle('nv-bad', wrong.includes(b)));
+			if (!wrong.length) {
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = '✓ ممتاز! هذه هي رسمة الأصناف التي بنيتها:';
+				explain(words);
+				diagram.hidden = false;
+			} else {
+				msg.className = 'wl-msg wl-bad';
+				msg.textContent = `بقيت ${wrong.length === 1 ? 'كلمة واحدة' : wrong.length === 2 ? 'كلمتان' : wrong.length + ' كلمات'} (عليها إطار أحمر). تلميح: الاسم الذي له صفات = صنف، والمعلومة = صفة، والفعل = عملية.`;
+			}
+		});
+		root.querySelector('[data-show]')!.addEventListener('click', () => {
+			words.forEach((b) => {
+				set(b, b.dataset.want!);
+			});
+			msg.className = 'wl-msg';
+			msg.textContent = 'هذا هو الحل، وسبب كل كلمة:';
+			explain(words);
+			diagram.hidden = false;
+		});
+	});
+</script>

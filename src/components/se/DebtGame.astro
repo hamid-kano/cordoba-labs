@@ -1,0 +1,96 @@
+---
+// لعبة الدَّين التقني: 8 دورات، وبكل دورة الطالب بيختار سريع / نظيف / تنظيف.
+// السريع بيعطي ميزات أكتر هلق بس بيزيد الدَّين يلي بيبطّئ كل الدورات الجاية. الحساب debtRun() بـ se.ts
+import { DEBT } from '../../scripts/se';
+---
+
+<div class="not-content wl-box" data-debt data-rules={JSON.stringify(DEBT)}>
+	<h4>💳 لعبة الدَّين التقني: 8 دورات</h4>
+	<p class="se-hint">أنت قائد الفريق. في كل دورة يستطيع الفريق أن ينجز <b>10 ميزات</b>. اختر طريقة العمل:</p>
+	<ul class="dg-rules">
+		<li><b>⚡ سريع:</b> 3 ميزات إضافية الآن، لكن الكود يصبح فوضوياً: <b>+3 دَين</b>.</li>
+		<li><b>✨ نظيف:</b> 10 ميزات، والدَّين لا يزيد.</li>
+		<li><b>🧹 تنظيف:</b> 5 ميزات أقل الآن، لكنه يسدّ <b>6 من الدَّين</b>.</li>
+		<li>كل نقطة دَين تُنقص ميزة من <b>كل</b> دورة قادمة.</li>
+	</ul>
+	<div class="dg-status">
+		<div class="wl-out"><span>الدورة</span><strong data-out="round"></strong></div>
+		<div class="wl-out"><span>الدَّين الآن</span><strong data-out="debt"></strong></div>
+		<div class="wl-out"><span>مجموع الميزات</span><strong data-out="total"></strong></div>
+	</div>
+	<div class="wl-row" data-choices>
+		<button type="button" class="wl-btn" data-c="fast">⚡ سريع</button>
+		<button type="button" class="wl-btn" data-c="clean">✨ نظيف</button>
+		<button type="button" class="wl-btn" data-c="refactor">🧹 تنظيف</button>
+	</div>
+	<div class="dg-bars" data-bars dir="ltr"></div>
+	<p class="wl-msg" data-out="msg"></p>
+	<button type="button" class="wl-btn" data-again hidden>↺ العب مرة أخرى</button>
+</div>
+
+<style is:global>
+	.dg-rules { margin: 0; padding-inline-start: 1.2rem; font-size: var(--sl-text-sm); }
+	.dg-status { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+	.dg-status .wl-out { padding: 0.35rem 0.5rem; }
+	.dg-bars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.3rem; align-items: end; height: 9rem; padding: 0.4rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); }
+	.dg-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 0.15rem; font-size: 0.65rem; }
+	.dg-col i { display: block; width: 100%; border-radius: 0.25rem 0.25rem 0 0; min-height: 2px; }
+	.dg-col b { font-size: 0.75rem; }
+	.dg-fast { background: #e0a030; } .dg-clean { background: #2fb36b; } .dg-refactor { background: #3a9ec2; }
+	.dg-col .dg-debt { color: #e5534b; }
+</style>
+
+<script>
+	import { debtRun, type DebtChoice } from '../../scripts/se';
+
+	const ICON: Record<DebtChoice, string> = { fast: '⚡', clean: '✨', refactor: '🧹' };
+	const ROUNDS = 8;
+	document.querySelectorAll<HTMLElement>('[data-debt]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const bars = root.querySelector<HTMLElement>('[data-bars]')!;
+		const again = root.querySelector<HTMLButtonElement>('[data-again]')!;
+		const btns = [...root.querySelectorAll<HTMLButtonElement>('[data-c]')];
+		const allClean = debtRun(Array(ROUNDS).fill('clean')).total;
+		const allFast = debtRun(Array(ROUNDS).fill('fast')).total;
+		let choices: DebtChoice[] = [];
+
+		function draw() {
+			const r = debtRun(choices);
+			const done = choices.length === ROUNDS;
+			out('round').textContent = done ? 'انتهت' : `${choices.length + 1} من ${ROUNDS}`;
+			out('debt').textContent = String(r.debt);
+			out('total').textContent = String(r.total);
+			bars.innerHTML = Array.from({ length: ROUNDS }, (_, i) => {
+				const row = r.rows[i];
+				if (!row) return '<div class="dg-col"><span>·</span></div>';
+				return `<div class="dg-col"><b>${row.features}</b><i class="dg-${row.choice}" style="height:${(row.features / 13) * 75}%"></i><span>${ICON[row.choice]}</span>${row.debt ? `<span class="dg-debt">${row.debt}</span>` : ''}</div>`;
+			}).join('');
+			btns.forEach((b) => (b.disabled = done));
+			again.hidden = !done;
+			const msg = out('msg');
+			if (!choices.length) {
+				msg.className = 'wl-msg';
+				msg.textContent = 'اختر طريقة العمل في الدورة الأولى. (الرقم الأحمر تحت كل عمود = الدَّين بعد الدورة.)';
+			} else if (!done) {
+				const next = Math.max(0, 10 - r.debt);
+				msg.className = 'wl-msg' + (r.debt >= 6 ? ' wl-bad' : '');
+				msg.textContent = r.debt ? `بسبب الدَّين، الدورة القادمة «النظيفة» تعطي ${next} ميزات بدل 10.` : 'لا يوجد دَين. سرعة الفريق كاملة.';
+			} else {
+				const good = r.total >= allClean - 7;
+				msg.className = 'wl-msg ' + (good ? 'wl-good' : 'wl-bad');
+				msg.textContent = `النتيجة: ${r.total} ميزة. للمقارنة: «نظيف» دائماً = ${allClean}، و«سريع» دائماً = ${allFast} فقط. ` + (good ? 'أحسنت! أبقيت الدَّين تحت السيطرة.' : 'الاستعجال جعل الفريق يبطؤ دورة بعد دورة. الطريق المختصر صار طويلاً!');
+			}
+		}
+		btns.forEach((b) =>
+			b.addEventListener('click', () => {
+				if (choices.length < ROUNDS) choices.push(b.dataset.c as DebtChoice);
+				draw();
+			}),
+		);
+		again.addEventListener('click', () => {
+			choices = [];
+			draw();
+		});
+		draw();
+	});
+</script>

@@ -1,0 +1,84 @@
+---
+// رسمة تتابع (Sequence) لتسجيل الدخول، بتنعرض رسالة رسالة بأزرار التالي والسابق.
+// المشاركين من اليمين للشمال لأنه الصفحة عربية: المستخدم أول واحد.
+const P = [
+	{ name: 'المستخدم', x: 560 },
+	{ name: 'الواجهة', x: 400 },
+	{ name: 'الخادم', x: 240 },
+	{ name: 'قاعدة البيانات', x: 80 },
+];
+const steps = [
+	{ from: 0, to: 1, t: 'يكتب الاسم وكلمة السر', back: false, why: 'يبدأ كل شيء من المستخدم: يكتب بياناته ويضغط «دخول».' },
+	{ from: 1, to: 2, t: 'تحقّق من هذه البيانات', back: false, why: 'الواجهة لا تعرف كلمات السر، فترسل البيانات إلى الخادم.' },
+	{ from: 2, to: 3, t: 'ابحث عن هذا المستخدم', back: false, why: 'الخادم يسأل قاعدة البيانات عن المستخدم.' },
+	{ from: 3, to: 2, t: 'بصمة كلمة السر المحفوظة', back: true, why: 'الخط المتقطع رد على طلب سابق. ترجع قاعدة البيانات بصمة كلمة السر، فيقارنها الخادم.' },
+	{ from: 2, to: 1, t: 'الدخول ناجح', back: true, why: 'تطابقت البصمة، فيرد الخادم على الواجهة.' },
+	{ from: 1, to: 0, t: 'تعرض الصفحة الرئيسية', back: true, why: 'وأخيراً يرى المستخدم النتيجة.' },
+];
+const Y0 = 96, DY = 46;
+---
+
+<div class="not-content wl-box" data-seq>
+	<h4>شاهد الرسائل: تسجيل الدخول</h4>
+	<figure class="wl-fig wl-wide">
+		<div class="wl-scroll">
+			<svg viewBox="0 0 640 400" role="img" aria-label="رسمة تتابع لتسجيل الدخول بين المستخدم والواجهة والخادم وقاعدة البيانات، ست رسائل بالترتيب">
+				<defs>
+					<marker id="seq-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+						<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+					</marker>
+				</defs>
+				{P.map((p) => (
+					<g>
+						<rect x={p.x - 66} y="14" width="132" height="38" rx="6" class="d-box"></rect>
+						<text x={p.x} y="39" class="d-t d-b">{p.name}</text>
+						<line x1={p.x} y1="52" x2={p.x} y2="390" class="d-line d-dash" style="opacity:.5"></line>
+					</g>
+				))}
+				{steps.map((s, i) => {
+					const y = Y0 + i * DY, x1 = P[s.from].x, x2 = P[s.to].x;
+					return (
+						<g data-step={i} class="seq-msg">
+							<line x1={x1} y1={y} x2={x2 + (x2 > x1 ? -4 : 4)} y2={y} class={`d-line ${s.back ? 'd-dash' : ''}`} style="stroke-width:2.5" marker-end="url(#seq-ar)"></line>
+							<text x={(x1 + x2) / 2} y={y - 8} class="d-t">{`${i + 1}. ${s.t}`}</text>
+						</g>
+					);
+				})}
+			</svg>
+		</div>
+	</figure>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-prev>⮕ السابق</button>
+		<button type="button" class="wl-btn primary" data-next>التالي ⬅</button>
+		<button type="button" class="wl-btn" data-all>كل الرسائل</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<template data-whys>{JSON.stringify(steps.map((s) => s.why))}</template>
+</div>
+
+<style is:global>
+	.seq-msg { transition: opacity 0.3s; }
+	.seq-msg.off { opacity: 0; }
+	.seq-msg.now line { stroke: #e0a030; }
+	.seq-msg.now text { fill: #e0a030; font-weight: 700; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-seq]').forEach((root) => {
+		const msgs = [...root.querySelectorAll<SVGGElement>('[data-step]')];
+		const whys: string[] = JSON.parse(root.querySelector('template[data-whys]')!.innerHTML);
+		const out = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		let n = 0; // عدد الرسائل الظاهرة
+		const draw = () => {
+			msgs.forEach((m, i) => {
+				m.classList.toggle('off', i >= n);
+				m.classList.toggle('now', i === n - 1);
+			});
+			out.textContent = n === 0 ? 'اضغط «التالي» لترى أول رسالة.' : `${n}. ${whys[n - 1]}` + (n === msgs.length ? ' (انتهت الرسائل: الزمن ينزل من الأعلى إلى الأسفل.)' : '');
+		};
+		root.querySelector('[data-next]')!.addEventListener('click', () => { n = Math.min(msgs.length, n + 1); draw(); });
+		root.querySelector('[data-prev]')!.addEventListener('click', () => { n = Math.max(0, n - 1); draw(); });
+		root.querySelector('[data-all]')!.addEventListener('click', () => { n = msgs.length; draw(); });
+		draw();
+	});
+</script>
