@@ -1,0 +1,117 @@
+---
+// خطة دراسية: الطالب بيكبس المقررات بالترتيب، والمقرر ما بينقبل إلا إذا متطلباته انأخدت.
+// وبعدين خوارزمية Kahn خطوة خطوة (عدد المتطلبات الباقية فوق كل مقرر)، وزر بيضيف متطلب دائري.
+---
+
+<div class="not-content wl-box" data-topo>
+	<h4>🎓 رتّب مقرراتك</h4>
+	<p class="se-hint">السهم من مقرر إلى آخر يعني «يجب أن تنجح في الأول قبل الثاني». اضغط المقررات بترتيب تستطيع دراسته فعلاً.</p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-mode="hand">✋ أنا أرتّب</button>
+		<button type="button" class="wl-btn" data-mode="kahn">🤖 خوارزمية Kahn</button>
+		<label class="ai-check"><input type="checkbox" data-k="cycle" /> أضف متطلباً دائرياً</label>
+	</div>
+	<div class="tp-wrap" dir="ltr"><svg class="gd-svg" viewBox="0 0 770 350" data-out="svg" role="img" aria-label="مقررات جامعية والأسهم بينها تبيّن المتطلبات"></svg></div>
+	<div class="gw-box"><span>خطتك</span><div data-out="plan"></div></div>
+	<div class="gw-box" data-qrow hidden><span>جاهزة الآن (طابور)</span><div data-out="queue"></div></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-undo>⌫ تراجع</button>
+		<button type="button" class="wl-btn primary" data-step hidden>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play hidden>▶ تشغيل</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.tp-wrap { overflow-x: auto; max-width: 100%; }
+	.tp-wrap .gd-svg { min-width: 600px; }
+	.gw-box i.wide { width: auto; padding: 0 0.45rem; font-size: 0.75rem; white-space: nowrap; }
+</style>
+
+<script>
+	import { G_COURSES, kahn, checkTopo, type Graph, type TStep } from '../../scripts/algo';
+	import { drawGraph, ekey } from '../../scripts/graphDraw';
+	document.querySelectorAll<HTMLElement>('[data-topo]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		const cyc = root.querySelector<HTMLInputElement>('[data-k="cycle"]')!;
+		const name = Object.fromEntries(G_COURSES.nodes.map((n) => [n.id, n.label]));
+		let mode = 'hand', plan: string[] = [], steps: TStep[] = [], i = 0, timer = 0;
+		// منعكس أفقياً: المتطلبات يمين والمقررات المتقدمة يسار، متل اتجاه القراءة
+		const BASE: Graph = { ...G_COURSES, nodes: G_COURSES.nodes.map((n) => ({ ...n, x: 770 - n.x })) };
+		const g = (): Graph => (cyc.checked ? { ...BASE, edges: [...BASE.edges, { a: 'ai', b: 'p2' }] } : BASE);
+		const chips = (ids: string[], cls = '') => ids.map((x) => `<i class="wide ${cls}">${name[x]}</i>`).join('') || '<small>—</small>';
+		const show = (btns: boolean) => { root.querySelectorAll<HTMLElement>('[data-step],[data-play],[data-qrow]').forEach((b) => (b.hidden = !btns)); root.querySelector<HTMLElement>('[data-undo]')!.hidden = btns; };
+		const drawHand = (bad = '') => {
+			const G = g();
+			const taken = new Set(plan);
+			drawGraph(svg, G, {
+				W: 770, H: 350, wide: true,
+				nodeCls: (n) => (n === bad ? 'bad' : taken.has(n) ? 'hit' : G.edges.filter((e) => e.b === n).every((e) => taken.has(e.a)) ? 'new' : 'dim'),
+				edgeCls: (a, b) => (taken.has(a) && taken.has(b) ? 'on' : bad && b === bad && !taken.has(a) ? 'bad' : ''),
+				tag: (n) => (taken.has(n) ? String(plan.indexOf(n) + 1) : ''),
+			});
+			svg.querySelectorAll<SVGGElement>('.gd-n').forEach((el) => el.addEventListener('click', () => pick(el.dataset.id!)));
+			$('plan').innerHTML = plan.map((x, k) => `<i class="wide v">${k + 1}. ${name[x]}</i>`).join('') || '<small>—</small>';
+		};
+		const pick = (id: string) => {
+			if (mode !== 'hand' || plan.includes(id)) return;
+			const G = g();
+			const missing = G.edges.filter((e) => e.b === id && !plan.includes(e.a)).map((e) => name[e.a]);
+			const msg = $('msg');
+			if (missing.length) { drawHand(id); msg.className = 'wl-msg wl-bad'; msg.textContent = `✗ لا يمكن دراسة «${name[id]}» الآن: يجب أن تنجح أولاً في: ${missing.join('، ')}.`; return; }
+			plan.push(id);
+			drawHand();
+			msg.className = 'wl-msg';
+			if (plan.length === G.nodes.length) {
+				const broken = checkTopo(G, plan);
+				msg.className = 'wl-msg ' + (broken ? 'wl-bad' : 'wl-good');
+				msg.textContent = broken ? 'خطأ غير متوقع.' : '✓ خطة صحيحة! كل مقرر جاء بعد متطلباته. هذا «ترتيب طوبولوجي». جرّب ترتيباً آخر: يوجد أكثر من ترتيب صحيح.';
+			} else {
+				const ready = G.nodes.filter((n) => !plan.includes(n.id) && G.edges.filter((e) => e.b === n.id).every((e) => plan.includes(e.a))).map((n) => n.label);
+				msg.textContent = ready.length ? `يمكنك الآن دراسة: ${ready.join('، ')} (بالبنفسجي).` : 'لا يوجد أي مقرر جاهز! كل المقررات الباقية تنتظر بعضها: هذه حلقة، فلا يمكن إكمال الخطة أبداً.';
+				if (!ready.length) msg.className = 'wl-msg wl-bad';
+			}
+		};
+		const drawK = () => {
+			const s = steps[i];
+			const done = new Set(s.order);
+			drawGraph(svg, g(), {
+				W: 770, H: 350, wide: true,
+				nodeCls: (n) => (n === s.cur ? 'path' : done.has(n) ? 'hit' : s.queue.includes(n) ? 'new' : s.note === 'cycle' ? 'bad' : 'dim'),
+				edgeCls: (a, b) => (done.has(a) && !done.has(b) ? 'dim' : ''),
+				tag: (n) => (done.has(n) ? '✓' : String(s.indeg[n])),
+			});
+			$('plan').innerHTML = chips(s.order, 'v');
+			$('queue').innerHTML = chips(s.queue);
+			const msg = $('msg');
+			msg.className = 'wl-msg';
+			if (s.note === 'start') msg.textContent = `الرقم فوق كل مقرر: كم متطلباً بقي له. المقررات بلا متطلبات (0) جاهزة: نضعها في الطابور.`;
+			else if (s.note === 'take') msg.textContent = `نأخذ «${name[s.cur!]}» من الطابور ونضيفه إلى الخطة. ثم ننقص واحداً من كل مقرر يحتاجه. ما يصل إلى 0 يصبح جاهزاً.`;
+			else if (s.note === 'done') { msg.className = 'wl-msg wl-good'; msg.textContent = `✓ خطة كاملة: ${s.order.map((x) => name[x]).join(' ← ')}.`; }
+			else { msg.className = 'wl-msg wl-bad'; msg.textContent = `✗ فرغ الطابور وبقيت ${g().nodes.length - s.order.length} مقررات لم نأخذها (بالأحمر): كل واحد ينتظر غيره. هذه حلقة، والخطة مستحيلة. هكذا تكتشف الخوارزمية الحلقات.`; }
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i === steps.length - 1;
+		};
+		const reset = () => {
+			clearInterval(timer);
+			plan = [];
+			if (mode === 'hand') { show(false); drawHand(); $('msg').className = 'wl-msg'; $('msg').textContent = cyc.checked ? 'أضفنا سهماً من «الذكاء الصنعي» إلى «برمجة 2». حاول أن ترتّب الآن!' : 'المقررات البنفسجية جاهزة الآن، لأن كل متطلباتها منتهية (أو ليس لها متطلبات).'; }
+			else { show(true); steps = kahn(g()); i = 0; drawK(); }
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+			mode = b.dataset.mode!;
+			root.querySelectorAll('[data-mode]').forEach((x) => x.classList.toggle('primary', x === b));
+			reset();
+		}));
+		cyc.addEventListener('change', reset);
+		root.querySelector('[data-undo]')!.addEventListener('click', () => { plan.pop(); drawHand(); $('msg').textContent = ''; });
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < steps.length - 1) { i++; drawK(); } });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= steps.length - 1) i = 0;
+			timer = window.setInterval(() => { if (i >= steps.length - 1) { clearInterval(timer); return; } i++; drawK(); }, 900);
+		});
+		reset();
+		void ekey;
+	});
+</script>

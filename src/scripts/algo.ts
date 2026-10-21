@@ -413,3 +413,235 @@ export function heapSort(input: number[]) {
 	while (h.length) out.unshift(heapPop(h).top);
 	return out;
 }
+
+// ===================== 11. الرسوم البيانية: تمثيل وتجوال =====================
+export interface GNode { id: string; label: string; x: number; y: number }
+export interface GEdge { a: string; b: string; w?: number }
+export interface Graph { nodes: GNode[]; edges: GEdge[]; directed?: boolean }
+export function adjacency(g: Graph): Record<string, string[]> {
+	const adj: Record<string, string[]> = {};
+	g.nodes.forEach((n) => (adj[n.id] = []));
+	for (const e of g.edges) { adj[e.a].push(e.b); if (!g.directed) adj[e.b].push(e.a); }
+	Object.values(adj).forEach((l) => l.sort());
+	return adj;
+}
+export interface WalkStep { cur: string | null; frontier: string[]; visited: string[]; order: string[]; note: 'start' | 'take' | 'add' | 'skip' | 'done'; who?: string; dist?: Record<string, number> }
+/** BFS بطابور أو DFS بمكدس، مع حالة البنية بعد كل خطوة */
+export function graphWalk(g: Graph, start: string, kind: 'bfs' | 'dfs'): WalkStep[] {
+	const adj = adjacency(g);
+	const steps: WalkStep[] = [];
+	const visited = new Set<string>([start]);
+	const order: string[] = [];
+	const dist: Record<string, number> = { [start]: 0 };
+	let frontier = [start];
+	const snap = (cur: string | null, note: WalkStep['note'], who?: string) =>
+		steps.push({ cur, frontier: [...frontier], visited: [...visited], order: [...order], note, who, dist: { ...dist } });
+	snap(null, 'start');
+	while (frontier.length) {
+		const cur = kind === 'bfs' ? frontier.shift()! : frontier.pop()!;
+		order.push(cur);
+		snap(cur, 'take');
+		// DFS: منحط الجيران بالعكس لحتى يطلع الأصغر أول من المكدس
+		const nb = kind === 'bfs' ? adj[cur] : [...adj[cur]].reverse();
+		for (const n of nb) {
+			if (visited.has(n)) continue;
+			visited.add(n);
+			dist[n] = dist[cur] + 1;
+			frontier.push(n);
+			snap(cur, 'add', n);
+		}
+	}
+	snap(null, 'done');
+	return steps;
+}
+
+// المتاهة: شبكة نصوص، # حيط، S بداية، E نهاية
+export interface MazeRun { visitOrder: [number, number][]; path: [number, number][]; found: boolean }
+export function solveMaze(rows: string[], kind: 'bfs' | 'dfs'): MazeRun {
+	const H = rows.length, W = rows[0].length;
+	let s: [number, number] = [0, 0], e: [number, number] = [0, 0];
+	rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === 'S') s = [x, y]; if (c === 'E') e = [x, y]; }));
+	const key = (x: number, y: number) => y * W + x;
+	const prev = new Map<number, number>();
+	const seen = new Set<number>([key(...s)]);
+	const visitOrder: [number, number][] = [];
+	const fr: [number, number][] = [s];
+	// الترتيب: يمين، تحت، يسار، فوق
+	const D = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+	let found = false;
+	while (fr.length) {
+		const [x, y] = kind === 'bfs' ? fr.shift()! : fr.pop()!;
+		visitOrder.push([x, y]);
+		if (x === e[0] && y === e[1]) { found = true; break; }
+		const dirs = kind === 'bfs' ? D : [...D].reverse();
+		for (const [dx, dy] of dirs) {
+			const nx = x + dx, ny = y + dy;
+			if (nx < 0 || ny < 0 || nx >= W || ny >= H || rows[ny][nx] === '#') continue;
+			const k = key(nx, ny);
+			if (seen.has(k)) continue;
+			seen.add(k);
+			prev.set(k, key(x, y));
+			fr.push([nx, ny]);
+		}
+	}
+	const path: [number, number][] = [];
+	if (found) { let k: number | undefined = key(...e); while (k !== undefined) { path.unshift([k % W, Math.floor(k / W)]); k = prev.get(k); } }
+	return { visitOrder, path, found };
+}
+
+// ===================== 12. أقصر طريق: Dijkstra =====================
+export interface DStep { cur: string | null; dist: Record<string, number>; prev: Record<string, string | null>; done: string[]; relax?: { to: string; old: number; neu: number; better: boolean }; note: 'start' | 'pick' | 'relax' | 'done' }
+export function dijkstra(g: Graph, src: string): DStep[] {
+	const dist: Record<string, number> = {}, prev: Record<string, string | null> = {};
+	g.nodes.forEach((n) => { dist[n.id] = Infinity; prev[n.id] = null; });
+	dist[src] = 0;
+	const done = new Set<string>();
+	const steps: DStep[] = [];
+	const snap = (cur: string | null, note: DStep['note'], relax?: DStep['relax']) => steps.push({ cur, dist: { ...dist }, prev: { ...prev }, done: [...done], relax, note });
+	snap(null, 'start');
+	for (;;) {
+		let cur: string | null = null;
+		for (const n of g.nodes) if (!done.has(n.id) && dist[n.id] < Infinity && (cur === null || dist[n.id] < dist[cur])) cur = n.id;
+		if (cur === null) break;
+		done.add(cur);
+		snap(cur, 'pick');
+		for (const e of g.edges) {
+			const to = e.a === cur ? e.b : !g.directed && e.b === cur ? e.a : null;
+			if (!to || done.has(to)) continue;
+			const neu = dist[cur] + (e.w ?? 1), old = dist[to];
+			const better = neu < old;
+			if (better) { dist[to] = neu; prev[to] = cur; }
+			snap(cur, 'relax', { to, old, neu, better });
+		}
+	}
+	snap(null, 'done');
+	return steps;
+}
+export function pathTo(prev: Record<string, string | null>, t: string): string[] { const p: string[] = []; let c: string | null = t; while (c) { p.unshift(c); c = prev[c]; } return p; }
+
+// ===================== 13. الشجرة الممتدة الصغرى =====================
+export interface KStep { edge: GEdge | null; take: boolean; chosen: GEdge[]; total: number; groups: Record<string, string>; note: 'start' | 'take' | 'cycle' | 'done' }
+/** Kruskal مع Union-Find: الأضلاع بالترتيب، وكل ضلع بيوصل مجموعتين مختلفتين بينأخذ */
+export function kruskal(g: Graph): KStep[] {
+	const parent: Record<string, string> = {};
+	g.nodes.forEach((n) => (parent[n.id] = n.id));
+	const find = (x: string): string => (parent[x] === x ? x : (parent[x] = find(parent[x])));
+	const sorted = [...g.edges].sort((a, b) => (a.w ?? 0) - (b.w ?? 0) || (a.a + a.b).localeCompare(b.a + b.b));
+	const chosen: GEdge[] = [];
+	let total = 0;
+	const groups = () => Object.fromEntries(g.nodes.map((n) => [n.id, find(n.id)]));
+	const steps: KStep[] = [{ edge: null, take: false, chosen: [], total: 0, groups: groups(), note: 'start' }];
+	for (const e of sorted) {
+		if (chosen.length === g.nodes.length - 1) break;
+		const ra = find(e.a), rb = find(e.b);
+		if (ra !== rb) { parent[ra] = rb; chosen.push(e); total += e.w ?? 0; steps.push({ edge: e, take: true, chosen: [...chosen], total, groups: groups(), note: 'take' }); }
+		else steps.push({ edge: e, take: false, chosen: [...chosen], total, groups: groups(), note: 'cycle' });
+	}
+	steps.push({ edge: null, take: false, chosen: [...chosen], total, groups: groups(), note: 'done' });
+	return steps;
+}
+/** Prim: من عقدة، كل مرة أرخص ضلع بيطلع من الشجرة */
+export function prim(g: Graph, start: string): { order: GEdge[]; total: number } {
+	const inT = new Set([start]);
+	const order: GEdge[] = [];
+	let total = 0;
+	while (inT.size < g.nodes.length) {
+		let best: GEdge | null = null;
+		for (const e of g.edges) if (inT.has(e.a) !== inT.has(e.b) && (!best || (e.w ?? 0) < (best.w ?? 0))) best = e;
+		if (!best) break;
+		inT.add(best.a); inT.add(best.b);
+		order.push(best); total += best.w ?? 0;
+	}
+	return { order, total };
+}
+/** هل الأضلاع المختارة فيها حلقة؟ وكم مجموعة بتعمل؟ */
+export function forestInfo(nodes: string[], edges: GEdge[]) {
+	const parent: Record<string, string> = {};
+	nodes.forEach((n) => (parent[n] = n));
+	const find = (x: string): string => (parent[x] === x ? x : (parent[x] = find(parent[x])));
+	let cycle = false;
+	for (const e of edges) { const ra = find(e.a), rb = find(e.b); if (ra === rb) cycle = true; else parent[ra] = rb; }
+	const comps = new Set(nodes.map(find)).size;
+	return { cycle, comps };
+}
+
+// ===================== 14. الترتيب الطوبولوجي =====================
+export interface TStep { indeg: Record<string, number>; queue: string[]; order: string[]; cur: string | null; note: 'start' | 'take' | 'done' | 'cycle' }
+/** Kahn: كل مرة منأخذ عقدة ما إلها متطلبات باقية */
+export function kahn(g: Graph): TStep[] {
+	const indeg: Record<string, number> = {};
+	g.nodes.forEach((n) => (indeg[n.id] = 0));
+	g.edges.forEach((e) => indeg[e.b]++);
+	const queue = g.nodes.filter((n) => indeg[n.id] === 0).map((n) => n.id);
+	const order: string[] = [];
+	const steps: TStep[] = [{ indeg: { ...indeg }, queue: [...queue], order: [], cur: null, note: 'start' }];
+	while (queue.length) {
+		const cur = queue.shift()!;
+		order.push(cur);
+		for (const e of g.edges) if (e.a === cur) { indeg[e.b]--; if (indeg[e.b] === 0) queue.push(e.b); }
+		steps.push({ indeg: { ...indeg }, queue: [...queue], order: [...order], cur, note: 'take' });
+	}
+	steps.push({ indeg: { ...indeg }, queue: [], order: [...order], cur: null, note: order.length === g.nodes.length ? 'done' : 'cycle' });
+	return steps;
+}
+/** هل الترتيب يحترم كل الأسهم؟ بيرجّع أول سهم مكسور */
+export function checkTopo(g: Graph, order: string[]): GEdge | null {
+	const pos = Object.fromEntries(order.map((x, i) => [x, i]));
+	return g.edges.find((e) => pos[e.a] === undefined || pos[e.b] === undefined ? false : pos[e.a] > pos[e.b]) ?? null;
+}
+
+// ===================== الرسوم الجاهزة للصفحات =====================
+export const G_SMALL: Graph = {
+	nodes: [
+		{ id: 'A', label: 'A', x: 60, y: 60 }, { id: 'B', label: 'B', x: 200, y: 40 }, { id: 'C', label: 'C', x: 60, y: 190 },
+		{ id: 'D', label: 'D', x: 200, y: 160 }, { id: 'E', label: 'E', x: 340, y: 90 }, { id: 'F', label: 'F', x: 330, y: 220 }, { id: 'G', label: 'G', x: 460, y: 160 },
+	],
+	edges: [{ a: 'A', b: 'B' }, { a: 'A', b: 'C' }, { a: 'B', b: 'D' }, { a: 'C', b: 'D' }, { a: 'B', b: 'E' }, { a: 'D', b: 'F' }, { a: 'E', b: 'G' }, { a: 'F', b: 'G' }],
+};
+export const MAZE = [
+	'S..#.......',
+	'.#.#.###.#.',
+	'.#...#...#.',
+	'.####.#.##.',
+	'......#....',
+	'.##.#####.#',
+	'..#.....#..',
+	'#.#.###.##.',
+	'..........E',
+];
+/** مدن سورية بمسافات طرق تقريبية بالكيلومتر (للتوضيح فقط) */
+export const G_CITIES: Graph = {
+	nodes: [
+		{ id: 'alp', label: 'حلب', x: 300, y: 50 }, { id: 'lat', label: 'اللاذقية', x: 80, y: 95 }, { id: 'ham', label: 'حماة', x: 280, y: 170 },
+		{ id: 'tar', label: 'طرطوس', x: 90, y: 215 }, { id: 'hom', label: 'حمص', x: 250, y: 260 }, { id: 'raq', label: 'الرقة', x: 500, y: 85 },
+		{ id: 'dez', label: 'دير الزور', x: 610, y: 190 }, { id: 'pal', label: 'تدمر', x: 450, y: 290 }, { id: 'dam', label: 'دمشق', x: 220, y: 400 }, { id: 'dar', label: 'درعا', x: 190, y: 500 },
+	],
+	edges: [
+		{ a: 'alp', b: 'ham', w: 145 }, { a: 'alp', b: 'lat', w: 185 }, { a: 'alp', b: 'raq', w: 190 }, { a: 'lat', b: 'tar', w: 90 },
+		{ a: 'tar', b: 'hom', w: 95 }, { a: 'ham', b: 'hom', w: 47 }, { a: 'hom', b: 'dam', w: 160 }, { a: 'hom', b: 'pal', w: 155 },
+		{ a: 'dam', b: 'pal', w: 230 }, { a: 'pal', b: 'dez', w: 210 }, { a: 'raq', b: 'dez', w: 140 }, { a: 'dam', b: 'dar', w: 100 }, { a: 'ham', b: 'lat', w: 150 },
+	],
+};
+export const G_VILLAGES: Graph = {
+	nodes: [
+		{ id: 'A', label: 'الوادي', x: 70, y: 70 }, { id: 'B', label: 'التل', x: 260, y: 40 }, { id: 'C', label: 'النبع', x: 440, y: 80 },
+		{ id: 'D', label: 'السهل', x: 100, y: 230 }, { id: 'E', label: 'الجسر', x: 280, y: 190 }, { id: 'F', label: 'البيدر', x: 460, y: 250 }, { id: 'G', label: 'الطاحون', x: 270, y: 330 },
+	],
+	edges: [
+		{ a: 'A', b: 'B', w: 7 }, { a: 'A', b: 'D', w: 5 }, { a: 'B', b: 'C', w: 8 }, { a: 'B', b: 'D', w: 9 }, { a: 'B', b: 'E', w: 7 },
+		{ a: 'C', b: 'E', w: 5 }, { a: 'D', b: 'E', w: 15 }, { a: 'D', b: 'G', w: 6 }, { a: 'E', b: 'G', w: 8 }, { a: 'E', b: 'F', w: 9 },
+		{ a: 'F', b: 'G', w: 11 }, { a: 'C', b: 'F', w: 12 },
+	],
+};
+export const G_COURSES: Graph = {
+	directed: true,
+	nodes: [
+		{ id: 'p1', label: 'برمجة 1', x: 70, y: 60 }, { id: 'm1', label: 'رياضيات 1', x: 70, y: 220 }, { id: 'p2', label: 'برمجة 2', x: 240, y: 60 },
+		{ id: 'dm', label: 'رياضيات متقطعة', x: 240, y: 220 }, { id: 'ds', label: 'بنى المعطيات', x: 410, y: 60 }, { id: 'db', label: 'قواعد البيانات', x: 410, y: 300 },
+		{ id: 'al', label: 'الخوارزميات', x: 560, y: 140 }, { id: 'ai', label: 'الذكاء الصنعي', x: 690, y: 240 },
+	],
+	edges: [
+		{ a: 'p1', b: 'p2' }, { a: 'p2', b: 'ds' }, { a: 'm1', b: 'dm' }, { a: 'dm', b: 'al' }, { a: 'ds', b: 'al' },
+		{ a: 'p2', b: 'db' }, { a: 'al', b: 'ai' }, { a: 'dm', b: 'db' },
+	],
+};

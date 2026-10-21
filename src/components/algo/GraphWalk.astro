@@ -1,0 +1,75 @@
+---
+// البحث بالعرض (طابور) والبحث بالعمق (مكدس) على نفس الرسم، مع البنية ظاهرة بكل خطوة.
+---
+
+<div class="not-content wl-box" data-gwalk>
+	<h4>🔦 البحث بالعرض ضد البحث بالعمق</h4>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-k="bfs">بالعرض (طابور)</button>
+		<button type="button" class="wl-btn" data-k="dfs">بالعمق (مكدس)</button>
+	</div>
+	<svg class="gd-svg" viewBox="0 0 520 250" data-out="svg" role="img" aria-label="الرسم أثناء التجوال"></svg>
+	<div class="gw-box" dir="ltr"><span data-out="flabel"></span><div data-out="front"></div></div>
+	<div class="gw-box" dir="ltr"><span>ترتيب الزيارة</span><div data-out="order"></div></div>
+	<p class="sl-note" data-out="note"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+	</div>
+</div>
+
+<style is:global>
+	.gw-box { display: flex; align-items: center; gap: 0.5rem; min-height: 2.2rem; }
+	.gw-box > span { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); width: 6.5rem; flex-shrink: 0; text-align: right; direction: rtl; }
+	.gw-box > div { display: flex; gap: 3px; flex-wrap: wrap; }
+	.gw-box i { font-style: normal; font-weight: 700; width: 1.8rem; height: 1.8rem; display: grid; place-items: center; border-radius: 0.3rem; background: #3a9ec2; color: #111; }
+	.gw-box i.out { background: #e0a030; }
+	.gw-box i.v { background: #2fb36b; }
+</style>
+
+<script>
+	import { G_SMALL, graphWalk, type WalkStep } from '../../scripts/algo';
+	import { drawGraph } from '../../scripts/graphDraw';
+	document.querySelectorAll<HTMLElement>('[data-gwalk]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		let kind: 'bfs' | 'dfs' = 'bfs', steps: WalkStep[] = [], i = 0, timer = 0;
+		const draw = () => {
+			const s = steps[i];
+			const done = new Set(s.order);
+			drawGraph(svg, G_SMALL, {
+				W: 520, H: 250,
+				nodeCls: (n) => (n === s.cur ? 'path' : done.has(n) ? 'hit' : s.frontier.includes(n) ? 'new' : 'dim'),
+				edgeCls: (a, b) => (s.cur && ((a === s.cur && b === s.who) || (b === s.cur && a === s.who)) ? 'try' : ''),
+				tag: (n) => (kind === 'bfs' && s.dist && s.dist[n] !== undefined ? String(s.dist[n]) : ''),
+			});
+			$('flabel').textContent = kind === 'bfs' ? 'الطابور (يخرج من اليسار)' : 'المكدس (يخرج من اليمين)';
+			$('front').innerHTML = s.frontier.map((x, k) => `<i class="${(kind === 'bfs' ? k === 0 : k === s.frontier.length - 1) ? 'out' : ''}">${x}</i>`).join('') || '<small>فارغ</small>';
+			$('order').innerHTML = s.order.map((x) => `<i class="v">${x}</i>`).join('');
+			const note = $('note');
+			if (s.note === 'start') note.textContent = kind === 'bfs' ? 'نبدأ من A: نضعه في الطابور. الأرقام فوق العقد: عدد الخطوات من A.' : 'نبدأ من A: نضعه في المكدس.';
+			else if (s.note === 'take') note.textContent = `نخرج ${s.cur} من ${kind === 'bfs' ? 'أول الطابور' : 'قمة المكدس'} ونزوره، ثم ننظر إلى جيرانه.`;
+			else if (s.note === 'add') note.textContent = `${s.who} جار لـ ${s.cur} ولم نره من قبل: نضيفه ${kind === 'bfs' ? 'إلى آخر الطابور' : 'فوق المكدس'}.`;
+			else note.textContent = kind === 'bfs'
+				? `✓ انتهى: ${s.order.join(' ')}. زرنا العقد طبقة طبقة: القريب (1) قبل البعيد (2) قبل الأبعد (3). لذلك يجد البحث بالعرض أقصر طريق.`
+				: `✓ انتهى: ${s.order.join(' ')}. ذهبنا عميقاً في طريق واحد (A ثم B ثم D ثم F ثم G) قبل أن نرجع. لاحظ أن C زُرنا آخراً مع أنه جار مباشر لـ A!`;
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i === steps.length - 1;
+		};
+		const load = () => { clearInterval(timer); steps = graphWalk(G_SMALL, 'A', kind); i = 0; draw(); };
+		root.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((b) => b.addEventListener('click', () => {
+			kind = b.dataset.k as 'bfs' | 'dfs';
+			root.querySelectorAll('[data-k]').forEach((x) => x.classList.toggle('primary', x === b));
+			load();
+		}));
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < steps.length - 1) { i++; draw(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i > 0) { i--; draw(); } });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= steps.length - 1) i = 0;
+			timer = window.setInterval(() => { if (i >= steps.length - 1) { clearInterval(timer); return; } i++; draw(); }, 700);
+		});
+		load();
+	});
+</script>

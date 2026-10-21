@@ -485,3 +485,29 @@ code,
 /* مربع «توقّع أولاً» المشترك */
 .se-predict { padding: 0.75rem; border-radius: 0.5rem; border: 2px dashed var(--sl-color-accent); }
 .se-predict p { margin: 0 0 0.5rem; }
+
+/* رسوم بيانية (graphDraw.ts) */
+.gd-svg { display: block; width: 100%; height: auto; }
+.gd-line { stroke: var(--sl-color-gray-4); stroke-width: 2.5; }
+.gd-hit { stroke: transparent; stroke-width: 16; cursor: pointer; }
+.gd-arrow { fill: var(--sl-color-gray-4); }
+.gd-e.on .gd-line { stroke: #2fb36b; stroke-width: 5; }
+.gd-e.try .gd-line { stroke: #e0a030; stroke-width: 4; }
+.gd-e.bad .gd-line { stroke: #e5534b; stroke-width: 4; stroke-dasharray: 6 4; }
+.gd-e.dim .gd-line { opacity: 0.35; }
+.gd-wbg { fill: var(--sl-color-bg); stroke: var(--sl-color-gray-5); }
+.gd-w { font: 700 12px sans-serif; text-anchor: middle; fill: var(--sl-color-white); }
+.gd-n { cursor: pointer; }
+.gd-n rect { fill: #3a9ec2; stroke: var(--sl-color-bg); stroke-width: 2; transition: fill 0.25s; }
+.gd-n.path rect { fill: #e0a030; } .gd-n.hit rect { fill: #2fb36b; } .gd-n.bad rect { fill: #e5534b; } .gd-n.new rect { fill: #a371f7; } .gd-n.dim rect { fill: var(--sl-color-gray-5); }
+.gd-n.dim text { fill: var(--sl-color-gray-2); }
+.gd-tag { font: 700 12px sans-serif; text-anchor: middle; fill: var(--sl-color-white); }
+.gd-svg text { direction: rtl; unicode-bidi: plaintext; }
+
+/* صف رقائق مع عنوان (GraphWalk و TopoLab) */
+.gw-box { display: flex; align-items: center; gap: 0.5rem; min-height: 2.2rem; }
+.gw-box > span { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); width: 6.5rem; flex-shrink: 0; text-align: right; direction: rtl; }
+.gw-box > div { display: flex; gap: 3px; flex-wrap: wrap; }
+.gw-box i { font-style: normal; font-weight: 700; min-width: 1.8rem; height: 1.8rem; display: grid; place-items: center; border-radius: 0.3rem; background: #3a9ec2; color: #111; }
+.gw-box i.out { background: #e0a030; }
+.gw-box i.v { background: #2fb36b; }

@@ -1,0 +1,116 @@
+---
+// Dijkstra على خريطة مدن سورية (مسافات تقريبية): الطالب بيتوقّع أولاً طريق دمشق ← الرقة،
+// وبعدين بيمشي الخوارزمية خطوة خطوة مع جدول المسافات، وبالآخر بيكبس أي مدينة ليشوف طريقها.
+import { G_CITIES } from '../../scripts/algo';
+---
+
+<div class="not-content wl-box" data-dijkstra>
+	<h4>🚗 أقصر طريق من دمشق</h4>
+	<div class="se-predict" data-predict>
+		<p><b>توقّع أولاً:</b> ما أقصر طريق بالسيارة من دمشق إلى الرقة؟</p>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-g="pal">عبر تدمر ودير الزور</button>
+			<button type="button" class="wl-btn" data-g="alp">عبر حمص وحماة وحلب</button>
+		</div>
+		<p class="wl-msg" data-out="pred"></p>
+	</div>
+	<div class="dj-wrap" dir="ltr">
+		<svg class="gd-svg" viewBox="0 0 700 540" data-out="svg" role="img" aria-label="خريطة مبسطة لمدن سورية والطرق بينها بالكيلومتر"></svg>
+	</div>
+	<p class="se-note">مسافات تقريبية للتوضيح فقط، والخريطة ليست بمقياس رسم.</p>
+	<p class="sl-note" data-out="note"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+		<button type="button" class="wl-btn" data-end>⏭ النتيجة</button>
+	</div>
+	<div class="wl-scroll">
+		<table class="wl-table dj-table">
+			<thead><tr><th>المدينة</th><th>أقصر مسافة معروفة</th><th>نصل إليها من</th></tr></thead>
+			<tbody data-out="rows"></tbody>
+		</table>
+	</div>
+</div>
+
+<style is:global>
+	.dj-wrap { overflow-x: auto; max-width: 100%; }
+	.dj-wrap .gd-svg { min-width: 560px; }
+	.dj-table { font-size: var(--sl-text-sm); width: 100%; }
+	.dj-table tr.done td { background: rgb(47 179 107 / 0.18); }
+	.dj-table tr.cur td { background: rgb(224 160 48 / 0.35); }
+	.dj-table tr.upd td { background: rgb(163 113 247 / 0.3); }
+	.dj-table td:nth-child(2) { font-weight: 700; direction: ltr; text-align: right; }
+</style>
+
+<script>
+	import { G_CITIES, dijkstra, pathTo, type DStep } from '../../scripts/algo';
+	import { drawGraph, ekey } from '../../scripts/graphDraw';
+	document.querySelectorAll<HTMLElement>('[data-dijkstra]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		const name = Object.fromEntries(G_CITIES.nodes.map((n) => [n.id, n.label]));
+		const steps: DStep[] = dijkstra(G_CITIES, 'dam');
+		let i = 0, timer = 0, target: string | null = null;
+		const km = (d: number) => (d === Infinity ? '∞' : `${d} km`);
+		const draw = () => {
+			const s = steps[i];
+			const done = new Set(s.done);
+			const final = s.note === 'done';
+			const path = final && target ? pathTo(s.prev, target) : [];
+			const pe = new Set(path.slice(1).map((v, k) => ekey(path[k], v)));
+			// أضلاع الشجرة الحالية (prev)
+			const tree = new Set(Object.entries(s.prev).filter(([, p]) => p).map(([v, p]) => ekey(v, p!)));
+			drawGraph(svg, G_CITIES, {
+				W: 700, H: 540, weights: true, wide: true,
+				nodeCls: (n) => (path.includes(n) ? 'path' : n === s.cur ? 'path' : done.has(n) ? 'hit' : s.dist[n] < Infinity ? 'new' : 'dim'),
+				edgeCls: (a, b) => {
+					const k = ekey(a, b);
+					if (final && target) return pe.has(k) ? 'try' : 'dim';
+					if (s.relax && ekey(s.cur!, s.relax.to) === k) return s.relax.better ? 'try' : 'bad';
+					return tree.has(k) ? 'on' : '';
+				},
+				tag: (n) => (s.dist[n] < Infinity ? String(s.dist[n]) : ''),
+			});
+			svg.querySelectorAll<SVGGElement>('.gd-n').forEach((g) => g.addEventListener('click', () => {
+				if (steps[i].note !== 'done') return;
+				target = g.dataset.id!; draw();
+			}));
+			$('rows').innerHTML = G_CITIES.nodes.map((n) => {
+				const cls = n.id === s.cur && !s.relax ? 'cur' : s.relax && s.relax.to === n.id && s.relax.better ? 'upd' : done.has(n.id) ? 'done' : '';
+				return `<tr class="${cls}"><td>${n.label}${done.has(n.id) ? ' ✓' : ''}</td><td>${km(s.dist[n.id])}</td><td>${s.prev[n.id] ? name[s.prev[n.id]!] : '—'}</td></tr>`;
+			}).join('');
+			const note = $('note');
+			if (s.note === 'start') note.textContent = 'البداية: المسافة إلى دمشق 0، وإلى كل المدن الأخرى «لا نهاية» لأننا لا نعرف بعد أي طريق إليها.';
+			else if (s.note === 'pick') note.textContent = `نختار أقرب مدينة لم ننتهِ منها: ${name[s.cur!]} (${km(s.dist[s.cur!])}). مسافتها الآن **نهائية**: لا يمكن أن نجد طريقاً أقصر إليها، لأن كل الطرق الأخرى تمر بمدن أبعد.`.replace(/\*\*/g, '');
+			else if (s.note === 'relax') {
+				const r = s.relax!;
+				note.textContent = r.better
+					? `من ${name[s.cur!]} إلى ${name[r.to]}: ${s.dist[s.cur!]} + الطريق = ${r.neu} km. ${r.old === Infinity ? 'أول طريق نعرفه إليها!' : `أقصر من ${r.old}، فنحدّث المسافة.`}`
+					: `من ${name[s.cur!]} إلى ${name[r.to]}: ${r.neu} km، وهذا ليس أقصر من ${r.old} المعروف، فلا نغيّر شيئاً.`;
+			} else note.textContent = target
+				? `أقصر طريق من دمشق إلى ${name[target]}: ${pathTo(s.prev, target).map((x) => name[x]).join(' ← ')}، بطول ${s.dist[target]} km.`
+				: '✓ انتهى! الخطوط الخضراء هي «شجرة أقصر الطرق» من دمشق. اضغط على أي مدينة لترى طريقها.';
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i === steps.length - 1;
+		};
+		const set = (k: number) => { clearInterval(timer); i = k; if (steps[i].note !== 'done') target = null; draw(); };
+		root.querySelector('[data-step]')!.addEventListener('click', () => { if (i < steps.length - 1) set(i + 1); });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { if (i > 0) set(i - 1); });
+		root.querySelector('[data-end]')!.addEventListener('click', () => { set(steps.length - 1); target = 'raq'; draw(); });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= steps.length - 1) i = 0;
+			timer = window.setInterval(() => { if (i >= steps.length - 1) { clearInterval(timer); return; } i++; draw(); }, 900);
+		});
+		root.querySelectorAll<HTMLButtonElement>('[data-g]').forEach((b) => b.addEventListener('click', () => {
+			const ok = b.dataset.g === 'alp';
+			root.querySelectorAll<HTMLButtonElement>('[data-g]').forEach((x) => { x.disabled = true; x.classList.toggle('right', x.dataset.g === 'alp'); });
+			if (!ok) b.classList.add('wrong');
+			const p = $('pred');
+			p.className = 'wl-msg ' + (ok ? 'wl-good' : 'wl-bad');
+			p.textContent = (ok ? '✓ صحيح! ' : '✗ يبدو أقصر على الخريطة، لكنه ليس كذلك! ') + 'عبر تدمر: 230 + 210 + 140 = 580 km. وعبر حمص وحماة وحلب: 160 + 47 + 145 + 190 = 542 km. شاهد كيف تكتشف الخوارزمية ذلك وحدها.';
+		}));
+		draw();
+	});
+</script>

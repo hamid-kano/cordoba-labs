@@ -1,0 +1,127 @@
+---
+// «وصّل القرى بالكهرباء»: الطالب بيختار الكابلات بإيده (مجموع، ومجموعات منفصلة، وتحذير الحلقة)،
+// وبعدين بيشوف Kruskal خطوة خطوة مع قائمة الأضلاع المرتبة. المحرك kruskal/forestInfo بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-mst>
+	<h4>⚡ وصّل القرى بالكهرباء بأقل كابل</h4>
+	<p class="se-hint">الأرقام كلفة كل كابل (بالكيلومتر). اضغط على الكابلات لتختارها، حتى تتصل القرى السبع كلها بأقل مجموع ممكن.</p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-mode="hand">✋ أنا أختار</button>
+		<button type="button" class="wl-btn" data-mode="kruskal">🤖 خوارزمية Kruskal</button>
+	</div>
+	<svg class="gd-svg" viewBox="0 0 540 370" data-out="svg" role="img" aria-label="سبع قرى والكابلات الممكنة بينها مع كلفة كل كابل"></svg>
+	<div class="wl-grid">
+		<div class="wl-out"><span>مجموع الكلفة</span><strong data-out="total">0</strong></div>
+		<div class="wl-out"><span>الكابلات المختارة</span><strong data-out="cnt">0</strong></div>
+		<div class="wl-out"><span>مجموعات منفصلة</span><strong data-out="comps">7</strong></div>
+	</div>
+	<div data-k-ui hidden>
+		<div class="ms-list" dir="ltr" data-out="list"></div>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-back>→ رجوع</button>
+			<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+			<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+		</div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.ms-list { display: flex; flex-wrap: wrap; gap: 4px; }
+	.ms-list i { font-style: normal; font-size: 0.78rem; padding: 0.15rem 0.4rem; border-radius: 0.3rem; background: var(--sl-color-gray-6); border: 1px solid var(--sl-color-gray-5); }
+	.ms-list i.take { background: #2fb36b; color: #111; }
+	.ms-list i.skip { background: rgb(229 83 75 / 0.3); text-decoration: line-through; }
+	.ms-list i.now { outline: 2px solid #e0a030; }
+</style>
+
+<script>
+	import { G_VILLAGES, kruskal, forestInfo, arCount, type GEdge, type KStep } from '../../scripts/algo';
+	import { drawGraph, ekey } from '../../scripts/graphDraw';
+	document.querySelectorAll<HTMLElement>('[data-mst]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		const kui = root.querySelector<HTMLElement>('[data-k-ui]')!;
+		const name = Object.fromEntries(G_VILLAGES.nodes.map((n) => [n.id, n.label]));
+		const ids = G_VILLAGES.nodes.map((n) => n.id);
+		const BEST = 39;
+		let mode = 'hand', picked = new Set<string>(), steps: KStep[] = kruskal(G_VILLAGES), i = 0, timer = 0;
+		const byKey = Object.fromEntries(G_VILLAGES.edges.map((e) => [ekey(e.a, e.b), e]));
+		const sorted = [...G_VILLAGES.edges].sort((a, b) => (a.w ?? 0) - (b.w ?? 0) || (a.a + a.b).localeCompare(b.a + b.b));
+		const stats = (edges: GEdge[]) => {
+			const f = forestInfo(ids, edges);
+			$('total').textContent = String(edges.reduce((s, e) => s + (e.w ?? 0), 0));
+			$('cnt').textContent = String(edges.length);
+			$('comps').textContent = String(f.comps);
+			return f;
+		};
+		const drawHand = (badKey = '') => {
+			const edges = [...picked].map((k) => byKey[k]);
+			const f = forestInfo(ids, edges);
+			// القرى المتصلة بكابل واحد على الأقل
+			const lit = new Set(edges.flatMap((e) => [e.a, e.b]));
+			drawGraph(svg, G_VILLAGES, {
+				W: 540, H: 370, weights: true, wide: true,
+				nodeCls: (n) => (f.comps === 1 ? 'hit' : lit.has(n) ? 'new' : ''),
+				edgeCls: (a, b) => { const k = ekey(a, b); return k === badKey ? 'bad' : picked.has(k) ? 'on' : ''; },
+			});
+			svg.querySelectorAll<SVGGElement>('.gd-e').forEach((g) => g.addEventListener('click', () => toggle(g.dataset.e!)));
+			const st = stats(edges);
+			const total = +$('total').textContent!;
+			const msg = $('msg');
+			if (st.comps === 1 && !st.cycle) {
+				msg.className = 'wl-msg ' + (total === BEST ? 'wl-good' : '');
+				msg.textContent = total === BEST ? `✓ ممتاز! كل القرى متصلة بـ ${total} كم، وهذا أقل مجموع ممكن. لاحظ: ستة كابلات لسبع قرى، ولا حلقة واحدة.` : `كل القرى متصلة بـ ${total} كم. يمكن أفضل: الأقل ممكن ${BEST}. جرّب أن تبدأ دائماً بأرخص كابل.`;
+			} else if (st.cycle) { msg.className = 'wl-msg wl-bad'; msg.textContent = 'في اختيارك حلقة: كابل يصل قريتين متصلتين أصلاً بطريق آخر. هذا كابل زائد يمكن حذفه.'; }
+			else { msg.className = 'wl-msg'; msg.textContent = st.comps === 7 ? 'اضغط على أي كابل لتختاره.' : `بقي ${arCount(st.comps, 'مجموعة واحدة', 'مجموعتان', 'مجموعات', 'مجموعة')} منفصلة.`; }
+		};
+		const toggle = (k: string) => {
+			if (mode !== 'hand') return;
+			if (picked.has(k)) { picked.delete(k); drawHand(); return; }
+			picked.add(k);
+			// الكابل يلي عمل حلقة بيتلوّن أحمر
+			drawHand(forestInfo(ids, [...picked].map((x) => byKey[x])).cycle ? k : '');
+		};
+		const drawK = () => {
+			const s = steps[i];
+			const chosen = new Set(s.chosen.map((e) => ekey(e.a, e.b)));
+			const cur = s.edge ? ekey(s.edge.a, s.edge.b) : '';
+			drawGraph(svg, G_VILLAGES, {
+				W: 540, H: 370, weights: true, wide: true,
+				nodeCls: () => (s.note === 'done' ? 'hit' : ''),
+				edgeCls: (a, b) => { const k = ekey(a, b); return k === cur && !s.take ? 'bad' : k === cur ? 'try' : chosen.has(k) ? 'on' : 'dim'; },
+			});
+			// القائمة المرتبة: شو انأخد وشو انرفض لهلق
+			const seen = steps.slice(1, i + 1).filter((x) => x.edge);
+			$('list').innerHTML = sorted.map((e) => {
+				const k = ekey(e.a, e.b);
+				const h = seen.find((x) => ekey(x.edge!.a, x.edge!.b) === k);
+				return `<i class="${h ? (h.take ? 'take' : 'skip') : ''}${k === cur ? ' now' : ''}">${name[e.a]}–${name[e.b]} ${e.w}</i>`;
+			}).join('');
+			stats(s.chosen);
+			const msg = $('msg');
+			msg.className = 'wl-msg';
+			if (s.note === 'start') msg.textContent = 'رتّبنا الكابلات من الأرخص إلى الأغلى. سنمرّ عليها بالترتيب.';
+			else if (s.note === 'take') msg.textContent = `${name[s.edge!.a]}–${name[s.edge!.b]} (${s.edge!.w}): يصل مجموعتين منفصلتين، فنأخذه.`;
+			else if (s.note === 'cycle') msg.textContent = `${name[s.edge!.a]}–${name[s.edge!.b]} (${s.edge!.w}): القريتان متصلتان أصلاً، فهذا الكابل يصنع حلقة. نرفضه.`;
+			else { msg.className = 'wl-msg wl-good'; msg.textContent = `✓ انتهى: 6 كابلات بـ ${s.total} كم. توقفنا قبل أن نفحص الكابلات الأغلى، لأن 6 كابلات تكفي لوصل 7 قرى. ومجموع كل الكابلات الممكنة 102 كم!`; }
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i === steps.length - 1;
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+			clearInterval(timer);
+			mode = b.dataset.mode!;
+			root.querySelectorAll('[data-mode]').forEach((x) => x.classList.toggle('primary', x === b));
+			kui.hidden = mode !== 'kruskal';
+			if (mode === 'hand') drawHand(); else { i = 0; drawK(); }
+		}));
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < steps.length - 1) { i++; drawK(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i > 0) { i--; drawK(); } });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= steps.length - 1) i = 0;
+			timer = window.setInterval(() => { if (i >= steps.length - 1) { clearInterval(timer); return; } i++; drawK(); }, 900);
+		});
+		drawHand();
+	});
+</script>

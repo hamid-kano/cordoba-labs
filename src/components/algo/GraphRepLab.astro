@@ -1,0 +1,63 @@
+---
+// تمثيل الرسم البياني: نفس الرسم كمصفوفة تجاور وكقائمة تجاور. كبسة على عقدة بتضوّي جيرانها وسطرها بالاتنين.
+import { G_SMALL, adjacency } from '../../scripts/algo';
+const ids = G_SMALL.nodes.map((n) => n.id);
+const adj = adjacency(G_SMALL);
+---
+
+<div class="not-content wl-box" data-grep>
+	<h4>🗺️ رسم واحد، وطريقتان لحفظه</h4>
+	<p class="se-hint">اضغط على أي عقدة: من جيرانها؟ وكيف يظهر ذلك في المصفوفة وفي القائمة؟</p>
+	<svg class="gd-svg" viewBox="0 0 520 250" data-out="svg" role="img" aria-label="رسم بياني فيه سبع عقد من A إلى G"></svg>
+	<div class="gr-two">
+		<div>
+			<b>مصفوفة التجاور</b>
+			<div class="wl-scroll">
+				<table class="wl-table gr-mat" dir="ltr">
+					<thead><tr><th></th>{ids.map((i) => <th>{i}</th>)}</tr></thead>
+					<tbody>{ids.map((r) => <tr data-row={r}><th>{r}</th>{ids.map((c) => <td data-c={c}>{adj[r].includes(c) ? 1 : 0}</td>)}</tr>)}</tbody>
+				</table>
+			</div>
+		</div>
+		<div>
+			<b>قائمة التجاور</b>
+			<ul class="gr-list" dir="ltr">{ids.map((r) => <li data-row={r}><b>{r}</b> → {adj[r].join(', ')}</li>)}</ul>
+		</div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.gr-two { display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.75rem; }
+	@media (max-width: 34rem) { .gr-two { grid-template-columns: 1fr; } }
+	.gr-mat { font-size: var(--sl-text-sm); text-align: center; }
+	.gr-mat td, .gr-mat th { padding: 0.15rem 0.4rem !important; }
+	.gr-mat tr.on td, .gr-list li.on { background: rgb(224 160 48 / 0.3); }
+	.gr-mat td.one { background: rgb(47 179 107 / 0.45); font-weight: 700; }
+	.gr-list { margin: 0; padding: 0; list-style: none; font-family: var(--__sl-font-mono); font-size: var(--sl-text-sm); text-align: left; }
+	.gr-list li { padding: 0.1rem 0.3rem; border-radius: 0.25rem; }
+</style>
+
+<script>
+	import { G_SMALL, adjacency } from '../../scripts/algo';
+	import { drawGraph, ekey } from '../../scripts/graphDraw';
+	document.querySelectorAll<HTMLElement>('[data-grep]').forEach((root) => {
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		const adj = adjacency(G_SMALL);
+		const pick = (id: string | null) => {
+			drawGraph(svg, G_SMALL, {
+				W: 520, H: 250,
+				nodeCls: (n) => (n === id ? 'path' : id && adj[id].includes(n) ? 'hit' : ''),
+				edgeCls: (a, b) => (id && (a === id || b === id) ? 'on' : ''),
+			});
+			svg.querySelectorAll<SVGGElement>('.gd-n').forEach((g) => g.addEventListener('click', () => pick(g.dataset.id!)));
+			root.querySelectorAll<HTMLElement>('[data-row]').forEach((r) => r.classList.toggle('on', r.dataset.row === id));
+			root.querySelectorAll<HTMLElement>('.gr-mat tr').forEach((r) => r.querySelectorAll<HTMLElement>('td').forEach((td) => td.classList.toggle('one', r.dataset.row === id && td.textContent === '1')));
+			const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+			if (!id) { msg.textContent = '7 عقد و 8 أضلاع. المصفوفة فيها 7 × 7 = 49 خانة، أغلبها أصفار. والقائمة فيها 16 عنصراً فقط (كل ضلع مرتين).'; return; }
+			msg.textContent = `جيران ${id}: ${adj[id].join('، ')}. في المصفوفة نقرأ سطراً كاملاً من 7 خانات لنعرفهم، وفي القائمة نقرأ ${adj[id].length} عناصر فقط. لكن السؤال «هل ${id} جار لـ G؟» تجيبه المصفوفة بخانة واحدة.`;
+			void ekey;
+		};
+		pick(null);
+	});
+</script>

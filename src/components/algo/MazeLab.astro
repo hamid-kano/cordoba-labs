@@ -1,0 +1,75 @@
+---
+// متاهة بتنحل بطريقتين جنب بعض: البحث بالعرض بينتشر كالموجة، والبحث بالعمق بيمشي بطريق واحد.
+// الخانات المزارة بتتلوّن بالترتيب، وبالآخر الطريق. المحرك solveMaze بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-maze>
+	<h4>🌀 متاهة واحدة، وطريقتان</h4>
+	<div class="se-predict">
+		<p><b>توقّع:</b> أيهما يزور خانات <b>أقل</b> قبل أن يجد المخرج؟ وأيهما يجد الطريق <b>الأقصر</b>؟</p>
+	</div>
+	<div class="mz-two">
+		<div><b>بالعرض</b><div class="mz-grid" dir="ltr" data-g="bfs"></div><small data-c="bfs"></small></div>
+		<div><b>بالعمق</b><div class="mz-grid" dir="ltr" data-g="dfs"></div><small data-c="dfs"></small></div>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-go>▶ انطلقا معاً</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.mz-two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+	.mz-two > div { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+	.mz-two small { font-weight: 700; min-height: 1.2em; }
+	.mz-grid { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 1px; background: var(--sl-color-gray-5); border: 2px solid var(--sl-color-gray-5); border-radius: 0.3rem; overflow: hidden; }
+	.mz-grid i { aspect-ratio: 1; min-width: 0; background: var(--sl-color-bg); transition: background 0.15s; font-style: normal; font-size: 0.55rem; display: grid; place-items: center; font-weight: 700; color: #111; }
+	.mz-grid i.w { background: var(--sl-color-gray-4); }
+	.mz-grid i.v { background: rgb(58 158 194 / 0.55); }
+	.mz-grid i.p { background: #e0a030; }
+	.mz-grid i.s { background: #2fb36b; }
+	.mz-grid i.e { background: #e5534b; }
+</style>
+
+<script>
+	import { MAZE, solveMaze, type MazeRun } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-maze]').forEach((root) => {
+		const W = MAZE[0].length;
+		let timers: number[] = [];
+		const fill = (k: string) => {
+			const g = root.querySelector<HTMLElement>(`[data-g="${k}"]`)!;
+			g.innerHTML = MAZE.map((r) => [...r].map((c) => `<i class="${c === '#' ? 'w' : c === 'S' ? 's' : c === 'E' ? 'e' : ''}">${c === 'S' ? 'S' : c === 'E' ? 'E' : ''}</i>`).join('')).join('');
+			return [...g.children] as HTMLElement[];
+		};
+		const run = (k: 'bfs' | 'dfs', r: MazeRun, cells: HTMLElement[]) => {
+			const c = root.querySelector<HTMLElement>(`[data-c="${k}"]`)!;
+			c.textContent = '';
+			r.visitOrder.forEach(([x, y], n) => timers.push(window.setTimeout(() => {
+				const el = cells[y * W + x];
+				if (!el.classList.contains('s') && !el.classList.contains('e')) el.classList.add('v');
+				c.textContent = `زار ${n + 1} خانة`;
+			}, 70 * n)));
+			const t0 = 70 * r.visitOrder.length;
+			r.path.forEach(([x, y], n) => timers.push(window.setTimeout(() => {
+				const el = cells[y * W + x];
+				if (!el.classList.contains('s') && !el.classList.contains('e')) { el.classList.remove('v'); el.classList.add('p'); }
+			}, t0 + 40 * n)));
+			timers.push(window.setTimeout(() => (c.textContent = `زار ${r.visitOrder.length} خانة، والطريق ${r.path.length - 1} خطوة`), t0 + 40 * r.path.length));
+			return t0 + 40 * r.path.length;
+		};
+		const go = () => {
+			timers.forEach(clearTimeout); timers = [];
+			const b = solveMaze(MAZE, 'bfs'), d = solveMaze(MAZE, 'dfs');
+			const end = Math.max(run('bfs', b, fill('bfs')), run('dfs', d, fill('dfs')));
+			const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+			msg.className = 'wl-msg';
+			msg.textContent = 'البحث بالعرض ينتشر كموجة ماء في كل الاتجاهات، والبحث بالعمق يندفع في طريق واحد...';
+			timers.push(window.setTimeout(() => {
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = `بالعمق زار خانات أقل (${d.visitOrder.length} مقابل ${b.visitOrder.length})، لكن طريقه أطول: ${d.path.length - 1} خطوة. أما بالعرض فطريقه ${b.path.length - 1} خطوة، وهو الأقصر حتماً، لأنه يصل إلى كل خانة بأقل عدد ممكن من الخطوات.`;
+			}, end + 200));
+		};
+		fill('bfs'); fill('dfs');
+		root.querySelector('[data-go]')!.addEventListener('click', go);
+	});
+</script>
