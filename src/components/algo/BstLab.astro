@@ -1,0 +1,149 @@
+---
+// شجرة بحث ثنائية حيّة: إضافة وبحث (مع الطريق) وحذف بحالاته التلاتة، وتجوال بأربع طرق،
+// ومقارنة الشجرة «العصا» مع المتوازنة. المحرك bst* و traverse بـ src/scripts/algo.ts، والرسم treeDraw.ts.
+---
+
+<div class="not-content wl-box" data-bstlab>
+	<h4>🌲 شجرة البحث الثنائية</h4>
+	<div class="wl-row">
+		<input type="number" min="1" max="99" data-k="v" dir="ltr" style="width:4.5rem" placeholder="0–99" />
+		<button type="button" class="wl-btn primary" data-act="add">＋ أضف</button>
+		<button type="button" class="wl-btn" data-act="find">🔍 ابحث</button>
+		<button type="button" class="wl-btn" data-act="del">✖ احذف</button>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-pre="mix">شجرة جاهزة</button>
+		<button type="button" class="wl-btn" data-pre="sorted">أدخل 10، 20، ... 70 بالترتيب</button>
+		<button type="button" class="wl-btn" data-pre="bal">القيم نفسها متوازنة</button>
+		<button type="button" class="wl-btn" data-pre="clear">↺ فارغة</button>
+	</div>
+	<div class="tr-scroll" dir="ltr"><svg class="tr-svg" data-out="svg" role="img" aria-label="رسم الشجرة"></svg></div>
+	<div class="wl-row">
+		<span>تجوال:</span>
+		<button type="button" class="wl-btn" data-tr="in">بالترتيب</button>
+		<button type="button" class="wl-btn" data-tr="pre">قبلي</button>
+		<button type="button" class="wl-btn" data-tr="post">بعدي</button>
+		<button type="button" class="wl-btn" data-tr="level">مستوى مستوى</button>
+	</div>
+	<div class="bs-seq" dir="ltr" data-out="seq"></div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>عدد العقد</span><strong data-out="n">0</strong></div>
+		<div class="wl-out"><span>الارتفاع</span><strong data-out="h">0</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.bs-seq { display: flex; flex-wrap: wrap; gap: 4px; min-height: 1.9rem; }
+	.bs-seq i { font-style: normal; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 0.3rem; background: #2fb36b; color: #111; animation: sq-in 0.2s; }
+	@keyframes sq-in { from { transform: scale(0.6); opacity: 0; } }
+</style>
+
+<script>
+	import { bstInsert, bstSearch, bstDelete, bstHeight, traverse, bstFrom, bstBalanced, arCount, type BNode } from '../../scripts/algo';
+	import { drawTree, type TNode } from '../../scripts/treeDraw';
+	document.querySelectorAll<HTMLElement>('[data-bstlab]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		const input = root.querySelector<HTMLInputElement>('[data-k="v"]')!;
+		let tree: BNode | null = null, timers: number[] = [];
+		const count = (n: BNode | null): number => (n ? 1 + count(n.l) + count(n.r) : 0);
+		const draw = (cls: Record<number, string> = {}) => {
+			// x = ترتيب العقدة بالتجوال بالترتيب، فالشجرة ما بتتقاطع أبداً
+			const order = traverse(tree, 'in');
+			const nodes: TNode[] = [];
+			const walk = (n: BNode | null, d: number, parent?: number) => {
+				if (!n) return;
+				nodes.push({ id: n.v, label: String(n.v), fx: order.length > 1 ? order.indexOf(n.v) / (order.length - 1) : 0.5, depth: d, parent, cls: cls[n.v] });
+				walk(n.l, d + 1, n.v); walk(n.r, d + 1, n.v);
+			};
+			walk(tree, 0);
+			drawTree(svg, nodes, { minW: 40 * Math.max(1, order.length) });
+			$('n').textContent = String(order.length);
+			$('h').textContent = String(bstHeight(tree));
+		};
+		const clear = () => { timers.forEach(clearTimeout); timers = []; $('seq').innerHTML = ''; };
+		const say = (t: string, k = '') => { const m = $('msg'); m.className = 'wl-msg' + (k ? ' ' + k : ''); m.textContent = t; };
+		const val = () => { const v = Math.round(+input.value); return input.value !== '' && v >= 0 && v <= 99 ? v : null; };
+		const showPath = (path: number[], end: Record<number, string>, done: () => void) => {
+			path.forEach((_, k) => timers.push(window.setTimeout(() => {
+				const c: Record<number, string> = {};
+				path.slice(0, k + 1).forEach((v) => (c[v] = 'path'));
+				draw(c);
+			}, 350 * k)));
+			timers.push(window.setTimeout(() => { draw(end); done(); }, 350 * path.length));
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((b) => b.addEventListener('click', () => {
+			clear();
+			const v = val();
+			if (v === null) { say('اكتب عدداً من 0 إلى 99.'); return; }
+			const act = b.dataset.act;
+			if (act === 'add') {
+				if (count(tree) >= 15) { say('15 عقدة تكفي للرسم. احذف أو ابدأ من جديد.'); return; }
+				const r = bstInsert(tree, v);
+				tree = r.root;
+				const end: Record<number, string> = {};
+				r.path.forEach((x) => (end[x] = 'path')); end[v] = 'new';
+				if (r.dup) { say(`${v} موجود أصلاً. شجرة البحث لا تكرر المفاتيح عادة.`); draw({ [v]: 'hit' }); return; }
+				showPath(r.path, end, () => say(r.path.length ? `قارنّا ${v} مع ${r.path.join(' ثم ')}: في كل مرة أصغر ← يسار، أكبر ← يمين، حتى وجدنا مكاناً فارغاً.` : `${v} هو الجذر.`, 'wl-good'));
+			} else if (act === 'find') {
+				const r = bstSearch(tree, v);
+				const end: Record<number, string> = {};
+				r.path.forEach((x) => (end[x] = 'path'));
+				if (r.found) end[v] = 'hit';
+				showPath(r.path, end, () => say(r.found ? `وجدناه بـ ${arCount(r.path.length, 'مقارنة واحدة', 'مقارنتين', 'مقارنات', 'مقارنة')}. لم ننظر إلا إلى طريق واحد من الجذر إلى الأسفل.` : `غير موجود: وصلنا إلى مكان فارغ بعد ${arCount(r.path.length, 'مقارنة واحدة', 'مقارنتين', 'مقارنات', 'مقارنة')}.`, r.found ? 'wl-good' : 'wl-bad'));
+			} else {
+				const r = bstSearch(tree, v);
+				if (!r.found) { say(`${v} غير موجود في الشجرة.`); return; }
+				const d = bstDelete(tree, v);
+				const KIND = {
+					leaf: `${v} ورقة (بلا أبناء): نزيله ببساطة.`,
+					one: `${v} له ابن واحد: نضع ابنه مكانه.`,
+					two: `${v} له ابنان: نضع مكانه «خلفه» ${d.succ}، أي أصغر عدد في فرعه الأيمن، ثم نحذف ${d.succ} من مكانه القديم. هكذا يبقى كل ما في اليسار أصغر، وكل ما في اليمين أكبر.`,
+					none: '',
+				};
+				draw({ [v]: 'bad' });
+				timers.push(window.setTimeout(() => { tree = d.root; draw(d.succ !== undefined ? { [d.succ]: 'new' } : {}); say(KIND[d.kind], 'wl-good'); }, 700));
+			}
+			input.value = '';
+		}));
+		const PRE: Record<string, () => BNode | null> = {
+			mix: () => bstFrom([50, 30, 70, 20, 40, 60, 80, 35]),
+			sorted: () => bstFrom([10, 20, 30, 40, 50, 60, 70]),
+			bal: () => bstBalanced([10, 20, 30, 40, 50, 60, 70]),
+			clear: () => null,
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-pre]').forEach((b) => b.addEventListener('click', () => {
+			clear();
+			tree = PRE[b.dataset.pre!]();
+			draw();
+			const p = b.dataset.pre;
+			say(p === 'sorted' ? 'أدخلنا الأعداد مرتبة، فذهب كل عدد يميناً: صارت الشجرة «عصا» ارتفاعها 7، والبحث فيها مثل البحث الخطي!'
+				: p === 'bal' ? 'الأعداد نفسها، لكن الجذر هو الأوسط (40): الارتفاع 3 فقط. أي عدد نجده بـ 3 مقارنات على الأكثر.'
+				: p === 'mix' ? 'شجرة فيها 8 عقد. جرّب البحث عن 35، ثم عن 65.' : 'شجرة فارغة. أضف أعداداً.');
+		}));
+		root.querySelectorAll<HTMLButtonElement>('[data-tr]').forEach((b) => b.addEventListener('click', () => {
+			clear();
+			const o = b.dataset.tr as 'in' | 'pre' | 'post' | 'level';
+			const seq = traverse(tree, o);
+			if (!seq.length) { say('الشجرة فارغة.'); return; }
+			seq.forEach((v, k) => timers.push(window.setTimeout(() => {
+				const c: Record<number, string> = {};
+				seq.slice(0, k).forEach((x) => (c[x] = 'dim')); c[v] = 'hit';
+				draw(c);
+				$('seq').insertAdjacentHTML('beforeend', `<i>${v}</i>`);
+			}, 450 * k)));
+			const SAY = {
+				in: 'اليسار، ثم العقدة، ثم اليمين: الأعداد تخرج **مرتبة** دائماً!',
+				pre: 'العقدة، ثم اليسار، ثم اليمين: الجذر أولاً. نستخدمه لنسخ الشجرة.',
+				post: 'اليسار، ثم اليمين، ثم العقدة: الجذر آخراً. نستخدمه لحذف الشجرة أو لحساب حجم المجلدات.',
+				level: 'مستوى بعد مستوى، من الأعلى: نستخدم طابوراً لا عودية.',
+			};
+			timers.push(window.setTimeout(() => say(SAY[o].replace(/\*\*/g, ''), 'wl-good'), 450 * seq.length));
+		}));
+		tree = PRE.mix();
+		draw();
+		say('شجرة فيها 8 عقد. جرّب البحث عن 35، ثم عن 65.');
+		window.addEventListener('resize', () => draw());
+	});
+</script>

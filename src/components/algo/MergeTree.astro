@@ -1,0 +1,92 @@
+---
+// شجرة الترتيب بالدمج: كل صف مستوى من التقسيم، والعقدة بتظهر لما ينقسم أبوها،
+// وبالدمج بتتبدّل قيمها بالقيم المرتبة وبتخضرّ. المحرك mergeTrace بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-mergetree>
+	<h4>🌳 فرّق، ثم ادمج</h4>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-p="0">عشوائي</button>
+		<button type="button" class="wl-btn" data-p="1">مرتب أصلاً</button>
+		<button type="button" class="wl-btn" data-p="2">معكوس</button>
+	</div>
+	<div class="mt-rows" dir="ltr" data-out="rows"></div>
+	<p class="sl-note" data-out="note"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>المقارنات حتى الآن</span><strong data-out="cmps">0</strong></div>
+		<div class="wl-out"><span>عمق الشجرة</span><strong>3 = log₂ 8</strong></div>
+	</div>
+</div>
+
+<style is:global>
+	.mt-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+	.mt-row { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; min-height: 2rem; }
+	.mt-node { display: flex; border: 2px solid var(--sl-color-gray-4); border-radius: 0.35rem; overflow: hidden; transition: border-color 0.25s, opacity 0.25s; }
+	.mt-node i { flex: 1; text-align: center; font-style: normal; font-weight: 700; padding: 0.25rem 0; background: var(--sl-color-gray-6); font-size: 0.9rem; }
+	.mt-node i + i { border-left: 1px solid var(--sl-color-gray-5); }
+	.mt-node.split { border-color: #3a9ec2; }
+	.mt-node.merged { border-color: #2fb36b; }
+	.mt-node.merged i { background: rgb(47 179 107 / 0.25); }
+	.mt-node.now { border-color: #e0a030; box-shadow: 0 0 0 2px #e0a030; }
+	.mt-node.hide { visibility: hidden; }
+</style>
+
+<script>
+	import { mergeTrace, type MNode, type MEvent } from '../../scripts/algo';
+	const PRE = [[5, 2, 8, 1, 9, 3, 7, 4], [1, 2, 3, 4, 5, 7, 8, 9], [9, 8, 7, 5, 4, 3, 2, 1]];
+	document.querySelectorAll<HTMLElement>('[data-mergetree]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let nodes: MNode[] = [], events: MEvent[] = [], i = 0, timer = 0;
+		const draw = () => {
+			// الحالة بعد i حدث: مين ظاهر، ومين انقسم، ومين اندمج
+			const shown = new Set<number>([0]), split = new Set<number>(), merged = new Set<number>();
+			for (let k = 0; k < i; k++) {
+				const e = events[k];
+				if (e.kind === 'split') { split.add(e.id); nodes[e.id].kids.forEach((c) => shown.add(c)); }
+				else merged.add(e.id);
+			}
+			const cur = i > 0 ? events[i - 1] : null;
+			const depth = Math.max(...nodes.map((n) => n.depth));
+			let h = '';
+			for (let d = 0; d <= depth; d++) {
+				h += '<div class="mt-row">';
+				for (const n of nodes.filter((x) => x.depth === d)) {
+					const leaf = !n.kids.length;
+					const vals = merged.has(n.id) ? n.merged : n.vals;
+					const cls = !shown.has(n.id) ? 'hide' : merged.has(n.id) || (leaf && shown.has(n.id) && d > 0) ? 'merged' : split.has(n.id) ? 'split' : '';
+					h += `<div class="mt-node ${cls}${cur && cur.id === n.id ? ' now' : ''}" style="grid-column:${n.lo + 1} / ${n.hi + 2}">${vals.map((v) => `<i>${v}</i>`).join('')}</div>`;
+				}
+				h += '</div>';
+			}
+			$('rows').innerHTML = h;
+			$('cmps').textContent = String(cur ? cur.cmps : 0);
+			const note = $('note');
+			if (!cur) note.textContent = 'قائمة من 8 عناصر. اضغط «خطوة»: سنقسمها إلى نصفين، ثم كل نصف إلى نصفين...';
+			else if (cur.kind === 'split') { const n = nodes[cur.id]; note.textContent = `نقسم [${n.vals.join(', ')}] إلى نصفين. لا مقارنات هنا، فقط تقسيم.`; }
+			else {
+				const n = nodes[cur.id], [L, R] = n.kids.map((c) => nodes[c]);
+				note.textContent = `ندمج نصفين مرتبين [${L.merged.join(', ')}] و [${R.merged.join(', ')}]: نقارن أول عنصرين، ونأخذ الأصغر، ونكرر. النتيجة [${n.merged.join(', ')}].` + (i === events.length ? ` انتهى بـ ${cur.cmps} مقارنة.` : '');
+			}
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i === events.length;
+		};
+		const load = (p: number) => { clearInterval(timer); const t = mergeTrace(PRE[p]); nodes = t.nodes; events = t.events; i = 0; draw(); };
+		root.querySelectorAll<HTMLButtonElement>('[data-p]').forEach((b) => b.addEventListener('click', () => {
+			root.querySelectorAll('[data-p]').forEach((x) => x.classList.toggle('primary', x === b));
+			load(+b.dataset.p!);
+		}));
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < events.length) { i++; draw(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i > 0) { i--; draw(); } });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= events.length) i = 0;
+			timer = window.setInterval(() => { if (i >= events.length) { clearInterval(timer); return; } i++; draw(); }, 800);
+		});
+		load(0);
+	});
+</script>

@@ -458,3 +458,30 @@ code,
 
 /* أي جدول أو رسمة عريضة جوّا أداة بتنسحب أفقياً بدل ما تعرّض الصفحة */
 .wl-box .wl-scroll { overflow-x: auto; max-width: 100%; min-width: 0; }
+
+/* أشجار الخوارزميات (treeDraw.ts) */
+.tr-svg { display: block; height: auto; min-width: 100%; direction: ltr; }
+.tr-scroll { overflow-x: auto; max-width: 100%; min-width: 0; }
+.tr-edge { stroke: var(--sl-color-gray-4); stroke-width: 2; }
+.tr-node circle { fill: #3a9ec2; stroke: var(--sl-color-bg); stroke-width: 2; transition: fill 0.25s; }
+.tr-node text { font: 700 13px sans-serif; text-anchor: middle; fill: #111; }
+.tr-node text.tr-tag { font-size: 10px; fill: var(--sl-color-gray-3); font-weight: 400; }
+.tr-node.path circle { fill: #e0a030; }
+.tr-node.hit circle { fill: #2fb36b; }
+.tr-node.bad circle { fill: #e5534b; }
+.tr-node.new circle { fill: #a371f7; }
+.tr-node.dim circle { fill: var(--sl-color-gray-5); }
+.tr-node.dim text { fill: var(--sl-color-gray-2); }
+.tr-edge.path { stroke: #e0a030; stroke-width: 3.5; }
+
+/* أعمدة الترتيب المشتركة (SortLab و QuickLab) */
+.sl-bars { display: flex; align-items: flex-end; gap: 4px; height: 11rem; padding: 0.3rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); }
+.sl-bar { flex: 1; min-width: 0; border-radius: 0.3rem 0.3rem 0 0; background: #3a9ec2; display: flex; align-items: flex-start; justify-content: center; color: #111; font-weight: 700; font-size: 0.85rem; padding-top: 0.15rem; transition: height 0.2s, background 0.2s; }
+.sl-bar.cmp { background: #e0a030; }
+.sl-bar.swap { background: #e5534b; }
+.sl-bar.sorted { background: #2fb36b; }
+.sl-note { margin: 0; min-height: 2.6em; font-size: var(--sl-text-sm); }
+
+/* مربع «توقّع أولاً» المشترك */
+.se-predict { padding: 0.75rem; border-radius: 0.5rem; border: 2px dashed var(--sl-color-accent); }
+.se-predict p { margin: 0 0 0.5rem; }

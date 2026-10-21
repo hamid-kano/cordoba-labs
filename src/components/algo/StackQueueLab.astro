@@ -1,0 +1,75 @@
+---
+// مكدس صحون وطابور مخبز جنب بعض: نفس الإدخالات، بس الإخراج بيختلف (LIFO مقابل FIFO).
+---
+
+<div class="not-content wl-box" data-sq>
+	<h4>🍽️ المكدس و 🥖 الطابور</h4>
+	<p class="se-hint">أضف العناصر نفسها إلى الاثنين، ثم أخرج منهما. من يخرج أولاً؟</p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-add>＋ أضف <span data-out="nextl"></span></button>
+		<button type="button" class="wl-btn" data-take>− أخرج</button>
+		<button type="button" class="wl-btn" data-reset>↺</button>
+	</div>
+	<div class="sq-grid">
+		<div class="sq-col">
+			<b>المكدس: آخر من يدخل أول من يخرج</b>
+			<div class="sq-stack" data-out="stack"></div>
+			<small>الخارج: <span dir="ltr" data-out="so"></span></small>
+		</div>
+		<div class="sq-col">
+			<b>الطابور: أول من يدخل أول من يخرج</b>
+			<div class="sq-queue" dir="ltr"><span class="sq-end">خروج ⬅</span><div data-out="queue"></div><span class="sq-end">⬅ دخول</span></div>
+			<small>الخارج: <span dir="ltr" data-out="qo"></span></small>
+		</div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.sq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+	@media (max-width: 34rem) { .sq-grid { grid-template-columns: 1fr; } }
+	.sq-col { display: flex; flex-direction: column; gap: 0.35rem; }
+	.sq-col > b { font-size: var(--sl-text-sm); }
+	.sq-stack { display: flex; flex-direction: column-reverse; align-items: center; gap: 3px; min-height: 9rem; border: 3px solid var(--sl-color-gray-4); border-top: 0; border-radius: 0 0 0.5rem 0.5rem; padding: 0.3rem; }
+	.sq-stack i, .sq-queue i { font-style: normal; font-weight: 700; background: #3a9ec2; color: #111; border-radius: 0.3rem; display: grid; place-items: center; animation: sq-in 0.25s; }
+	.sq-stack i { width: 80%; height: 1.5rem; }
+	.sq-stack i:last-child { background: #e0a030; }
+	.sq-queue { display: flex; align-items: center; gap: 0.3rem; min-height: 3rem; border-top: 3px solid var(--sl-color-gray-4); border-bottom: 3px solid var(--sl-color-gray-4); padding: 0.3rem; }
+	.sq-queue > div { display: flex; gap: 3px; flex: 1; flex-wrap: wrap; }
+	.sq-queue i { width: 1.8rem; height: 1.8rem; }
+	.sq-queue > div i:first-child { background: #e0a030; }
+	.sq-end { font-size: 0.7rem; color: var(--sl-color-gray-3); white-space: nowrap; }
+	@keyframes sq-in { from { transform: scale(0.6); opacity: 0; } }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-sq]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const L = 'ABCDEFGH';
+		let st: string[] = [], qu: string[] = [], k = 0, so: string[] = [], qo: string[] = [];
+		const draw = () => {
+			$('stack').innerHTML = st.map((x) => `<i>${x}</i>`).join('');
+			$('queue').innerHTML = qu.map((x) => `<i>${x}</i>`).join('');
+			$('so').textContent = so.join(' ');
+			$('qo').textContent = qo.join(' ');
+			$('nextl').textContent = k < L.length ? L[k] : '';
+		};
+		const reset = () => { st = []; qu = []; k = 0; so = []; qo = []; draw(); $('msg').className = 'wl-msg'; $('msg').textContent = 'أضف A ثم B ثم C، ثم أخرج ثلاث مرات.'; };
+		root.querySelector('[data-add]')!.addEventListener('click', () => {
+			if (k >= L.length || st.length >= 6) return;
+			st.push(L[k]); qu.push(L[k]); k++; draw();
+			$('msg').textContent = 'العنصر البرتقالي هو الذي سيخرج في المرة القادمة.';
+		});
+		root.querySelector('[data-take]')!.addEventListener('click', () => {
+			if (!st.length) { $('msg').textContent = 'فارغان! إخراج عنصر من بنية فارغة خطأ مشهور اسمه underflow.'; return; }
+			so.push(st.pop()!); qo.push(qu.shift()!); draw();
+			const msg = $('msg');
+			msg.className = 'wl-msg wl-good';
+			msg.textContent = !st.length && so.length > 1
+				? `المكدس أخرج العناصر بعكس ترتيب دخولها، والطابور بالترتيب نفسه.`
+				: `المكدس أخرج ${so.at(-1)} (آخر من دخل)، والطابور أخرج ${qo.at(-1)} (أول من دخل).`;
+		});
+		root.querySelector('[data-reset]')!.addEventListener('click', reset);
+		reset();
+	});
+</script>

@@ -188,3 +188,228 @@ export function arCount(n: number, one: string, two: string, plural: string, sin
 	if (n === 0) return `0 ${plural}`;
 	return `${n} ${singular}`;
 }
+
+// ===================== 6. الترتيب بالدمج =====================
+export interface MNode { id: number; lo: number; hi: number; depth: number; vals: number[]; merged: number[]; kids: number[] }
+export interface MEvent { kind: 'split' | 'merge'; id: number; cmps: number }
+/** شجرة الدمج: كل عقدة جزء من المصفوفة، والأحداث بترتيب التنفيذ الحقيقي (تقسيم ثم دمج) */
+export function mergeTrace(input: number[]) {
+	const nodes: MNode[] = [];
+	const events: MEvent[] = [];
+	let cmps = 0;
+	const go = (vals: number[], lo: number, depth: number): MNode => {
+		const node: MNode = { id: nodes.length, lo, hi: lo + vals.length - 1, depth, vals, merged: vals, kids: [] };
+		nodes.push(node);
+		if (vals.length > 1) {
+			const mid = Math.ceil(vals.length / 2);
+			events.push({ kind: 'split', id: node.id, cmps });
+			const L = go(vals.slice(0, mid), lo, depth + 1), R = go(vals.slice(mid), lo + mid, depth + 1);
+			node.kids = [L.id, R.id];
+			const out: number[] = [];
+			let i = 0, j = 0;
+			while (i < L.merged.length && j < R.merged.length) { cmps++; out.push(L.merged[i] <= R.merged[j] ? L.merged[i++] : R.merged[j++]); }
+			node.merged = [...out, ...L.merged.slice(i), ...R.merged.slice(j)];
+			events.push({ kind: 'merge', id: node.id, cmps });
+		}
+		return node;
+	};
+	go([...input], 0, 0);
+	return { nodes, events, cmps };
+}
+
+// ===================== 6. الترتيب السريع =====================
+export type PivotRule = 'last' | 'middle' | 'random';
+export interface QStep { a: number[]; lo: number; hi: number; p: number; i: number; j: number; kind: 'range' | 'cmp' | 'swap' | 'place' | 'done'; depth: number; cmps: number; swaps: number; fixed: number[] }
+/** Lomuto: المحور بينحط بالآخر، و i حدود «الأصغر من المحور». seed لتكرار العشوائي */
+export function quickTrace(input: number[], rule: PivotRule, seed = 7) {
+	const a = [...input], out: QStep[] = [], fixed = new Set<number>();
+	let cmps = 0, swaps = 0, maxDepth = 0, s = seed;
+	const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+	const push = (lo: number, hi: number, p: number, i: number, j: number, kind: QStep['kind'], depth: number) =>
+		out.push({ a: [...a], lo, hi, p, i, j, kind, depth, cmps, swaps, fixed: [...fixed] });
+	const sort = (lo: number, hi: number, depth: number) => {
+		if (lo > hi) return;
+		maxDepth = Math.max(maxDepth, depth);
+		if (lo === hi) { fixed.add(lo); return; }
+		const pi = rule === 'last' ? hi : rule === 'middle' ? (lo + hi) >> 1 : lo + Math.floor(rnd() * (hi - lo + 1));
+		if (pi !== hi) { [a[pi], a[hi]] = [a[hi], a[pi]]; swaps++; }
+		push(lo, hi, hi, lo, lo, 'range', depth);
+		let i = lo;
+		for (let j = lo; j < hi; j++) {
+			cmps++;
+			push(lo, hi, hi, i, j, 'cmp', depth);
+			if (a[j] < a[hi]) { if (i !== j) { [a[i], a[j]] = [a[j], a[i]]; swaps++; push(lo, hi, hi, i, j, 'swap', depth); } i++; }
+		}
+		if (i !== hi) { [a[i], a[hi]] = [a[hi], a[i]]; swaps++; }
+		fixed.add(i);
+		push(lo, hi, i, i, hi, 'place', depth);
+		sort(lo, i - 1, depth + 1);
+		sort(i + 1, hi, depth + 1);
+	};
+	sort(0, a.length - 1, 1);
+	for (let k = 0; k < a.length; k++) fixed.add(k);
+	push(0, a.length - 1, -1, -1, -1, 'done', 0);
+	return { steps: out, cmps, swaps, depth: maxDepth, sorted: a };
+}
+
+// ===================== 6. الترتيب بالعدّ =====================
+export function countingSort(a: number[], max: number) {
+	const count = new Array(max + 1).fill(0);
+	for (const x of a) count[x]++;
+	const out: number[] = [];
+	count.forEach((c, v) => { for (let k = 0; k < c; k++) out.push(v); });
+	return { count, out };
+}
+
+// ===================== 8. التجزئة =====================
+export type HashFn = 'first' | 'sum' | 'poly';
+export function hashOf(key: string, m: number, fn: HashFn): number {
+	if (fn === 'first') return key.charCodeAt(0) % m;
+	if (fn === 'sum') { let s = 0; for (const ch of key) s += ch.charCodeAt(0); return s % m; }
+	let h = 0;
+	for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) % m;
+	return h;
+}
+export interface HashTable { m: number; fn: HashFn; mode: 'chain' | 'probe'; slots: string[][] }
+export const newTable = (m: number, fn: HashFn, mode: 'chain' | 'probe'): HashTable => ({ m, fn, mode, slots: Array.from({ length: m }, () => []) });
+/** بيرجّع الخانات يلي انفحصت بالترتيب، والخانة النهائية (−1 إذا الجدول مليان) */
+export function hashInsert(t: HashTable, key: string): { path: number[]; slot: number; collided: boolean } {
+	const h = hashOf(key, t.m, t.fn);
+	if (t.mode === 'chain') { const collided = t.slots[h].length > 0; t.slots[h].push(key); return { path: [h], slot: h, collided }; }
+	const path: number[] = [];
+	for (let k = 0; k < t.m; k++) {
+		const s = (h + k) % t.m;
+		path.push(s);
+		if (!t.slots[s].length) { t.slots[s].push(key); return { path, slot: s, collided: k > 0 }; }
+	}
+	return { path, slot: -1, collided: true };
+}
+/** المقارنات مع المفاتيح لحتى نلاقي المفتاح أو نتأكد إنه مش موجود */
+export function hashFind(t: HashTable, key: string): { path: number[]; found: boolean; cmps: number } {
+	const h = hashOf(key, t.m, t.fn);
+	if (t.mode === 'chain') { const i = t.slots[h].indexOf(key); return { path: [h], found: i >= 0, cmps: i >= 0 ? i + 1 : t.slots[h].length }; }
+	const path: number[] = [];
+	for (let k = 0; k < t.m; k++) {
+		const s = (h + k) % t.m;
+		path.push(s);
+		if (!t.slots[s].length) return { path, found: false, cmps: k };
+		if (t.slots[s][0] === key) return { path, found: true, cmps: k + 1 };
+	}
+	return { path, found: false, cmps: t.m };
+}
+/** احتمال أن يتشارك اثنان على الأقل بخانة واحدة (مسألة عيد الميلاد) */
+export function birthday(k: number, m = 365) { let p = 1; for (let i = 0; i < k; i++) p *= (m - i) / m; return 1 - p; }
+
+// ===================== 9. شجرة البحث الثنائية =====================
+export interface BNode { v: number; l: BNode | null; r: BNode | null }
+export function bstInsert(root: BNode | null, v: number): { root: BNode; path: number[]; dup: boolean } {
+	const path: number[] = [];
+	if (!root) return { root: { v, l: null, r: null }, path, dup: false };
+	let cur = root;
+	for (;;) {
+		path.push(cur.v);
+		if (v === cur.v) return { root, path, dup: true };
+		const side = v < cur.v ? 'l' : 'r';
+		if (!cur[side]) { cur[side] = { v, l: null, r: null }; return { root, path, dup: false }; }
+		cur = cur[side]!;
+	}
+}
+export function bstSearch(root: BNode | null, v: number) {
+	const path: number[] = [];
+	let c = root;
+	while (c) { path.push(c.v); if (v === c.v) return { path, found: true }; c = v < c.v ? c.l : c.r; }
+	return { path, found: false };
+}
+/** الحذف: ورقة، أو ابن واحد، أو ابنين (منبدّل بالخلف: أصغر عنصر بالفرع اليمين) */
+export function bstDelete(root: BNode | null, v: number): { root: BNode | null; kind: 'leaf' | 'one' | 'two' | 'none'; succ?: number } {
+	let kind: 'leaf' | 'one' | 'two' | 'none' = 'none';
+	let succ: number | undefined;
+	const del = (n: BNode | null, x: number): BNode | null => {
+		if (!n) return null;
+		if (x < n.v) { n.l = del(n.l, x); return n; }
+		if (x > n.v) { n.r = del(n.r, x); return n; }
+		if (kind === 'none') kind = !n.l && !n.r ? 'leaf' : !n.l || !n.r ? 'one' : 'two';
+		if (!n.l) return n.r;
+		if (!n.r) return n.l;
+		let s = n.r;
+		while (s.l) s = s.l;
+		if (succ === undefined) succ = s.v;
+		n.v = s.v;
+		n.r = del(n.r, s.v);
+		return n;
+	};
+	const r = del(root, v);
+	return { root: r, kind, succ };
+}
+export const bstHeight = (n: BNode | null): number => (n ? 1 + Math.max(bstHeight(n.l), bstHeight(n.r)) : 0);
+export function traverse(n: BNode | null, order: 'in' | 'pre' | 'post' | 'level'): number[] {
+	const out: number[] = [];
+	if (order === 'level') {
+		const q = n ? [n] : [];
+		while (q.length) { const x = q.shift()!; out.push(x.v); if (x.l) q.push(x.l); if (x.r) q.push(x.r); }
+		return out;
+	}
+	const go = (x: BNode | null) => {
+		if (!x) return;
+		if (order === 'pre') out.push(x.v);
+		go(x.l);
+		if (order === 'in') out.push(x.v);
+		go(x.r);
+		if (order === 'post') out.push(x.v);
+	};
+	go(n);
+	return out;
+}
+export function bstFrom(vals: number[]) { let r: BNode | null = null; for (const v of vals) r = bstInsert(r, v).root; return r; }
+/** شجرة متوازنة من قائمة مرتبة: النص جذر، وكل نص لحاله */
+export function bstBalanced(sorted: number[]): BNode | null {
+	if (!sorted.length) return null;
+	const m = sorted.length >> 1;
+	return { v: sorted[m], l: bstBalanced(sorted.slice(0, m)), r: bstBalanced(sorted.slice(m + 1)) };
+}
+
+// ===================== 10. الكومة =====================
+export interface HeapStep { a: number[]; hi: [number, number] | null; note: 'add' | 'up' | 'stop' | 'take' | 'down' }
+/** كومة عظمى: إضافة بالآخر ثم «طفو» لفوق */
+export function heapPush(a: number[], v: number): HeapStep[] {
+	const st: HeapStep[] = [];
+	a.push(v);
+	let i = a.length - 1;
+	st.push({ a: [...a], hi: [i, i], note: 'add' });
+	while (i > 0) {
+		const p = (i - 1) >> 1;
+		if (a[p] >= a[i]) { st.push({ a: [...a], hi: [p, i], note: 'stop' }); break; }
+		[a[p], a[i]] = [a[i], a[p]];
+		st.push({ a: [...a], hi: [p, i], note: 'up' });
+		i = p;
+	}
+	return st;
+}
+/** سحب الأكبر: آخر عنصر بيطلع للجذر وبينزل */
+export function heapPop(a: number[]): { top: number; steps: HeapStep[] } {
+	const steps: HeapStep[] = [];
+	const top = a[0];
+	const last = a.pop()!;
+	if (!a.length) return { top, steps: [{ a: [], hi: null, note: 'take' }] };
+	a[0] = last;
+	steps.push({ a: [...a], hi: [0, 0], note: 'take' });
+	let i = 0;
+	for (;;) {
+		const l = 2 * i + 1, r = l + 1;
+		let m = i;
+		if (l < a.length && a[l] > a[m]) m = l;
+		if (r < a.length && a[r] > a[m]) m = r;
+		if (m === i) { steps.push({ a: [...a], hi: [i, i], note: 'stop' }); break; }
+		[a[i], a[m]] = [a[m], a[i]];
+		steps.push({ a: [...a], hi: [i, m], note: 'down' });
+		i = m;
+	}
+	return { top, steps };
+}
+export function heapSort(input: number[]) {
+	const h: number[] = [];
+	for (const x of input) heapPush(h, x);
+	const out: number[] = [];
+	while (h.length) out.unshift(heapPop(h).top);
+	return out;
+}

@@ -1,0 +1,62 @@
+---
+// الترتيب بالعدّ: علامات من 0 لـ 10، كل علامة بتنزل بصندوقها، وبعدين منقرا الصناديق بالترتيب. بدون أي مقارنة.
+---
+
+<div class="not-content wl-box" data-counting>
+	<h4>🗳️ ترتيب بلا مقارنات: صناديق العلامات</h4>
+	<p class="se-hint">علامات 12 طالباً من 10. بدل أن نقارن، نضع كل علامة في صندوقها.</p>
+	<div class="ct-in" dir="ltr" data-out="in"></div>
+	<div class="ct-boxes" dir="ltr" data-out="boxes"></div>
+	<div class="ct-in ct-out" dir="ltr" data-out="out"></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-go>▶ رتّب</button>
+		<button type="button" class="wl-btn" data-new>↺ علامات جديدة</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.ct-in { display: flex; flex-wrap: wrap; gap: 4px; min-height: 2rem; }
+	.ct-in i { font-style: normal; width: 1.9rem; height: 1.9rem; display: grid; place-items: center; border-radius: 0.3rem; background: #3a9ec2; color: #111; font-weight: 700; transition: opacity 0.25s; }
+	.ct-in i.gone { opacity: 0.15; }
+	.ct-out i { background: #2fb36b; }
+	.ct-boxes { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 3px; align-items: end; }
+	.ct-box { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+	.ct-box b { font-size: 0.72rem; color: var(--sl-color-gray-3); }
+	.ct-stack { display: flex; flex-direction: column-reverse; gap: 2px; min-height: 3.5rem; width: 100%; border-bottom: 2px solid var(--sl-color-gray-4); justify-content: flex-start; }
+	.ct-stack i { height: 0.7rem; border-radius: 0.15rem; background: #e0a030; }
+</style>
+
+<script>
+	import { countingSort } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-counting]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let marks: number[] = [], timers: number[] = [];
+		const boxes = (count: number[]) => count.map((c, v) => `<div class="ct-box"><div class="ct-stack">${'<i></i>'.repeat(c)}</div><b>${v}</b></div>`).join('');
+		const fresh = () => {
+			timers.forEach(clearTimeout); timers = [];
+			marks = Array.from({ length: 12 }, () => 3 + Math.floor(Math.random() * 8));
+			$('in').innerHTML = marks.map((m) => `<i>${m}</i>`).join('');
+			$('boxes').innerHTML = boxes(new Array(11).fill(0));
+			$('out').innerHTML = '';
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = '';
+		};
+		root.querySelector('[data-go]')!.addEventListener('click', () => {
+			timers.forEach(clearTimeout); timers = [];
+			const count = new Array(11).fill(0);
+			const chips = [...$('in').children] as HTMLElement[];
+			chips.forEach((c) => c.classList.remove('gone'));
+			$('out').innerHTML = '';
+			marks.forEach((m, k) => timers.push(window.setTimeout(() => { count[m]++; chips[k].classList.add('gone'); $('boxes').innerHTML = boxes(count); }, 220 * k)));
+			const { out } = countingSort(marks, 10);
+			out.forEach((v, k) => timers.push(window.setTimeout(() => { $('out').insertAdjacentHTML('beforeend', `<i>${v}</i>`); }, 220 * marks.length + 300 + 150 * k)));
+			timers.push(window.setTimeout(() => {
+				$('msg').className = 'wl-msg wl-good';
+				$('msg').textContent = 'رُتّبت دون أي مقارنة: مرّة على العلامات لنعدّها، ومرّة على الصناديق لنقرأها. الزمن O(n + k)، حيث k عدد الصناديق (11 هنا).';
+			}, 220 * marks.length + 300 + 150 * out.length + 200));
+		});
+		root.querySelector('[data-new]')!.addEventListener('click', fresh);
+		fresh();
+	});
+</script>

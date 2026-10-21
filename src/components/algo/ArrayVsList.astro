@@ -1,0 +1,111 @@
+---
+// مصفوفة مقابل قائمة مرتبطة: نفس العملية على الاتنين، ومنعدّ الخطوات.
+// المصفوفة: الإدراج بالأول بيزيح الكل. القائمة: القراءة بالموقع k بتمشي على الأسهم.
+---
+
+<div class="not-content wl-box" data-avl>
+	<h4>🚃 المصفوفة ضد القائمة المرتبطة</h4>
+	<p class="se-hint">اختر عملية، وشاهد كم خطوة يحتاج كل واحد.</p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-op="front">أدخل في البداية</button>
+		<button type="button" class="wl-btn" data-op="end">أدخل في النهاية</button>
+		<button type="button" class="wl-btn" data-op="read">اقرأ العنصر رقم 6</button>
+		<button type="button" class="wl-btn" data-op="del">احذف الأول</button>
+		<button type="button" class="wl-btn" data-reset>↺</button>
+	</div>
+	<div class="av-lane">
+		<b>المصفوفة</b>
+		<div class="av-arr" dir="ltr" data-out="arr"></div>
+		<span class="av-cost" data-out="ca"></span>
+	</div>
+	<div class="av-lane">
+		<b>القائمة المرتبطة</b>
+		<div class="av-list" dir="ltr" data-out="list"></div>
+		<span class="av-cost" data-out="cl"></span>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.av-lane { display: flex; flex-direction: column; gap: 0.25rem; }
+	.av-lane > b { font-size: var(--sl-text-sm); }
+	.av-cost { font-size: var(--sl-text-sm); font-weight: 700; min-height: 1.2em; }
+	.av-arr { display: flex; gap: 0; flex-wrap: wrap; }
+	.av-arr i { font-style: normal; width: 2.1rem; text-align: center; padding: 0.3rem 0 0.1rem; border: 2px solid var(--sl-color-gray-4); margin-left: -2px; font-weight: 700; background: var(--sl-color-gray-6); position: relative; transition: background 0.2s; }
+	.av-arr i small { display: block; font-size: 0.6rem; color: var(--sl-color-gray-3); font-weight: 400; }
+	.av-arr i.empty { color: transparent; border-style: dashed; }
+	.av-list { display: flex; align-items: center; flex-wrap: wrap; gap: 0.15rem; row-gap: 0.4rem; }
+	.av-list i { font-style: normal; display: inline-flex; border: 2px solid #3a9ec2; border-radius: 0.35rem; overflow: hidden; font-weight: 700; transition: background 0.2s; }
+	.av-list i span { padding: 0.15rem 0.45rem; }
+	.av-list i em { font-style: normal; width: 0.7rem; background: #3a9ec2; }
+	.av-list b { color: var(--sl-color-gray-3); font-size: 0.9rem; }
+	.av-arr i.hot, .av-list i.hot { background: rgb(224 160 48 / 0.45); }
+	.av-arr i.new, .av-list i.new { background: rgb(47 179 107 / 0.4); }
+</style>
+
+<script>
+	import { arCount } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-avl]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const CAP = 10;
+		let data: number[] = [], next = 10, timers: number[] = [], busy = false;
+		const steps = (n: number) => arCount(n, 'خطوة واحدة', 'خطوتان', 'خطوات', 'خطوة');
+		const draw = (hotA: number[] = [], hotL: number[] = [], newIdx = -1) => {
+			$('arr').innerHTML = Array.from({ length: CAP }, (_, k) => k < data.length
+				? `<i class="${k === newIdx ? 'new' : hotA.includes(k) ? 'hot' : ''}">${data[k]}<small>${k}</small></i>`
+				: `<i class="empty">0<small>${k}</small></i>`).join('');
+			$('list').innerHTML = '<b>رأس</b><b>→</b>' + data.map((v, k) => `<i class="${k === newIdx ? 'new' : hotL.includes(k) ? 'hot' : ''}"><span>${v}</span><em></em></i><b>→</b>`).join('') + '<b>null</b>';
+		};
+		const reset = () => { timers.forEach(clearTimeout); timers = []; busy = false; data = [3, 8, 1, 6, 4, 9, 2]; next = 10; draw(); $('ca').textContent = ''; $('cl').textContent = ''; $('msg').className = 'wl-msg'; $('msg').textContent = 'العناصر نفسها في الاثنين. المصفوفة خانات متجاورة لكل خانة رقم، والقائمة عُقد يشير كل منها إلى التالية.'; };
+		const animate = (frames: (() => void)[], done: () => void) => {
+			busy = true;
+			frames.forEach((f, k) => timers.push(window.setTimeout(f, 280 * k)));
+			timers.push(window.setTimeout(() => { busy = false; done(); }, 280 * frames.length));
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-op]').forEach((b) => b.addEventListener('click', () => {
+			if (busy) return;
+			const op = b.dataset.op!;
+			const msg = $('msg');
+			msg.className = 'wl-msg';
+			if ((op === 'front' || op === 'end') && data.length >= CAP) { msg.className = 'wl-msg wl-bad'; msg.textContent = 'المصفوفة امتلأت (10 خانات)! يجب أن ننشئ مصفوفة أكبر وننسخ كل العناصر إليها. اضغط ↺.'; return; }
+			if ((op === 'del' || op === 'read') && !data.length) { msg.textContent = 'لا توجد عناصر.'; return; }
+			const n = data.length;
+			if (op === 'front') {
+				// المصفوفة: إزاحة من الآخر للأول. القائمة: عقدة جديدة وسهم واحد
+				const frames = Array.from({ length: n }, (_, k) => () => draw([n - 1 - k], []));
+				animate(frames, () => {
+					data.unshift(next++); draw([], [], 0);
+					$('ca').textContent = `${steps(n)} إزاحة + كتابة: O(n)`;
+					$('cl').textContent = 'خطوة واحدة: عقدة جديدة تشير إلى الرأس القديم: O(1)';
+					msg.textContent = 'المصفوفة أزاحت كل العناصر خانة إلى اليمين لتفرغ الخانة 0. والقائمة أنشأت عقدة وغيّرت سهماً واحداً فقط.';
+				});
+			} else if (op === 'end') {
+				const frames = Array.from({ length: n }, (_, k) => () => draw([], [k]));
+				animate(frames, () => {
+					data.push(next++); draw([], [], data.length - 1);
+					$('ca').textContent = 'خطوة واحدة: نكتب في الخانة التالية: O(1)';
+					$('cl').textContent = `${steps(n)} مشي على الأسهم حتى الآخر: O(n) (إلا إذا حفظنا مؤشراً للذيل)`;
+					msg.textContent = 'المصفوفة تعرف أين آخرها، فتكتب مباشرة. والقائمة تمشي من الرأس عقدة عقدة لتصل إلى الآخر.';
+				});
+			} else if (op === 'read') {
+				const k = Math.min(6, n - 1);
+				const frames = Array.from({ length: k + 1 }, (_, s) => () => draw([k], [s]));
+				animate(frames, () => {
+					$('ca').textContent = `خطوة واحدة: العنوان = البداية + ${k} × حجم الخانة: O(1)`;
+					$('cl').textContent = `${steps(k + 1)}: من الرأس، سهماً سهماً: O(n)`;
+					msg.textContent = `القيمة ${data[k]}. المصفوفة تحسب مكان أي خانة مباشرة، لأن الخانات متجاورة. أما القائمة فلا تعرف أين العقدة رقم ${k} إلا إذا مشت إليها.`;
+				});
+			} else {
+				const frames = Array.from({ length: n - 1 }, (_, k) => () => draw([k + 1], []));
+				animate(frames, () => {
+					data.shift(); draw();
+					$('ca').textContent = `${steps(n - 1)} إزاحة إلى اليسار: O(n)`;
+					$('cl').textContent = 'خطوة واحدة: الرأس يصبح العقدة الثانية: O(1)';
+					msg.textContent = 'حذف الأول من المصفوفة يترك فراغاً يجب ملؤه بإزاحة الجميع. في القائمة نحرّك مؤشر الرأس فقط.';
+				});
+			}
+		}));
+		root.querySelector('[data-reset]')!.addEventListener('click', reset);
+		reset();
+	});
+</script>

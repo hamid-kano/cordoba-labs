@@ -1,0 +1,124 @@
+---
+// خزانة بـ 11 درج: الطالب بيضيف أسماء، والدالة بتحسب رقم الدرج. تصادمات بالسلاسل أو بالفحص الخطي،
+// وثلاث دوال تجزئة (أول حرف، مجموع الرموز، متعددة الحدود). المحرك hashOf/hashInsert/hashFind بـ src/scripts/algo.ts.
+const NAMES = ['أحمد', 'أمل', 'سارة', 'سامي', 'ريم', 'عمر', 'ليلى', 'أسامة'];
+---
+
+<div class="not-content wl-box" data-hashlab data-names={JSON.stringify(NAMES)}>
+	<h4>🗄️ خزانة الأدراج: جدول التجزئة</h4>
+	<div class="wl-row">
+		<span>الدالة:</span>
+		<button type="button" class="wl-btn primary" data-f="first">أول حرف</button>
+		<button type="button" class="wl-btn" data-f="sum">مجموع الحروف</button>
+		<button type="button" class="wl-btn" data-f="poly">متعددة الحدود</button>
+	</div>
+	<div class="wl-row">
+		<span>عند التصادم:</span>
+		<button type="button" class="wl-btn primary" data-m="chain">سلسلة في الدرج</button>
+		<button type="button" class="wl-btn" data-m="probe">الدرج الفارغ التالي</button>
+	</div>
+	<div class="wl-row">
+		<input type="text" data-k="name" placeholder="اكتب اسماً" style="width:9rem" />
+		<button type="button" class="wl-btn primary" data-add>＋ أضف</button>
+		<button type="button" class="wl-btn" data-find>🔍 ابحث</button>
+		<button type="button" class="wl-btn" data-all>أضف الأسماء الثمانية</button>
+		<button type="button" class="wl-btn" data-reset>↺</button>
+	</div>
+	<div class="hl-calc" data-out="calc"></div>
+	<div class="hl-table" data-out="table"></div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>التصادمات</span><strong data-out="col">0</strong></div>
+		<div class="wl-out"><span>معامل الامتلاء</span><strong data-out="load">0</strong></div>
+		<div class="wl-out"><span>متوسط المقارنات للعثور</span><strong data-out="avg">—</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.hl-calc { font-size: var(--sl-text-sm); min-height: 1.4em; }
+	.hl-table { display: flex; flex-direction: column; gap: 3px; }
+	.hl-row { display: grid; grid-template-columns: 2rem 1fr; align-items: center; gap: 0.3rem; }
+	.hl-row > b { text-align: center; font-family: var(--__sl-font-mono); background: var(--sl-color-gray-5); border-radius: 0.25rem; padding: 0.15rem 0; transition: background 0.2s; }
+	.hl-row > div { display: flex; flex-wrap: wrap; gap: 3px; min-height: 1.9rem; align-items: center; border-bottom: 1px dashed var(--sl-color-gray-5); }
+	.hl-row i { font-style: normal; padding: 0.15rem 0.5rem; border-radius: 0.3rem; background: #3a9ec2; color: #111; font-weight: 700; font-size: var(--sl-text-sm); }
+	.hl-row i + i::before { content: '← '; }
+	.hl-row.probe > b { background: #e0a030; color: #111; }
+	.hl-row.hit > b { background: #2fb36b; color: #111; }
+	.hl-row i.new { background: #a371f7; }
+	.hl-row i.hit { background: #2fb36b; }
+</style>
+
+<script>
+	import { hashOf, newTable, hashInsert, hashFind, arCount, type HashFn, type HashTable } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-hashlab]').forEach((root) => {
+		const NAMES: string[] = JSON.parse(root.dataset.names!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const input = root.querySelector<HTMLInputElement>('[data-k="name"]')!;
+		const M = 11;
+		let fn: HashFn = 'first', mode: 'chain' | 'probe' = 'chain', t: HashTable = newTable(M, fn, mode), keys: string[] = [], col = 0;
+		const draw = (probe: number[] = [], hit = -1, mark = '', markCls = 'new') => {
+			$('table').innerHTML = t.slots.map((s, k) => `<div class="hl-row ${k === hit ? 'hit' : probe.includes(k) ? 'probe' : ''}"><b>${k}</b><div>${s.map((x) => `<i class="${x === mark ? markCls : ''}">${x}</i>`).join('')}</div></div>`).join('');
+			$('col').textContent = String(col);
+			$('load').textContent = (keys.length / M).toFixed(2);
+			$('avg').textContent = keys.length ? (keys.reduce((a, k) => a + hashFind(t, k).cmps, 0) / keys.length).toFixed(2) : '—';
+		};
+		const explain = (name: string) => {
+			const codes = [...name].map((c) => c.charCodeAt(0));
+			const h = hashOf(name, M, fn);
+			if (fn === 'first') return `رمز أول حرف «${name[0]}» هو <bdi dir="ltr">${codes[0]}</bdi>، و <bdi dir="ltr">${codes[0]} mod 11 = ${h}</bdi>`;
+			if (fn === 'sum') return `مجموع رموز الحروف <bdi dir="ltr">${codes.reduce((a, b) => a + b, 0)}</bdi>، و <bdi dir="ltr">mod 11 = ${h}</bdi>`;
+			return `نحسب <bdi dir="ltr">h = (h × 31 + code) mod 11</bdi> لكل حرف بالترتيب، فالنتيجة <bdi dir="ltr">${h}</bdi>`;
+		};
+		const reset = () => { t = newTable(M, fn, mode); keys = []; col = 0; $('calc').innerHTML = ''; $('msg').className = 'wl-msg'; $('msg').textContent = 'أضف «أحمد» ثم «أمل»: إلى أي درج يذهب كل منهما؟'; draw(); };
+		const add = (name: string, quiet = false) => {
+			name = name.trim().slice(0, 12);
+			if (!name) return;
+			if (keys.includes(name)) { $('msg').textContent = `«${name}» موجود أصلاً.`; return; }
+			if (keys.length >= M && mode === 'probe') { $('msg').className = 'wl-msg wl-bad'; $('msg').textContent = 'امتلأت كل الأدراج! في الفحص الخطي لا يمكن أن نحفظ أكثر من عدد الأدراج.'; return; }
+			const r = hashInsert(t, name);
+			keys.push(name);
+			if (r.collided) col++;
+			if (quiet) return;
+			$('calc').innerHTML = `«${name}»: ${explain(name)}.`;
+			draw(r.path, -1, name);
+			const msg = $('msg');
+			msg.className = 'wl-msg' + (r.collided ? ' wl-bad' : ' wl-good');
+			msg.textContent = !r.collided ? `ذهب مباشرة إلى الدرج ${r.slot}: خطوة واحدة، مهما كبر الجدول.`
+				: mode === 'chain' ? `تصادم! الدرج ${r.slot} فيه اسم آخر، فأضفناه إلى سلسلته.`
+				: `تصادم! الدرج ${r.path[0]} مشغول، ففحصنا ${arCount(r.path.length - 1, 'درجاً واحداً', 'درجين', 'أدراج', 'درجاً')} بعده حتى وجدنا الدرج الفارغ ${r.slot}.`;
+		};
+		root.querySelector('[data-add]')!.addEventListener('click', () => { add(input.value); input.value = ''; input.focus(); });
+		input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { add(input.value); input.value = ''; } });
+		root.querySelector('[data-all]')!.addEventListener('click', () => {
+			reset();
+			NAMES.forEach((n) => add(n, true));
+			draw();
+			$('calc').innerHTML = '';
+			const msg = $('msg');
+			msg.className = 'wl-msg';
+			msg.textContent = `أضفنا ${NAMES.length} أسماء: ${arCount(col, 'تصادم واحد', 'تصادمان', 'تصادمات', 'تصادماً')}.` + (fn === 'first' ? ' كثير من الأسماء يبدأ بالحرف نفسه، فتتكدس في درج واحد. جرّب «متعددة الحدود».' : ' التوزيع أفضل بكثير من «أول حرف».');
+		});
+		root.querySelector('[data-find]')!.addEventListener('click', () => {
+			const name = input.value.trim();
+			if (!name) { $('msg').textContent = 'اكتب الاسم الذي تبحث عنه.'; return; }
+			const r = hashFind(t, name);
+			$('calc').innerHTML = `«${name}»: ${explain(name)}.`;
+			draw(r.path, r.found ? r.path.at(-1)! : -1, name, 'hit');
+			const msg = $('msg');
+			msg.className = 'wl-msg ' + (r.found ? 'wl-good' : 'wl-bad');
+			msg.textContent = r.found ? `وجدناه بـ ${arCount(r.cmps, 'مقارنة واحدة', 'مقارنتين', 'مقارنات', 'مقارنة')}، دون أن ننظر إلى باقي الأدراج.` : `غير موجود. عرفنا ذلك بعد ${arCount(Math.max(1, r.path.length), 'درج واحد', 'درجين', 'أدراج', 'درجاً')} فقط.`;
+		});
+		root.querySelectorAll<HTMLButtonElement>('[data-f]').forEach((b) => b.addEventListener('click', () => {
+			fn = b.dataset.f as HashFn;
+			root.querySelectorAll('[data-f]').forEach((x) => x.classList.toggle('primary', x === b));
+			reset();
+		}));
+		root.querySelectorAll<HTMLButtonElement>('[data-m]').forEach((b) => b.addEventListener('click', () => {
+			mode = b.dataset.m as 'chain' | 'probe';
+			root.querySelectorAll('[data-m]').forEach((x) => x.classList.toggle('primary', x === b));
+			reset();
+		}));
+		root.querySelector('[data-reset]')!.addEventListener('click', reset);
+		reset();
+	});
+</script>

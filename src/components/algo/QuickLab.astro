@@ -1,0 +1,98 @@
+---
+// الترتيب السريع خطوة خطوة: المحور، ومنطقة «أصغر من المحور»، والمؤشر j، والعناصر يلي ثبتت.
+// اختيار المحور: الأخير أو الأوسط أو العشوائي، وأنواع مدخلات. المحرك quickTrace بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-quicklab>
+	<h4>⚡ الترتيب السريع</h4>
+	<div class="wl-row" data-rules>
+		<span>المحور:</span>
+		<button type="button" class="wl-btn primary" data-r="last">الأخير</button>
+		<button type="button" class="wl-btn" data-r="middle">الأوسط</button>
+		<button type="button" class="wl-btn" data-r="random">عشوائي</button>
+	</div>
+	<div class="wl-row" data-sets>
+		<span>المدخلات:</span>
+		<button type="button" class="wl-btn primary" data-s="rand">عشوائي (8)</button>
+		<button type="button" class="wl-btn" data-s="sorted">مرتب (16)</button>
+	</div>
+	<div class="sl-bars ql-bars" dir="ltr" data-out="bars"></div>
+	<div class="ql-legend"><span><i style="background:#a371f7"></i>المحور</span><span><i style="background:#56b6c2"></i>أصغر من المحور</span><span><i style="background:#e0a030"></i>نقارنه الآن</span><span><i style="background:#2fb36b"></i>في مكانه النهائي</span><span><i style="background:var(--sl-color-gray-5)"></i>خارج الجزء الحالي</span></div>
+	<p class="sl-note" data-out="note"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+		<button type="button" class="wl-btn" data-end>⏭ النتيجة</button>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>المقارنات</span><strong data-out="cmps">0</strong></div>
+		<div class="wl-out"><span>عمق العودية</span><strong data-out="depth">0</strong></div>
+	</div>
+</div>
+
+<style is:global>
+	.ql-bars .sl-bar { font-size: 0.7rem; }
+	.ql-bars .sl-bar.out { background: var(--sl-color-gray-5); color: var(--sl-color-gray-2); }
+	.ql-bars .sl-bar.piv { background: #a371f7; }
+	.ql-bars .sl-bar.less { background: #56b6c2; }
+	.ql-legend { display: flex; flex-wrap: wrap; gap: 0.2rem 0.8rem; font-size: var(--sl-text-xs); }
+	.ql-legend i { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 0.2rem; margin-inline-end: 0.3rem; vertical-align: middle; }
+</style>
+
+<script>
+	import { quickTrace, type PivotRule, type QStep } from '../../scripts/algo';
+	const SETS: Record<string, number[]> = { rand: [5, 2, 8, 1, 9, 3, 7, 4], sorted: Array.from({ length: 16 }, (_, i) => i + 1) };
+	document.querySelectorAll<HTMLElement>('[data-quicklab]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let rule: PivotRule = 'last', set = 'rand', steps: QStep[] = [], i = 0, timer = 0, total = { cmps: 0, depth: 0 };
+		const draw = () => {
+			const s = steps[i], max = Math.max(...s.a);
+			$('bars').innerHTML = s.a.map((v, k) => {
+				let cls = '';
+				if (s.kind === 'done' || s.fixed.includes(k)) cls = 'sorted';
+				else if (k < s.lo || k > s.hi) cls = 'out';
+				else if (k === s.p) cls = 'piv';
+				else if (s.kind === 'cmp' && k === s.j) cls = 'cmp';
+				else if (k < s.i) cls = 'less';
+				return `<div class="sl-bar ${cls}" style="height:${(v / max) * 100}%">${v}</div>`;
+			}).join('');
+			const pv = s.a[s.p];
+			const note = $('note');
+			if (s.kind === 'range') note.textContent = `جزء جديد من ${s.hi - s.lo + 1} عناصر (عمق ${s.depth}). المحور ${pv}: سنضع كل ما هو أصغر منه في اليسار.`;
+			else if (s.kind === 'cmp') note.textContent = `هل ${s.a[s.j]} أصغر من المحور ${pv}؟ ${s.a[s.j] < pv ? 'نعم، فيدخل منطقة «الأصغر».' : 'لا، فيبقى في اليمين.'}`;
+			else if (s.kind === 'swap') note.textContent = `نقلنا ${s.a[s.i]} إلى منطقة «الأصغر من المحور».`;
+			else if (s.kind === 'place') note.textContent = `وضعنا المحور ${s.a[s.p]} بين المنطقتين: كل ما في يساره أصغر منه، وكل ما في يمينه أكبر. هذا مكانه النهائي! الآن نرتّب كل جهة وحدها (عودياً).`;
+			else note.textContent = `✓ انتهى: ${total.cmps} مقارنة، وعمق العودية ${total.depth}.` + (set === 'sorted' && rule === 'last' ? ' المحور الأخير مع قائمة مرتبة هو أسوأ حالة: في كل مرة يكون المحور أكبر عنصر، فلا ينقسم الجزء أبداً. هذا O(n²)!' : '');
+			$('cmps').textContent = String(s.kind === 'done' ? total.cmps : s.cmps);
+			$('depth').textContent = String(s.kind === 'done' ? total.depth : s.depth);
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i === steps.length - 1;
+		};
+		const load = () => {
+			clearInterval(timer);
+			const t = quickTrace(SETS[set], rule, 1 + Math.floor(Math.random() * 1e6));
+			steps = t.steps; total = { cmps: t.cmps, depth: t.depth }; i = 0;
+			draw();
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-r]').forEach((b) => b.addEventListener('click', () => {
+			rule = b.dataset.r as PivotRule;
+			root.querySelectorAll('[data-r]').forEach((x) => x.classList.toggle('primary', x === b));
+			load();
+		}));
+		root.querySelectorAll<HTMLButtonElement>('[data-s]').forEach((b) => b.addEventListener('click', () => {
+			set = b.dataset.s!;
+			root.querySelectorAll('[data-s]').forEach((x) => x.classList.toggle('primary', x === b));
+			load();
+		}));
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < steps.length - 1) { i++; draw(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i > 0) { i--; draw(); } });
+		root.querySelector('[data-end]')!.addEventListener('click', () => { clearInterval(timer); i = steps.length - 1; draw(); });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= steps.length - 1) i = 0;
+			timer = window.setInterval(() => { if (i >= steps.length - 1) { clearInterval(timer); return; } i++; draw(); }, set === 'sorted' ? 120 : 450);
+		});
+		load();
+	});
+</script>

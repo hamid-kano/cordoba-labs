@@ -1,0 +1,77 @@
+---
+// فاحص الأقواس بالمكدس: كل قوس فاتح بينحط، وكل قوس مسكّر لازم يطابق الفوقاني.
+---
+
+<div class="not-content wl-box" data-brackets>
+	<h4>🧮 فاحص الأقواس</h4>
+	<div class="wl-row">
+		<input type="text" data-k="s" dir="ltr" value="{ a * (b + c) - [d / e] }" style="flex:1;min-width:12rem;font-family:var(--__sl-font-mono)" />
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-ex="{[()()]}">{`{[()()]}`}</button>
+		<button type="button" class="wl-btn" data-ex="([)]">([)]</button>
+		<button type="button" class="wl-btn" data-ex="((()">((()</button>
+		<button type="button" class="wl-btn" data-ex="())(">())(</button>
+	</div>
+	<div class="br-chars" dir="ltr" data-out="chars"></div>
+	<div class="br-stack" dir="ltr"><span>المكدس:</span><div data-out="stack"></div></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-step>حرف ←</button>
+		<button type="button" class="wl-btn" data-play>▶ افحص الكل</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.br-chars { display: flex; flex-wrap: wrap; gap: 2px; font-family: var(--__sl-font-mono); }
+	.br-chars i { font-style: normal; min-width: 1.3rem; text-align: center; padding: 0.15rem 0; border-radius: 0.2rem; background: var(--sl-color-gray-6); }
+	.br-chars i.done { opacity: 0.45; }
+	.br-chars i.now { background: #e0a030; color: #111; opacity: 1; }
+	.br-chars i.bad { background: #e5534b; color: #111; opacity: 1; }
+	.br-stack { display: flex; align-items: center; gap: 0.4rem; min-height: 2.2rem; font-size: var(--sl-text-sm); }
+	.br-stack > div { display: flex; gap: 3px; border-left: 3px solid var(--sl-color-gray-4); padding-left: 3px; min-height: 2rem; align-items: center; }
+	.br-stack i { font-style: normal; font-family: var(--__sl-font-mono); font-weight: 700; width: 1.6rem; height: 1.6rem; display: grid; place-items: center; border-radius: 0.25rem; background: #3a9ec2; color: #111; }
+	.br-stack i:last-child { background: #a371f7; }
+</style>
+
+<script>
+	const PAIR: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
+	document.querySelectorAll<HTMLElement>('[data-brackets]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const input = root.querySelector<HTMLInputElement>('[data-k="s"]')!;
+		let s = '', pos = 0, stack: string[] = [], over = false, timer = 0;
+		const esc = (c: string) => (c === '<' ? '&lt;' : c === '&' ? '&amp;' : c === ' ' ? '&nbsp;' : c);
+		const draw = (bad = -1) => {
+			$('chars').innerHTML = [...s].map((c, k) => `<i class="${k === bad ? 'bad' : k === pos - 1 ? 'now' : k < pos ? 'done' : ''}">${esc(c)}</i>`).join('');
+			$('stack').innerHTML = stack.map((c) => `<i>${c}</i>`).join('');
+		};
+		const load = () => { clearInterval(timer); s = input.value.slice(0, 40); pos = 0; stack = []; over = false; draw(); $('msg').className = 'wl-msg'; $('msg').textContent = 'اضغط «حرف» لتمرّ على النص حرفاً حرفاً.'; };
+		const finish = (ok: boolean, text: string, bad = -1) => { over = true; draw(bad); const m = $('msg'); m.className = 'wl-msg ' + (ok ? 'wl-good' : 'wl-bad'); m.textContent = text; };
+		const step = () => {
+			if (over) return false;
+			if (pos >= s.length) {
+				if (stack.length) finish(false, `✗ انتهى النص وفي المكدس ${stack.length === 1 ? 'قوس مفتوح' : 'أقواس مفتوحة'} لم ${stack.length === 1 ? 'يُغلق' : 'تُغلق'}: ${stack.join(' ')}`);
+				else finish(true, '✓ الأقواس صحيحة: كل قوس أُغلق بالنوع نفسه، وبالترتيب الصحيح، والمكدس فارغ في النهاية.');
+				return false;
+			}
+			const c = s[pos++];
+			const m = $('msg');
+			m.className = 'wl-msg';
+			if ('([{'.includes(c)) { stack.push(c); m.textContent = `«${c}» قوس فاتح: نضعه فوق المكدس، وننتظر من يغلقه.`; }
+			else if (PAIR[c]) {
+				const top = stack.at(-1);
+				if (!top) { finish(false, `✗ «${c}» يغلق قوساً لم يُفتح أصلاً: المكدس فارغ.`, pos - 1); return false; }
+				if (top !== PAIR[c]) { finish(false, `✗ «${c}» لا يطابق آخر قوس مفتوح «${top}». الأقواس متداخلة بشكل خاطئ.`, pos - 1); return false; }
+				stack.pop();
+				m.textContent = `«${c}» يطابق «${top}» في أعلى المكدس: نرفعه.`;
+			} else m.textContent = `«${c}» ليس قوساً، نتجاهله.`;
+			draw();
+			return true;
+		};
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); step(); });
+		root.querySelector('[data-play]')!.addEventListener('click', () => { clearInterval(timer); timer = window.setInterval(() => { if (!step()) clearInterval(timer); }, 260); });
+		root.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) => b.addEventListener('click', () => { input.value = b.dataset.ex!; load(); }));
+		input.addEventListener('input', load);
+		load();
+	});
+</script>

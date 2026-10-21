@@ -1,0 +1,109 @@
+---
+// غرفة الإسعاف بكومة عظمى: كل مريض رقم خطورة، والأخطر بيطلع أول.
+// الشجرة والمصفوفة جنب بعض، وكل «طفو» أو «نزول» خطوة بتتلوّن. المحرك heapPush/heapPop بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-heaplab>
+	<h4>🚑 غرفة الإسعاف: الأخطر أولاً</h4>
+	<div class="wl-row">
+		<label>درجة الخطورة <input type="number" min="1" max="99" data-k="v" dir="ltr" style="width:4.5rem" /></label>
+		<button type="button" class="wl-btn primary" data-add>＋ وصل مريض</button>
+		<button type="button" class="wl-btn" data-rand>🎲 مريض عشوائي</button>
+		<button type="button" class="wl-btn" data-pop>🩺 عالج الأخطر</button>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-pre>مثال: 40، 20، 70، 10، 90، 30</button>
+		<button type="button" class="wl-btn" data-all>عالج الجميع بالترتيب</button>
+		<button type="button" class="wl-btn" data-reset>↺</button>
+	</div>
+	<div class="tr-scroll" dir="ltr"><svg class="tr-svg" data-out="svg" role="img" aria-label="الكومة كشجرة"></svg></div>
+	<div class="hp-arr" dir="ltr" data-out="arr"></div>
+	<p class="wl-msg" data-out="msg"></p>
+	<div class="hp-done"><span>عولج بالترتيب:</span><div dir="ltr" data-out="done"></div></div>
+</div>
+
+<style is:global>
+	.hp-arr { display: flex; flex-wrap: wrap; gap: 0; }
+	.hp-arr i { font-style: normal; width: 2.3rem; text-align: center; border: 2px solid var(--sl-color-gray-4); margin-left: -2px; padding: 0.25rem 0 0.1rem; font-weight: 700; background: var(--sl-color-gray-6); }
+	.hp-arr i small { display: block; font-size: 0.6rem; font-weight: 400; color: var(--sl-color-gray-3); }
+	.hp-arr i.path { background: rgb(224 160 48 / 0.45); }
+	.hp-arr i.new { background: rgb(163 113 247 / 0.45); }
+	.hp-arr i.hit { background: rgb(47 179 107 / 0.45); }
+	.hp-done { display: flex; align-items: center; gap: 0.4rem; font-size: var(--sl-text-sm); }
+	.hp-done div { display: flex; flex-wrap: wrap; gap: 3px; }
+	.hp-done i { font-style: normal; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 0.3rem; background: #2fb36b; color: #111; }
+</style>
+
+<script>
+	import { heapPush, heapPop, type HeapStep } from '../../scripts/algo';
+	import { drawTree, heapPos, type TNode } from '../../scripts/treeDraw';
+	document.querySelectorAll<HTMLElement>('[data-heaplab]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		const input = root.querySelector<HTMLInputElement>('[data-k="v"]')!;
+		let heap: number[] = [], treated: number[] = [], timers: number[] = [], busy = false;
+		const draw = (a: number[], hi: [number, number] | null = null, cls = 'path') => {
+			const nodes: TNode[] = a.map((v, i) => {
+				const p = heapPos(i);
+				return { id: i, label: String(v), fx: p.fx, depth: p.depth, parent: i ? (i - 1) >> 1 : undefined, cls: hi && (i === hi[0] || i === hi[1]) ? cls : '', tag: `[${i}]` };
+			});
+			if (nodes.length) drawTree(svg, nodes, { minW: 320 }); else svg.innerHTML = '';
+			$('arr').innerHTML = a.map((v, i) => `<i class="${hi && (i === hi[0] || i === hi[1]) ? cls : ''}">${v}<small>${i}</small></i>`).join('') || '<span class="se-note">لا يوجد مرضى.</span>';
+		};
+		const say = (t: string, k = '') => { const m = $('msg'); m.className = 'wl-msg' + (k ? ' ' + k : ''); m.textContent = t; };
+		const play = (steps: HeapStep[], text: (s: HeapStep, k: number) => string, after: () => void, speed = 650) => {
+			busy = true;
+			steps.forEach((s, k) => timers.push(window.setTimeout(() => {
+				draw(s.a, s.hi, s.note === 'add' ? 'new' : s.note === 'stop' ? 'hit' : 'path');
+				say(text(s, k));
+			}, speed * k)));
+			timers.push(window.setTimeout(() => { busy = false; draw(heap); after(); }, speed * steps.length));
+		};
+		const add = (v: number) => {
+			if (busy) return;
+			if (heap.length >= 15) { say('غرفة الانتظار ممتلئة (15 مريضاً).'); return; }
+			const steps = heapPush(heap, v);
+			play(steps, (s) => {
+				const [p, c] = s.hi!;
+				if (s.note === 'add') return `وصل مريض خطورته ${v}: نضعه في آخر مكان (الخانة ${c}).`;
+				if (s.note === 'up') return `${v} أخطر من أبيه، فيتبادلان: يطفو ${v} إلى الأعلى.`;
+				return `أبوه (${s.a[p]}) أخطر منه أو مثله، فيتوقف هنا.`;
+			}, () => say(`انتهت الإضافة. المريض الجديد لا يصعد أكثر من عدد مستويات الشجرة، أي O(log n). والأخطر الآن ${heap[0]} في الجذر.`, 'wl-good'));
+		};
+		const pop = (then?: () => void) => {
+			if (busy) return;
+			if (!heap.length) { say('لا يوجد مرضى.'); return; }
+			const { top, steps } = heapPop(heap);
+			treated.push(top);
+			$('done').innerHTML = treated.map((x) => `<i>${x}</i>`).join('');
+			play(steps, (s) => {
+				if (s.note === 'take') return `عولج ${top} (الجذر). نضع آخر مريض مكانه في الجذر...`;
+				if (s.note === 'down') return `...وننزله: يتبادل مع أخطر ابنيه.`;
+				return 'ابناه أقل خطورة منه، فيتوقف. عادت الكومة صحيحة.';
+			}, () => { if (then) then(); else say(`عولج ${top}، وهو الأخطر. أخذناه من الجذر بخطوة، وإصلاح الكومة احتاج O(log n).`, 'wl-good'); }, then ? 380 : 650);
+		};
+		root.querySelector('[data-add]')!.addEventListener('click', () => {
+			const v = Math.round(+input.value);
+			if (!input.value || v < 1 || v > 99) { say('اكتب درجة خطورة من 1 إلى 99.'); return; }
+			add(v); input.value = '';
+		});
+		root.querySelector('[data-rand]')!.addEventListener('click', () => add(1 + Math.floor(Math.random() * 99)));
+		root.querySelector('[data-pop]')!.addEventListener('click', () => pop());
+		root.querySelector('[data-all]')!.addEventListener('click', () => {
+			const next = () => { if (heap.length) pop(next); else say(`عولج الجميع بالترتيب: ${treated.join('، ')}. هذا هو «ترتيب الكومة»: n إخراج، كل واحد O(log n).`, 'wl-good'); };
+			next();
+		});
+		const reset = () => { timers.forEach(clearTimeout); timers = []; busy = false; heap = []; treated = []; $('done').innerHTML = ''; draw(heap); };
+		root.querySelector('[data-reset]')!.addEventListener('click', () => { reset(); say('غرفة فارغة. أضف مرضى.'); });
+		root.querySelector('[data-pre]')!.addEventListener('click', () => {
+			reset();
+			for (const x of [40, 20, 70, 10, 90, 30]) heapPush(heap, x);
+			draw(heap);
+			say('أضفنا 40، 20، 70، 10، 90، 30. الأخطر (90) في الجذر. لاحظ: الكومة ليست مرتبة كلها، فقط كل أب أخطر من ابنيه.');
+		});
+		reset();
+		for (const x of [40, 20, 70, 10, 90, 30]) heapPush(heap, x);
+		draw(heap);
+		say('كل أب أخطر من ابنيه، فالأخطر دائماً في الجذر. جرّب «وصل مريض» بخطورة 95.');
+	});
+</script>

@@ -1,0 +1,79 @@
+---
+// مسألة عيد الميلاد: صف فيه k طالب، بنوزّع أعياد ميلاد عشوائية ومنشوف إذا في اتنين بنفس اليوم.
+// والاحتمال المحسوب جنبه (birthday بـ src/scripts/algo.ts).
+---
+
+<div class="not-content wl-box" data-birthday>
+	<h4>🎂 هل في صفّك طالبان لهما عيد الميلاد نفسه؟</h4>
+	<div class="se-predict">
+		<p><b>توقّع:</b> كم طالباً يجب أن يكون في الصف، ليصبح احتمال وجود طالبين لهما عيد الميلاد نفسه أكثر من 50%؟</p>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-g="23">23</button>
+			<button type="button" class="wl-btn" data-g="100">100</button>
+			<button type="button" class="wl-btn" data-g="183">183</button>
+			<button type="button" class="wl-btn" data-g="365">365</button>
+		</div>
+		<p class="wl-msg" data-out="pred"></p>
+	</div>
+	<label class="ai-slider"><span>عدد الطلاب<output data-o="k"></output></span><input type="range" min="2" max="80" step="1" value="23" data-k="k" /></label>
+	<div class="wl-grid">
+		<div class="wl-out"><span>الاحتمال المحسوب</span><strong data-out="p"></strong></div>
+		<div class="wl-out"><span>صفوف جرّبناها فيها تشابه</span><strong data-out="sim">—</strong></div>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-one>🎲 صف عشوائي</button>
+		<button type="button" class="wl-btn" data-many>جرّب 1000 صف</button>
+	</div>
+	<div class="bd-days" dir="ltr" data-out="days"></div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.bd-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.6rem, 1fr)); gap: 3px; }
+	.bd-days i { font-style: normal; text-align: center; font-size: 0.7rem; padding: 0.2rem 0; border-radius: 0.25rem; background: var(--sl-color-gray-6); }
+	.bd-days i.dup { background: #e5534b; color: #111; font-weight: 700; }
+</style>
+
+<script>
+	import { birthday } from '../../scripts/algo';
+	const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+	const DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+	const label = (d: number) => { let m = 0; while (d >= DAYS[m]) d -= DAYS[m++]; return `${d + 1} ${MON[m]}`; };
+	document.querySelectorAll<HTMLElement>('[data-birthday]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const kIn = root.querySelector<HTMLInputElement>('[data-k="k"]')!;
+		const upd = () => {
+			const k = +kIn.value;
+			root.querySelector('[data-o="k"]')!.textContent = String(k);
+			$('p').textContent = `${(birthday(k) * 100).toFixed(1)}%`;
+			$('sim').textContent = '—';
+		};
+		const roll = (k: number) => Array.from({ length: k }, () => Math.floor(Math.random() * 365));
+		root.querySelector('[data-one]')!.addEventListener('click', () => {
+			const k = +kIn.value, d = roll(k);
+			const seen = new Map<number, number>();
+			d.forEach((x) => seen.set(x, (seen.get(x) ?? 0) + 1));
+			$('days').innerHTML = [...d].sort((a, b) => a - b).map((x) => `<i class="${seen.get(x)! > 1 ? 'dup' : ''}">${label(x)}</i>`).join('');
+			const dups = [...seen.values()].filter((c) => c > 1).length;
+			$('msg').className = 'wl-msg ' + (dups ? 'wl-bad' : 'wl-good');
+			$('msg').textContent = dups ? `يوجد تشابه! الأيام الحمراء مشتركة. وهذا بالضبط «تصادم» في جدول التجزئة.` : 'لا يوجد تشابه في هذا الصف. جرّب مرة أخرى.';
+		});
+		root.querySelector('[data-many]')!.addEventListener('click', () => {
+			const k = +kIn.value;
+			let hit = 0;
+			for (let r = 0; r < 1000; r++) { const s = new Set(roll(k)); if (s.size < k) hit++; }
+			$('sim').textContent = `${hit} من 1000`;
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = `التجربة قريبة من الحساب: ${(hit / 10).toFixed(1)}% مقابل ${(birthday(k) * 100).toFixed(1)}%.`;
+		});
+		root.querySelectorAll<HTMLButtonElement>('[data-g]').forEach((b) => b.addEventListener('click', () => {
+			const ok = b.dataset.g === '23';
+			root.querySelectorAll<HTMLButtonElement>('[data-g]').forEach((x) => { x.disabled = true; x.classList.toggle('right', x.dataset.g === '23'); });
+			if (!ok) b.classList.add('wrong');
+			$('pred').className = 'wl-msg ' + (ok ? 'wl-good' : 'wl-bad');
+			$('pred').textContent = (ok ? '✓ صحيح، ومفاجئ! ' : '✗ أقل بكثير! ') + '23 طالباً فقط تكفي: الاحتمال 50.7%. ومع 70 طالباً يصبح 99.9%. السبب: نقارن كل زوج، و23 طالباً فيهم 253 زوجاً.';
+		}));
+		kIn.addEventListener('input', upd);
+		upd();
+	});
+</script>
