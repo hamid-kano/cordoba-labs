@@ -1,13 +1,13 @@
 rules_version = '2';
 // قواعد أمان Firestore لاختبارات الموقع.
 // الطالب: بيضيف محاولة بس (بشروط على الحقول)، وما بيقدر يقرا ولا يعدّل ولا يحذف.
-// المدرّس: بيقرا ويحذف بس بعد تسجيل الدخول بإيميله. غيّر TEACHER_EMAIL لإيميلك (نفسه يلي بـ src/data/firebase-config.ts).
+// المدرّس: بيقرا ويحذف بس بعد تسجيل الدخول بإيميله. الإيميل لازم يطابق TEACHER_EMAIL بـ src/data/firebase-config.ts.
 // انشرها من Firebase Console ← Firestore Database ← Rules: الصق هالملف كله واكبس Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
     function isTeacher() {
       return request.auth != null
-        && request.auth.token.email == 'TEACHER_EMAIL'
+        && request.auth.token.email == 'hamidkano409@gmail.com'
         && request.auth.token.email_verified == true;
     }
     match /attempts/{id} {
