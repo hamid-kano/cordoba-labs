@@ -455,3 +455,6 @@ code,
 .se-note { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin: 0; }
 .wl-btn.right { background: #2fb36b; border-color: #2fb36b; color: #111; }
 .wl-btn.wrong { background: #e5534b; border-color: #e5534b; color: #111; }
+
+/* أي جدول أو رسمة عريضة جوّا أداة بتنسحب أفقياً بدل ما تعرّض الصفحة */
+.wl-box .wl-scroll { overflow-x: auto; max-width: 100%; min-width: 0; }

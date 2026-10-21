@@ -1,0 +1,133 @@
+---
+// لعبة «خمّن الرقم» بوضعين: الطالب بيخمّن رقم الحاسوب، أو الحاسوب بيخمّن رقم الطالب بالبحث الثنائي.
+// شريط من 1 لـ 1000 بيبيّن النطاق الباقي.
+---
+
+<div class="not-content wl-box" data-guess>
+	<h4>🎯 خمّن الرقم من 1 إلى 1000</h4>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-mode="me">أنا أخمّن</button>
+		<button type="button" class="wl-btn" data-mode="pc">الحاسوب يخمّن رقمي</button>
+	</div>
+	<div class="gg-bar" dir="ltr"><i data-out="range"></i><b data-out="mark"></b></div>
+	<div class="gg-ends" dir="ltr"><span data-out="lo">1</span><span data-out="hi">1000</span></div>
+	<div data-me>
+		<p class="se-hint">اختار الحاسوب رقماً سرياً. اكتب تخمينك، وسيقول لك: أكبر أم أصغر.</p>
+		<div class="wl-row">
+			<input type="number" min="1" max="1000" data-k="g" dir="ltr" style="width:6rem" />
+			<button type="button" class="wl-btn primary" data-try>خمّن</button>
+			<button type="button" class="wl-btn" data-new>↺ رقم جديد</button>
+		</div>
+	</div>
+	<div data-pc hidden>
+		<p class="se-hint">فكّر في رقم من 1 إلى 1000 (لا تكتبه). الحاسوب سيخمّن، وأنت تجيب بصدق.</p>
+		<p class="gg-q" data-out="q"></p>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-ans="1">رقمي أكبر ⬆</button>
+			<button type="button" class="wl-btn" data-ans="-1">رقمي أصغر ⬇</button>
+			<button type="button" class="wl-btn primary" data-ans="0">✓ صحيح</button>
+			<button type="button" class="wl-btn" data-restart>↺ من جديد</button>
+		</div>
+	</div>
+	<ol class="gg-log" dir="ltr" data-out="log"></ol>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.gg-bar { position: relative; height: 1.4rem; border-radius: 0.4rem; background: var(--sl-color-gray-6); overflow: hidden; }
+	.gg-bar i { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--sl-color-accent) 55%, transparent); transition: left 0.35s, width 0.35s; }
+	.gg-bar b { position: absolute; top: -2px; bottom: -2px; width: 3px; background: #e0a030; transition: left 0.35s; }
+	.gg-ends { display: flex; justify-content: space-between; font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
+	.gg-q { font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--sl-color-white); }
+	.gg-log { margin: 0; padding-left: 1.6rem; font-size: 0.82rem; font-family: var(--__sl-font-mono); text-align: left; columns: 2; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-guess]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const me = root.querySelector<HTMLElement>('[data-me]')!, pc = root.querySelector<HTMLElement>('[data-pc]')!;
+		const input = root.querySelector<HTMLInputElement>('[data-k="g"]')!;
+		let lo = 1, hi = 1000, secret = 0, tries = 0, mid = 0, done = false;
+		const bar = (mark?: number) => {
+			$('range').style.left = `${((lo - 1) / 1000) * 100}%`;
+			$('range').style.width = `${(Math.max(0, hi - lo + 1) / 1000) * 100}%`;
+			$('mark').style.display = mark ? '' : 'none';
+			if (mark) $('mark').style.left = `${((mark - 0.5) / 1000) * 100}%`;
+			$('lo').textContent = String(lo); $('hi').textContent = String(Math.max(lo, hi));
+		};
+		const log = (t: string) => $('log').insertAdjacentHTML('beforeend', `<li>${t}</li>`);
+		const newMe = () => {
+			secret = 1 + Math.floor(Math.random() * 1000);
+			lo = 1; hi = 1000; tries = 0; done = false;
+			$('log').innerHTML = ''; bar();
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = 'اختر تخمينك الأول. ما أذكى رقم تبدأ به؟';
+			input.value = '';
+		};
+		const tryMe = () => {
+			if (done) return;
+			const g = Math.round(+input.value);
+			if (!g || g < 1 || g > 1000) { $('msg').className = 'wl-msg wl-bad'; $('msg').textContent = 'اكتب رقماً من 1 إلى 1000.'; return; }
+			tries++;
+			if (g === secret) {
+				done = true; lo = hi = g; bar(g);
+				log(`${g} ✓`);
+				$('msg').className = 'wl-msg ' + (tries <= 10 ? 'wl-good' : 'wl-bad');
+				$('msg').textContent = tries <= 10
+					? `✓ وجدته بـ ${tries} ${tries === 1 ? 'محاولة' : tries === 2 ? 'محاولتين' : 'محاولات'}! هل كنت تختار المنتصف كل مرة؟`
+					: `✓ وجدته، لكن بـ ${tries} محاولة. البحث الثنائي يضمن 10 محاولات أو أقل دائماً. جرّب «الحاسوب يخمّن» لترى كيف.`;
+				return;
+			}
+			if (g < secret) lo = Math.max(lo, g + 1); else hi = Math.min(hi, g - 1);
+			log(`${g} ${g < secret ? '↑' : '↓'}`);
+			bar(g);
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = `${g < secret ? 'الرقم أكبر ⬆' : 'الرقم أصغر ⬇'}. الرقم الآن بين ${lo} و ${hi}: بقي ${hi - lo + 1} ${hi - lo + 1 <= 10 ? 'أرقام' : 'رقماً'} محتملاً.`;
+			input.value = '';
+			input.focus();
+		};
+		const pcAsk = () => {
+			if (lo > hi) { done = true; $('q').textContent = 'تناقض! 🤔'; $('msg').className = 'wl-msg wl-bad'; $('msg').textContent = 'لا يوجد رقم يوافق كل إجاباتك. هل غيّرت رقمك أثناء اللعب؟ البحث الثنائي يحتاج إجابات صادقة.'; return; }
+			mid = Math.floor((lo + hi) / 2);
+			tries++;
+			$('q').innerHTML = `التخمين ${tries}: هل رقمك <bdi dir="ltr">${mid}</bdi>؟`;
+			bar(mid);
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = `الحاسوب يختار منتصف النطاق [${lo} … ${hi}]، فيقسم الاحتمالات إلى نصفين مهما كان جوابك.`;
+		};
+		const newPc = () => {
+			lo = 1; hi = 1000; tries = 0; done = false;
+			$('log').innerHTML = '';
+			pcAsk();
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-ans]').forEach((b) =>
+			b.addEventListener('click', () => {
+				if (done) return;
+				const a = +b.dataset.ans!;
+				if (a === 0) {
+					done = true; lo = hi = mid; bar(mid);
+					log(`${mid} ✓`);
+					$('msg').className = 'wl-msg wl-good';
+					$('msg').textContent = `وجدته بـ ${tries} ${tries === 1 ? 'تخمين' : tries === 2 ? 'تخمينين' : 'تخمينات'}. مع 1000 رقم، لا يحتاج الحاسوب أكثر من 10 أبداً، لأن 2¹⁰ = 1024. ومع مليون رقم يكفيه 20!`;
+					return;
+				}
+				log(`${mid} ${a > 0 ? '↑' : '↓'}`);
+				if (a > 0) lo = mid + 1; else hi = mid - 1;
+				pcAsk();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+			b.addEventListener('click', () => {
+				root.querySelectorAll('[data-mode]').forEach((x) => x.classList.toggle('primary', x === b));
+				const isMe = b.dataset.mode === 'me';
+				me.hidden = !isMe; pc.hidden = isMe;
+				if (isMe) newMe(); else newPc();
+			}),
+		);
+		root.querySelector('[data-try]')!.addEventListener('click', tryMe);
+		input.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryMe(); });
+		root.querySelector('[data-new]')!.addEventListener('click', newMe);
+		root.querySelector('[data-restart]')!.addEventListener('click', newPc);
+		newMe();
+	});
+</script>

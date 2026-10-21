@@ -1,0 +1,103 @@
+---
+// مخطط انسيابي حي لمجموع الأعداد من 1 لـ n: كل كبسة «خطوة» بتضوّي شكل، وجدول التتبع بيتعبّى.
+---
+
+<div class="not-content wl-box" data-flow>
+	<h4>🔁 مخطط انسيابي يعمل أمامك: مجموع الأعداد من 1 إلى n</h4>
+	<div class="wl-row">
+		<label>n = <input type="number" min="1" max="8" value="4" data-k="n" dir="ltr" style="width:4rem" /></label>
+		<button type="button" class="wl-btn primary" data-step>خطوة ⬇</button>
+		<button type="button" class="wl-btn" data-auto>▶ تشغيل تلقائي</button>
+		<button type="button" class="wl-btn" data-reset>↺ من البداية</button>
+	</div>
+	<div class="fr-wrap">
+		<figure class="wl-fig" style="margin:0">
+			<svg class="d-big" viewBox="0 0 330 520" role="img" aria-label="مخطط انسيابي: ابدأ، ثم اقرأ n، ثم i يساوي 1 و s يساوي 0، ثم سؤال هل i أصغر من أو يساوي n، إذا نعم أضف i إلى s وزد i واحداً وارجع إلى السؤال، وإذا لا اطبع s وانتهِ">
+				<defs><marker id="fr-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path></marker></defs>
+				<g class="d-line" style="fill:none">
+					<line x1="165" y1="46" x2="165" y2="70" marker-end="url(#fr-ar)"></line>
+					<line x1="165" y1="110" x2="165" y2="134" marker-end="url(#fr-ar)"></line>
+					<line x1="165" y1="174" x2="165" y2="198" marker-end="url(#fr-ar)"></line>
+					<line x1="165" y1="262" x2="165" y2="290" marker-end="url(#fr-ar)"></line>
+					<line x1="165" y1="330" x2="165" y2="354" marker-end="url(#fr-ar)"></line>
+					<path d="M165 394 V414 H30 V230 H103" marker-end="url(#fr-ar)"></path>
+					<path d="M227 230 H290 V444 H232" marker-end="url(#fr-ar)"></path>
+					<line x1="165" y1="472" x2="165" y2="488" marker-end="url(#fr-ar)"></line>
+				</g>
+				<text x="175" y="280" class="d-s d-b" style="text-anchor:end">نعم</text>
+				<text x="258" y="222" class="d-s d-b">لا</text>
+				<g class="fr-n" data-n="start"><rect x="115" y="12" width="100" height="34" rx="17" class="d-box2"></rect><text x="165" y="35" class="d-t d-b">ابدأ</text></g>
+				<g class="fr-n" data-n="read"><path d="M110 74 H235 L220 110 H95 Z" class="d-box2"></path><text x="165" y="98" class="d-t">اقرأ <tspan class="d-ltr" direction="ltr">n</tspan></text></g>
+				<g class="fr-n" data-n="init"><rect x="95" y="138" width="140" height="36" rx="3" class="d-box"></rect><text x="165" y="162" class="d-t d-ltr" direction="ltr">i ← 1 ,  s ← 0</text></g>
+				<g class="fr-n" data-n="test"><path d="M165 200 L227 230 L165 260 L103 230 Z" class="d-box2"></path><text x="165" y="235" class="d-s d-b d-ltr" direction="ltr">i ≤ n ?</text></g>
+				<g class="fr-n" data-n="add"><rect x="95" y="294" width="140" height="36" rx="3" class="d-box"></rect><text x="165" y="318" class="d-t d-ltr" direction="ltr">s ← s + i</text></g>
+				<g class="fr-n" data-n="inc"><rect x="95" y="358" width="140" height="36" rx="3" class="d-box"></rect><text x="165" y="382" class="d-t d-ltr" direction="ltr">i ← i + 1</text></g>
+				<g class="fr-n" data-n="print"><path d="M110 436 H235 L220 472 H95 Z" class="d-box2"></path><text x="165" y="460" class="d-t">اطبع <tspan class="d-ltr" direction="ltr">s</tspan></text></g>
+				<g class="fr-n" data-n="end"><rect x="115" y="490" width="100" height="28" rx="14" class="d-box2"></rect><text x="165" y="509" class="d-t d-b">انتهِ</text></g>
+			</svg>
+		</figure>
+		<div>
+			<b>جدول التتبع</b>
+			<table class="wl-table fr-table" dir="ltr">
+				<thead><tr><th>#</th><th>i</th><th>s</th><th>i ≤ n</th></tr></thead>
+				<tbody data-out="rows"></tbody>
+			</table>
+		</div>
+	</div>
+	<p class="wl-msg" data-out="msg">اضغط «خطوة» وتابع: أي شكل يضيء؟ وماذا يتغيّر في الجدول؟</p>
+</div>
+
+<style is:global>
+	.fr-wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 0.75rem; align-items: start; }
+	@media (max-width: 34rem) { .fr-wrap { grid-template-columns: 1fr; } }
+	.fr-n rect, .fr-n path { transition: fill 0.2s, stroke 0.2s; }
+	.fr-n.on rect, .fr-n.on path { fill: #e0a030; stroke: #e0a030; }
+	.fr-n.on text { fill: #111; }
+	.fr-table { width: 100%; font-size: var(--sl-text-sm); text-align: center; }
+	.fr-table tr.last { background: rgb(224 160 48 / 0.25); }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-flow]').forEach((root) => {
+		const nIn = root.querySelector<HTMLInputElement>('[data-k="n"]')!;
+		const rows = root.querySelector<HTMLElement>('[data-out="rows"]')!;
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		let node = '', n = 4, i = 0, s = 0, k = 0, timer = 0;
+		const SAY: Record<string, string> = {
+			start: 'البداية.',
+			read: 'نقرأ المدخل n.',
+			init: 'نعطي المتغيرين قيمة أولى: العدّاد i يبدأ من 1، والمجموع s من 0.',
+			add: 'نضيف i إلى المجموع.',
+			inc: 'نزيد العدّاد واحداً، ثم نعود إلى السؤال.',
+			print: 'نطبع النتيجة.',
+		};
+		const light = () => root.querySelectorAll<SVGGElement>('.fr-n').forEach((g) => g.classList.toggle('on', g.dataset.n === node));
+		const row = (test: string) => {
+			k++;
+			rows.querySelectorAll('tr').forEach((r) => r.classList.remove('last'));
+			rows.insertAdjacentHTML('beforeend', `<tr class="last"><td>${k}</td><td>${i}</td><td>${s}</td><td>${test}</td></tr>`);
+		};
+		const next = () => {
+			const order: Record<string, string> = { '': 'start', start: 'read', read: 'init', init: 'test', add: 'inc', inc: 'test', print: 'end' };
+			if (node === 'end') return false;
+			if (node === 'test') node = i <= n ? 'add' : 'print';
+			else node = order[node];
+			if (node === 'read') n = Math.max(1, Math.min(8, Math.round(+nIn.value) || 1));
+			if (node === 'init') { i = 1; s = 0; row('—'); }
+			if (node === 'test') row(i <= n ? 'نعم' : 'لا');
+			if (node === 'add') { s += i; row('—'); }
+			if (node === 'inc') { i++; row('—'); }
+			light();
+			msg.className = 'wl-msg';
+			if (node === 'test') msg.textContent = `هل ${i} ≤ ${n}؟ ${i <= n ? 'نعم، فندخل الحلقة مرة أخرى.' : 'لا، فنخرج من الحلقة.'}`;
+			else if (node === 'end') { msg.className = 'wl-msg wl-good'; msg.textContent = `انتهى! النتيجة ${s}، وهي تساوي ${n}×${n + 1}÷2. دار البرنامج في الحلقة ${n} مرات.`; }
+			else msg.textContent = SAY[node] + (node === 'print' ? ` s = ${s}` : '');
+			return true;
+		};
+		const reset = () => { clearInterval(timer); node = ''; i = 0; s = 0; k = 0; rows.innerHTML = ''; light(); msg.className = 'wl-msg'; msg.textContent = 'اضغط «خطوة» وتابع: أي شكل يضيء؟ وماذا يتغيّر في الجدول؟'; };
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); next(); });
+		root.querySelector('[data-auto]')!.addEventListener('click', () => { clearInterval(timer); timer = window.setInterval(() => { if (!next()) clearInterval(timer); }, 600); });
+		root.querySelector('[data-reset]')!.addEventListener('click', reset);
+		nIn.addEventListener('change', reset);
+	});
+</script>

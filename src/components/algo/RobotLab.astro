@@ -1,0 +1,143 @@
+---
+// روبوت على شبكة: الطالب بيبني برنامج من 3 أوامر (أمام، يسار، يمين) وبيشغّله.
+// الاصطدام بحيط أو بالحافة = خطأ برمجي. المحرك runRobot بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-robot>
+	<h4>🤖 برمج الروبوت</h4>
+	<div class="wl-row" data-levels>
+		<button type="button" class="wl-btn primary" data-lv="0">المستوى 1</button>
+		<button type="button" class="wl-btn" data-lv="1">المستوى 2</button>
+		<button type="button" class="wl-btn" data-lv="2">المستوى 3</button>
+	</div>
+	<p class="se-hint">أوصل الروبوت <b>🤖</b> إلى النجمة <b>⭐</b> دون أن يصطدم بجدار <b>🧱</b>. السهم الصغير يبيّن الجهة التي ينظر إليها.</p>
+	<div class="rb-grid" data-grid dir="ltr"></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-c="F">⬆ تقدّم خطوة</button>
+		<button type="button" class="wl-btn" data-c="L">↶ استدر يساراً</button>
+		<button type="button" class="wl-btn" data-c="R">↷ استدر يميناً</button>
+	</div>
+	<div class="rb-prog" data-out="prog" aria-live="polite"></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-run>▶ شغّل البرنامج</button>
+		<button type="button" class="wl-btn" data-undo>⌫ احذف آخر أمر</button>
+		<button type="button" class="wl-btn" data-clear>✖ امسح البرنامج</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.rb-grid { display: grid; gap: 3px; width: min(100%, 18rem); margin-inline: auto; }
+	.rb-cell { aspect-ratio: 1; min-width: 0; overflow: hidden; line-height: 1; border-radius: 0.3rem; background: var(--sl-color-gray-6); display: grid; place-items: center; font-size: clamp(1rem, 6vw, 1.6rem); position: relative; transition: background 0.2s; }
+	.rb-cell.trail { background: color-mix(in srgb, var(--sl-color-accent) 25%, var(--sl-color-gray-6)); }
+	.rb-cell.crash { background: rgb(229 83 75 / 0.45); }
+	.rb-bot { display: inline-block; transition: transform 0.25s; }
+	.rb-dir { position: absolute; font-size: 0.8rem; font-weight: 700; color: var(--sl-color-accent); }
+	.rb-prog { display: flex; flex-wrap: wrap; gap: 0.25rem; min-height: 2.1rem; padding: 0.3rem; border-radius: 0.4rem; border: 1px dashed var(--sl-color-gray-4); direction: ltr; }
+	.rb-prog span { padding: 0.1rem 0.45rem; border-radius: 0.3rem; background: var(--sl-color-gray-5); font-weight: 700; }
+	.rb-prog span.now { background: #e0a030; color: #111; }
+	.rb-prog span.bad { background: #e5534b; color: #111; }
+	.rb-prog em { color: var(--sl-color-gray-3); font-style: normal; font-size: var(--sl-text-sm); direction: rtl; }
+</style>
+
+<script>
+	import { ROBOT_LEVELS, runRobot, type Cmd } from '../../scripts/algo';
+	const ICON: Record<Cmd, string> = { F: '⬆', L: '↶', R: '↷' };
+	const ARROW = ['→', '↓', '←', '↑'];
+	const POS = ['right:2px', 'bottom:0', 'left:2px', 'top:0'];
+	document.querySelectorAll<HTMLElement>('[data-robot]').forEach((root) => {
+		const grid = root.querySelector<HTMLElement>('[data-grid]')!;
+		const progEl = root.querySelector<HTMLElement>('[data-out="prog"]')!;
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		let lv = 0, prog: Cmd[] = [], timer = 0, running = false;
+		const cell = (x: number, y: number) => grid.querySelector<HTMLElement>(`[data-x="${x}"][data-y="${y}"]`)!;
+		const drawGrid = () => {
+			const L = ROBOT_LEVELS[lv];
+			grid.style.gridTemplateColumns = `repeat(${L.w}, minmax(0, 1fr))`;
+			let h = '';
+			for (let y = 0; y < L.h; y++) for (let x = 0; x < L.w; x++) {
+				const wall = L.walls.some(([a, b]) => a === x && b === y);
+				const goal = L.goal[0] === x && L.goal[1] === y;
+				h += `<div class="rb-cell" data-x="${x}" data-y="${y}">${wall ? '🧱' : goal ? '⭐' : ''}</div>`;
+			}
+			grid.innerHTML = h;
+		};
+		const placeBot = (x: number, y: number, d: number) => {
+			grid.querySelectorAll('.rb-bot, .rb-dir').forEach((e) => e.remove());
+			const c = cell(x, y);
+			c.insertAdjacentHTML('beforeend', `<span class="rb-bot">🤖</span><span class="rb-dir" style="${POS[d]}">${ARROW[d]}</span>`);
+		};
+		const drawProg = (now = -1, bad = -1) => {
+			progEl.innerHTML = prog.length
+				? prog.map((c, i) => `<span class="${i === bad ? 'bad' : i === now ? 'now' : ''}">${ICON[c]}</span>`).join('')
+				: '<em>البرنامج فارغ. اضغط الأوامر بالترتيب.</em>';
+		};
+		const reset = () => {
+			clearInterval(timer); running = false;
+			drawGrid();
+			const [x, y, d] = ROBOT_LEVELS[lv].start;
+			placeBot(x, y, d);
+			drawProg();
+		};
+		const start = () => {
+			prog = [];
+			reset();
+			msg.className = 'wl-msg';
+			msg.textContent = `المستوى ${lv + 1}: أفضل حل يحتاج ${ROBOT_LEVELS[lv].best} أوامر. هل تستطيع؟`;
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-lv]').forEach((b) =>
+			b.addEventListener('click', () => {
+				lv = +b.dataset.lv!;
+				root.querySelectorAll('[data-lv]').forEach((x) => x.classList.toggle('primary', x === b));
+				start();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-c]').forEach((b) =>
+			b.addEventListener('click', () => { if (running) return; if (prog.length < 30) prog.push(b.dataset.c as Cmd); reset(); }),
+		);
+		root.querySelector('[data-undo]')!.addEventListener('click', () => { if (!running) { prog.pop(); reset(); } });
+		root.querySelector('[data-clear]')!.addEventListener('click', () => { if (!running) { prog = []; reset(); } });
+		root.querySelector('[data-run]')!.addEventListener('click', () => {
+			if (running) return;
+			reset();
+			const L = ROBOT_LEVELS[lv];
+			const { steps, reached } = runRobot(L, prog);
+			running = true;
+			let i = 1;
+			msg.className = 'wl-msg';
+			msg.textContent = 'الروبوت ينفّذ الأوامر واحداً واحداً، بالترتيب...';
+			timer = window.setInterval(() => {
+				if (i >= steps.length) {
+					clearInterval(timer); running = false;
+					drawProg();
+					if (reached) {
+						const n = prog.length;
+						msg.className = 'wl-msg wl-good';
+						msg.textContent = n <= L.best
+							? `✓ وصل! استخدمت ${n} أوامر، وهذا أفضل حل ممكن. ${lv < 2 ? 'انتقل إلى المستوى التالي.' : 'أنهيت كل المستويات!'}`
+							: `✓ وصل، لكن بـ ${n} أوامر. يوجد حل بـ ${L.best} فقط: الحل الصحيح ليس دائماً الحل الأفضل.`;
+					} else {
+						msg.className = 'wl-msg wl-bad';
+						msg.textContent = prog.length ? '✗ انتهت الأوامر ولم يصل الروبوت إلى النجمة. البرنامج ينفّذ ما كتبته فقط، لا ما تقصده!' : 'اكتب برنامجاً أولاً.';
+					}
+					return;
+				}
+				const s = steps[i];
+				const p = steps[i - 1];
+				cell(p.x, p.y).classList.add('trail');
+				if (!s.ok) {
+					clearInterval(timer); running = false;
+					cell(s.x, s.y).classList.add('crash');
+					drawProg(-1, i - 1);
+					msg.className = 'wl-msg wl-bad';
+					msg.textContent = `✗ خطأ برمجي في الأمر رقم ${i}: ${s.why === 'wall' ? 'اصطدم الروبوت بجدار' : 'كاد الروبوت يخرج من الشبكة'}. صحّح البرنامج وأعد التشغيل.`;
+					return;
+				}
+				placeBot(s.x, s.y, s.d);
+				drawProg(i - 1);
+				i++;
+			}, 420);
+		});
+		start();
+	});
+</script>

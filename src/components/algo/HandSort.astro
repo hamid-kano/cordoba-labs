@@ -1,0 +1,65 @@
+---
+// رتّب بإيدك: 7 أوراق لعب، الطالب بيكبس ورقتين لحتى يبدّلهن. بيتعدّ عدد التبديلات،
+// وبالآخر منقارن مع أقل عدد تبديلات ممكن (= عدد العناصر − عدد الدورات).
+---
+
+<div class="not-content wl-box" data-handsort>
+	<h4>🃏 رتّب الأوراق بيدك</h4>
+	<p class="se-hint">اضغط على ورقتين لتبديل مكانهما. رتّبها من الأصغر إلى الأكبر بأقل عدد ممكن من التبديلات.</p>
+	<div class="hs-cards" dir="ltr" data-out="cards"></div>
+	<div class="wl-row">
+		<span>التبديلات: <b data-out="n">0</b></span>
+		<button type="button" class="wl-btn" data-new>↺ أوراق جديدة</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.hs-cards { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; }
+	.hs-card { width: 2.9rem; height: 4rem; border-radius: 0.4rem; border: 2px solid var(--sl-color-gray-4); background: var(--sl-color-gray-6); font-size: 1.35rem; font-weight: 700; color: var(--sl-color-white); cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
+	.hs-card.sel { border-color: #e0a030; transform: translateY(-0.4rem); }
+	.hs-card.ok { border-color: #2fb36b; }
+</style>
+
+<script>
+	// أقل عدد تبديلات لترتيب تبديلة = n − عدد الدورات
+	const minSwaps = (a: number[]) => {
+		const s = [...a].sort((x, y) => x - y), seen = new Array(a.length).fill(false);
+		let cyc = 0;
+		for (let i = 0; i < a.length; i++) { if (seen[i]) continue; cyc++; let j = i; while (!seen[j]) { seen[j] = true; j = s.indexOf(a[j]); } }
+		return a.length - cyc;
+	};
+	document.querySelectorAll<HTMLElement>('[data-handsort]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let a: number[] = [], sel = -1, n = 0, best = 0, done = false;
+		const draw = () => {
+			const s = [...a].sort((x, y) => x - y);
+			$('cards').innerHTML = a.map((v, i) => `<button type="button" class="hs-card${i === sel ? ' sel' : ''}${v === s[i] ? ' ok' : ''}" data-i="${i}">${v}</button>`).join('');
+			$('n').textContent = String(n);
+			root.querySelectorAll<HTMLButtonElement>('.hs-card').forEach((b) => b.addEventListener('click', () => pick(+b.dataset.i!)));
+		};
+		const pick = (i: number) => {
+			if (done) return;
+			if (sel < 0) { sel = i; draw(); return; }
+			if (sel !== i) { [a[sel], a[i]] = [a[i], a[sel]]; n++; }
+			sel = -1;
+			draw();
+			if (a.every((v, k) => k === 0 || a[k - 1] <= v)) {
+				done = true;
+				$('msg').className = 'wl-msg ' + (n === best ? 'wl-good' : '');
+				$('msg').textContent = n === best
+					? `✓ رائع! ${n} تبديلات، وهذا أقل عدد ممكن. هل لاحظت طريقتك؟ غالباً كنت تبحث عن الأصغر وتضعه أولاً: هذا هو «الترتيب بالاختيار»!`
+					: `✓ رتّبتها بـ ${n} تبديلات، والأقل ممكن ${best}. جرّب طريقة: ابحث عن الأصغر وضعه في المكان الأول، ثم الذي بعده...`;
+			}
+		};
+		const fresh = () => {
+			do { a = [2, 3, 4, 5, 6, 7, 8].sort(() => Math.random() - 0.5); } while (minSwaps(a) < 4);
+			best = minSwaps(a); sel = -1; n = 0; done = false;
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = `الإطار الأخضر يعني أن الورقة في مكانها الصحيح. أقل عدد ممكن من التبديلات هنا: ${best}.`;
+			draw();
+		};
+		root.querySelector('[data-new]')!.addEventListener('click', fresh);
+		fresh();
+	});
+</script>

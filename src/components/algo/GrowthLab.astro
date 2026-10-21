@@ -1,0 +1,108 @@
+---
+// سباق أصناف التعقيد: أولاً الطالب بيتوقّع، وبعدين بتنكشف الرسمة وجدول الأزمنة (كل عملية = 1 ميكروثانية).
+import { GROWTH } from '../../scripts/algo';
+const COLORS = ['#8b949e', '#2fb36b', '#3a9ec2', '#a371f7', '#e0a030', '#e5534b'];
+const NS = [10, 20, 50, 100, 1000, 1000000];
+---
+
+<div class="not-content wl-box" data-growth data-colors={JSON.stringify(COLORS)} data-ns={JSON.stringify(NS)}>
+	<h4>🏁 سباق أصناف التعقيد</h4>
+	<div class="se-predict" data-predict>
+		<p><b>توقّع أولاً:</b> خوارزمية من صنف <bdi dir="ltr">O(2ⁿ)</bdi>، وحاسوب ينفّذ مليون عملية في الثانية. كم تحتاج عندما <bdi dir="ltr">n = 50</bdi>؟</p>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-g="0">أقل من ثانية</button>
+			<button type="button" class="wl-btn" data-g="1">بضع دقائق</button>
+			<button type="button" class="wl-btn" data-g="2">يوم كامل</button>
+			<button type="button" class="wl-btn" data-g="3">أكثر من 30 سنة</button>
+		</div>
+		<p class="wl-msg" data-out="pred"></p>
+	</div>
+	<div data-body hidden>
+		<label class="ai-slider"><span>أكبر قيمة لـ n في الرسمة<output data-o="n"></output></span><input type="range" min="4" max="30" step="1" value="12" data-k="n" /></label>
+		<svg class="gr-svg" data-out="svg" role="img" aria-label="منحنيات عدد العمليات لكل صنف تعقيد"></svg>
+		<div class="gr-legend" dir="ltr">
+			{GROWTH.map((g, i) => <span><i style={`background:${COLORS[i]}`}></i>{g.label}</span>)}
+		</div>
+		<div class="wl-scroll">
+			<table class="wl-table gr-table" dir="ltr">
+				<thead><tr><th>n</th>{GROWTH.map((g) => <th>{g.label}</th>)}</tr></thead>
+				<tbody data-out="rows"></tbody>
+			</table>
+		</div>
+		<p class="se-note">الجدول: الزمن إذا كانت كل عملية تستغرق ميكروثانية واحدة (مليون عملية في الثانية).</p>
+	</div>
+</div>
+
+<style is:global>
+	.gr-svg { width: 100%; height: auto; display: block; direction: ltr; }
+	.gr-svg .ax { stroke: var(--sl-color-gray-4); stroke-width: 1; }
+	.gr-svg text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: sans-serif; }
+	.gr-svg path { fill: none; stroke-width: 2.5; }
+	.gr-legend { display: flex; flex-wrap: wrap; gap: 0.2rem 0.8rem; font-size: var(--sl-text-xs); justify-content: center; }
+	.gr-legend i { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 0.2rem; margin-right: 0.3rem; vertical-align: middle; }
+	.gr-table { font-size: 0.78rem; white-space: nowrap; width: 100%; }
+	.gr-table td.slow { color: #e5534b; font-weight: 700; }
+	.gr-table td.ok { color: #2fb36b; }
+	.se-predict { padding: 0.75rem; border-radius: 0.5rem; border: 2px dashed var(--sl-color-accent); }
+	.se-predict p { margin: 0 0 0.5rem; }
+</style>
+
+<script>
+	import { GROWTH, humanTime } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-growth]').forEach((root) => {
+		const COLORS: string[] = JSON.parse(root.dataset.colors!);
+		const NS: number[] = JSON.parse(root.dataset.ns!);
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		const nIn = root.querySelector<HTMLInputElement>('[data-k="n"]')!;
+		const body = root.querySelector<HTMLElement>('[data-body]')!;
+		const draw = () => {
+			const N = +nIn.value;
+			root.querySelector('[data-o="n"]')!.textContent = String(N);
+			const W = Math.max(320, Math.min(720, Math.round(svg.getBoundingClientRect().width) || 600)), H = W < 500 ? 260 : 300, L = 40, B = 26, T = 10, R = 74;
+			const yMax = N * N * 1.15;
+			const X = (n: number) => L + ((n - 1) / (N - 1)) * (W - L - R);
+			const Y = (v: number) => H - B - (Math.min(v, yMax) / yMax) * (H - B - T);
+			let h = `<line class="ax" x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}"/><line class="ax" x1="${L}" y1="${T}" x2="${L}" y2="${H - B}"/>`;
+			h += `<text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">n</text>`;
+			h += `<text x="${L - 6}" y="${T + 10}" text-anchor="end">${Math.round(yMax)}</text><text x="${L - 6}" y="${H - B}" text-anchor="end">0</text>`;
+			for (const n of [1, Math.round(N / 2), N]) h += `<text x="${X(n)}" y="${H - B + 14}" text-anchor="middle">${n}</text>`;
+			const labels: { x: number; y: number; c: string; t: string }[] = [];
+			GROWTH.forEach((g, i) => {
+				let d = '', endN = N;
+				for (let n = 1; n <= N; n++) {
+					const v = g.f(n);
+					d += `${d ? 'L' : 'M'}${X(n).toFixed(1)},${Y(v).toFixed(1)}`;
+					if (v > yMax) { endN = n; break; }
+				}
+				h += `<path d="${d}" stroke="${COLORS[i]}"/>`;
+				labels.push({ x: Math.min(X(endN) + 4, W - R + 4), y: Math.max(T + 10, Y(g.f(endN)) + 4), c: COLORS[i], t: g.label });
+			});
+			// الأسماء يلي عند نفس الطرف ما لازم تركب فوق بعض: منبعّدها 13px على الأقل
+			const right = labels.filter((l) => l.x >= W - R).sort((a, b) => b.y - a.y);
+			for (let k = 1; k < right.length; k++) if (right[k - 1].y - right[k].y < 13) right[k].y = right[k - 1].y - 13;
+			for (const l of labels) h += `<text x="${l.x}" y="${l.y}" style="fill:${l.c};font-weight:700">${l.t}</text>`;
+			svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+			svg.innerHTML = h;
+		};
+		root.querySelector<HTMLElement>('[data-out="rows"]')!.innerHTML = NS.map((n) =>
+			`<tr><td><b>${n.toLocaleString('en')}</b></td>${GROWTH.map((g) => {
+				const ops = g.k === 'exp' && n > 1000 ? Infinity : g.f(n);
+				const t = ops === Infinity ? '∞' : humanTime(ops);
+				const cls = ops > 6e7 ? 'slow' : ops < 1e6 ? 'ok' : '';
+				return `<td class="${cls}">${t}</td>`;
+			}).join('')}</tr>`).join('');
+		const pred = root.querySelector<HTMLElement>('[data-out="pred"]')!;
+		root.querySelectorAll<HTMLButtonElement>('[data-g]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const ok = b.dataset.g === '3';
+				root.querySelectorAll<HTMLButtonElement>('[data-g]').forEach((x) => { x.disabled = true; x.classList.toggle('right', x.dataset.g === '3'); });
+				if (!ok) b.classList.add('wrong');
+				pred.className = 'wl-msg ' + (ok ? 'wl-good' : 'wl-bad');
+				pred.innerHTML = (ok ? '✓ صحيح! ' : '✗ أكثر بكثير! ') + 'تحتاج قرابة 36 سنة. ومع <bdi dir="ltr">n = 100</bdi> تحتاج أكثر من عمر الكون بملايين المرات. انظر الرسمة والجدول.';
+				body.hidden = false;
+				draw();
+			}),
+		);
+		nIn.addEventListener('input', draw);
+	});
+</script>

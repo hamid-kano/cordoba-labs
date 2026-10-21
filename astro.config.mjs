@@ -89,7 +89,10 @@ export default defineConfig({
 				{
 					label: 'المراجع',
 					collapsed: true,
-					items: [{ label: 'هندسة البرمجيات', collapsed: true, items: [{ autogenerate: { directory: 'refs/se' } }] }],
+					items: [
+						{ label: 'هندسة البرمجيات', collapsed: true, items: [{ autogenerate: { directory: 'refs/se' } }] },
+						{ label: 'الخوارزميات', collapsed: true, items: [{ autogenerate: { directory: 'refs/algo' } }] },
+					],
 				},
 			],
 		}),

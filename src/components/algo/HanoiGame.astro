@@ -1,0 +1,85 @@
+---
+// أبراج هانوي: الطالب بيكبس عمود لياخد القرص الفوقاني، وعمود تاني ليحطه. ممنوع الكبير فوق الصغير.
+// زر «الحل التلقائي» بيمشي حلّ hanoi العودي حركة حركة.
+---
+
+<div class="not-content wl-box" data-hanoi>
+	<h4>🗼 أبراج هانوي</h4>
+	<p class="se-hint">انقل كل الأقراص من العمود الأيسر إلى الأيمن. قرص واحد في كل حركة، و<b>لا يوضع قرص كبير فوق قرص أصغر منه</b>. اضغط عموداً لتأخذ قرصه العلوي، ثم عموداً آخر لتضعه.</p>
+	<div class="wl-row">
+		<span>عدد الأقراص:</span>
+		{[3, 4, 5].map((n) => <button type="button" class={`wl-btn${n === 3 ? ' primary' : ''}`} data-d={n}><bdi dir="ltr">{n}</bdi></button>)}
+		<button type="button" class="wl-btn" data-auto>🤖 الحل التلقائي</button>
+	</div>
+	<div class="hn-board" dir="ltr" data-out="board"></div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>حركاتك</span><strong data-out="moves">0</strong></div>
+		<div class="wl-out"><span>أقل عدد ممكن</span><strong data-out="min">7</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.hn-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+	.hn-peg { position: relative; height: 9rem; border: 0; border-radius: 0.4rem; background: var(--sl-color-gray-6); display: flex; flex-direction: column-reverse; align-items: center; padding: 0 0 0.4rem; cursor: pointer; gap: 2px; }
+	.hn-peg::before { content: ''; position: absolute; bottom: 0.4rem; top: 0.8rem; width: 6px; border-radius: 3px; background: var(--sl-color-gray-4); }
+	.hn-peg.from { outline: 3px solid #e0a030; }
+	.hn-disk { position: relative; height: 1.3rem; border-radius: 0.65rem; z-index: 1; transition: transform 0.15s; }
+	.hn-peg.from .hn-disk:last-child { transform: translateY(-0.6rem); }
+</style>
+
+<script>
+	import { hanoi, arCount } from '../../scripts/algo';
+	const COL = ['#e5534b', '#e0a030', '#2fb36b', '#3a9ec2', '#a371f7'];
+	document.querySelectorAll<HTMLElement>('[data-hanoi]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let pegs: number[][] = [], n = 3, from = -1, moves = 0, timer = 0, busy = false;
+		const draw = () => {
+			$('board').innerHTML = pegs.map((p, i) => `<button type="button" class="hn-peg${i === from ? ' from' : ''}" data-peg="${i}" aria-label="العمود ${i + 1}">${p.map((d) => `<i class="hn-disk" style="width:${30 + d * 13}%;background:${COL[d - 1]}"></i>`).join('')}</button>`).join('');
+			$('moves').textContent = String(moves);
+			root.querySelectorAll<HTMLButtonElement>('.hn-peg').forEach((b) => b.addEventListener('click', () => pick(+b.dataset.peg!)));
+		};
+		const won = () => pegs[2].length === n;
+		const move = (a: number, b: number) => { pegs[b].push(pegs[a].pop()!); moves++; };
+		const pick = (i: number) => {
+			if (busy || won()) return;
+			const msg = $('msg');
+			if (from < 0) { if (pegs[i].length) from = i; draw(); return; }
+			if (i === from) { from = -1; draw(); return; }
+			const d = pegs[from].at(-1)!, top = pegs[i].at(-1);
+			if (top !== undefined && top < d) { msg.className = 'wl-msg wl-bad'; msg.textContent = '✗ ممنوع: لا يوضع قرص كبير فوق قرص أصغر منه.'; from = -1; draw(); return; }
+			move(from, i); from = -1; draw();
+			msg.className = 'wl-msg';
+			msg.textContent = '';
+			if (won()) {
+				const best = 2 ** n - 1;
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = moves === best ? `✓ رائع! ${arCount(moves, 'حركة واحدة', 'حركتان', 'حركات', 'حركة')}، وهذا أقل عدد ممكن (2^${n} − 1).` : `✓ أحسنت! ${arCount(moves, 'حركة واحدة', 'حركتان', 'حركات', 'حركة')}. الأقل ممكن ${best}. شاهد «الحل التلقائي» لترى الفكرة العودية.`;
+			}
+		};
+		const reset = (k: number) => {
+			clearInterval(timer); busy = false;
+			n = k; pegs = [Array.from({ length: n }, (_, i) => n - i), [], []]; from = -1; moves = 0;
+			$('min').textContent = String(2 ** n - 1);
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = 'ابدأ! نصيحة: فكّر أولاً كيف تنقل القرص الأكبر.';
+			draw();
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-d]').forEach((b) => b.addEventListener('click', () => {
+			root.querySelectorAll('[data-d]').forEach((x) => x.classList.toggle('primary', x === b));
+			reset(+b.dataset.d!);
+		}));
+		root.querySelector('[data-auto]')!.addEventListener('click', () => {
+			reset(n);
+			busy = true;
+			const plan = hanoi(n);
+			let k = 0;
+			$('msg').textContent = `الفكرة: انقل ${n - 1} أقراص إلى العمود الأوسط، ثم القرص الأكبر إلى الأيمن، ثم الـ ${n - 1} فوقه. ونقل الـ ${n - 1} مسألة أصغر من النوع نفسه!`;
+			timer = window.setInterval(() => {
+				if (k >= plan.length) { clearInterval(timer); busy = false; $('msg').className = 'wl-msg wl-good'; $('msg').textContent = `✓ ${arCount(plan.length, 'حركة واحدة', 'حركتان', 'حركات', 'حركة')} بالضبط = 2^${n} − 1. كل قرص إضافي يضاعف العمل تقريباً: هذا نمو أُسّي.`; return; }
+				move(plan[k][0], plan[k][1]); k++; draw();
+			}, n >= 5 ? 280 : 420);
+		});
+		reset(3);
+	});
+</script>

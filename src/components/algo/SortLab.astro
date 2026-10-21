@@ -1,0 +1,109 @@
+---
+// مختبر الترتيب البسيط: أعمدة بتتحرك خطوة خطوة للفقاعي والاختيار والإدراج، مع عدّاد مقارنات وتبديلات،
+// وجدول مقارنة للخوارزميات التلاتة على كل نوع مدخلات. المحرك sortTrace بـ src/scripts/algo.ts.
+import { SORT_PRESETS } from '../../scripts/algo';
+interface Props { algo?: 'bubble' | 'selection' | 'insertion'; lock?: boolean }
+const { algo = 'bubble', lock = false } = Astro.props;
+const NAMES = { bubble: 'الفقاعي', selection: 'الاختيار', insertion: 'الإدراج' };
+const PRESETS = { random: 'عشوائي', sorted: 'مرتب أصلاً', reversed: 'معكوس', nearly: 'شبه مرتب' };
+---
+
+<div class="not-content wl-box" data-sortlab data-algo={algo} data-presets={JSON.stringify(SORT_PRESETS)}>
+	<h4>📊 {lock ? `الترتيب ب${NAMES[algo]}` : 'مختبر الترتيب'}</h4>
+	{!lock && (
+		<div class="wl-row" data-algos>
+			{Object.entries(NAMES).map(([k, t]) => <button type="button" class={`wl-btn${k === algo ? ' primary' : ''}`} data-a={k}>{t}</button>)}
+		</div>
+	)}
+	<div class="wl-row" data-presets-row>
+		{Object.entries(PRESETS).map(([k, t], i) => <button type="button" class={`wl-btn${i === 0 ? ' primary' : ''}`} data-p={k}>{t}</button>)}
+	</div>
+	<div class="sl-bars" dir="ltr" data-out="bars"></div>
+	<p class="sl-note" data-out="note"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+		<button type="button" class="wl-btn" data-reset>↺</button>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>المقارنات</span><strong data-out="cmps">0</strong></div>
+		<div class="wl-out"><span>التبديلات</span><strong data-out="swaps">0</strong></div>
+		<div class="wl-out"><span>الخطوة</span><strong data-out="pos">0</strong></div>
+	</div>
+	<details class="sl-cmp">
+		<summary>جدول المقارنة: الخوارزميات الثلاث على أنواع المدخلات الأربعة</summary>
+		<div class="wl-scroll"><table class="wl-table" data-out="table"></table></div>
+	</details>
+</div>
+
+<style is:global>
+	.sl-bars { display: flex; align-items: flex-end; gap: 4px; height: 11rem; padding: 0.3rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); }
+	.sl-bar { flex: 1; border-radius: 0.3rem 0.3rem 0 0; background: #3a9ec2; display: flex; align-items: flex-start; justify-content: center; color: #111; font-weight: 700; font-size: 0.85rem; padding-top: 0.15rem; transition: height 0.2s, background 0.2s; }
+	.sl-bar.cmp { background: #e0a030; }
+	.sl-bar.swap { background: #e5534b; }
+	.sl-bar.sorted { background: #2fb36b; }
+	.sl-note { margin: 0; min-height: 2.6em; font-size: var(--sl-text-sm); }
+	.sl-cmp summary { cursor: pointer; font-size: var(--sl-text-sm); }
+	.sl-cmp table { font-size: var(--sl-text-sm); text-align: center; width: 100%; }
+</style>
+
+<script>
+	import { sortTrace, arCount, type SimpleSort, type SortStep } from '../../scripts/algo';
+	const NAMES: Record<SimpleSort, string> = { bubble: 'الفقاعي', selection: 'الاختيار', insertion: 'الإدراج' };
+	const PNAMES: Record<string, string> = { random: 'عشوائي', sorted: 'مرتب أصلاً', reversed: 'معكوس', nearly: 'شبه مرتب' };
+	const explain = (algo: SimpleSort, s: SortStep, n: number): string => {
+		const [x, y] = s.note.split(' ').slice(1).map(Number);
+		if (s.kind === 'start') return 'البداية. اضغط «خطوة» وتابع الألوان: البرتقالي يُقارن، والأحمر يُبدَّل، والأخضر ' + (algo === 'insertion' ? 'هو الجزء المرتب حتى الآن (وقد يتغيّر مكان عناصره لاحقاً).' : 'في مكانه النهائي.');
+		if (s.kind === 'done') return s.note === 'early'
+			? '✓ انتهى مبكراً! مرّت جولة كاملة دون أي تبديل، فالقائمة مرتبة. هذه ميزة الفقاعي مع التحسين.'
+			: `✓ انتهى الترتيب: ${arCount(s.cmps, 'مقارنة واحدة', 'مقارنتان', 'مقارنات', 'مقارنة')} و${arCount(s.swaps, 'تبديل واحد', 'تبديلان', 'تبديلات', 'تبديلاً')}.`;
+		if (s.kind === 'cmp') {
+			if (algo === 'bubble') return `نقارن الجارين ${x} و ${y}: ${x > y ? 'الأيسر أكبر، فسنبدّلهما.' : 'بالترتيب الصحيح، فلا نبدّل.'}`;
+			if (algo === 'selection') return `نبحث عن أصغر عنصر في الجزء غير المرتب. الأصغر حتى الآن ${x}، ونقارنه بـ ${y}${y < x ? `: وجدنا أصغر، فالأصغر الآن ${y}.` : '.'}`;
+			return `نُدخل العنصر في مكانه بين المرتبين يساره: هل ${x} أكبر من ${y}؟ ${x > y ? 'نعم، فنزيح ' + y + ' يساراً.' : 'لا، فقد وصل إلى مكانه.'}`;
+		}
+		if (s.kind === 'swap') return algo === 'bubble' ? `بدّلنا ${y} و ${x}. العنصر الكبير «يطفو» نحو اليمين كالفقاعة.` : `وضعنا أصغر عنصر (${y}) في أول الجزء غير المرتب. تبديل واحد فقط في كل جولة.`;
+		return `أزحنا ${x} خطوة نحو اليمين، فتقدّم العنصر الجديد خطوة نحو اليسار.`;
+	};
+	document.querySelectorAll<HTMLElement>('[data-sortlab]').forEach((root) => {
+		const presets: Record<string, number[]> = JSON.parse(root.dataset.presets!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let algo = root.dataset.algo as SimpleSort, preset = 'random', steps: SortStep[] = [], i = 0, timer = 0;
+		const draw = () => {
+			const s = steps[i], max = Math.max(...s.a);
+			$('bars').innerHTML = s.a.map((v, k) => {
+				const cls = s.sorted.includes(k) && !s.hi.includes(k) ? 'sorted' : s.hi.includes(k) ? (s.kind === 'cmp' ? 'cmp' : s.kind === 'done' ? 'sorted' : 'swap') : '';
+				return `<div class="sl-bar ${s.kind === 'done' ? 'sorted' : cls}" style="height:${(v / max) * 100}%">${v}</div>`;
+			}).join('');
+			$('note').textContent = explain(algo, s, s.a.length);
+			$('cmps').textContent = String(s.cmps);
+			$('swaps').textContent = String(s.swaps);
+			$('pos').textContent = `${i}/${steps.length - 1}`;
+		};
+		const load = () => { clearInterval(timer); steps = sortTrace(presets[preset], algo); i = 0; draw(); };
+		root.querySelectorAll<HTMLButtonElement>('[data-a]').forEach((b) => b.addEventListener('click', () => {
+			algo = b.dataset.a as SimpleSort;
+			root.querySelectorAll('[data-a]').forEach((x) => x.classList.toggle('primary', x === b));
+			load();
+		}));
+		root.querySelectorAll<HTMLButtonElement>('[data-p]').forEach((b) => b.addEventListener('click', () => {
+			preset = b.dataset.p!;
+			root.querySelectorAll('[data-p]').forEach((x) => x.classList.toggle('primary', x === b));
+			load();
+		}));
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < steps.length - 1) { i++; draw(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i > 0) { i--; draw(); } });
+		root.querySelector('[data-reset]')!.addEventListener('click', load);
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= steps.length - 1) i = 0;
+			timer = window.setInterval(() => { if (i >= steps.length - 1) { clearInterval(timer); return; } i++; draw(); }, 380);
+		});
+		// جدول المقارنة من المحرك نفسه
+		const algos: SimpleSort[] = ['bubble', 'selection', 'insertion'];
+		$('table').innerHTML = `<thead><tr><th>المدخلات</th>${algos.map((a) => `<th>${NAMES[a]}</th>`).join('')}</tr></thead><tbody>` +
+			Object.keys(PNAMES).map((p) => `<tr><td>${PNAMES[p]}</td>${algos.map((a) => { const l = sortTrace(presets[p], a).at(-1)!; return `<td><bdi dir="ltr">${l.cmps}</bdi> مقارنة<br><bdi dir="ltr">${l.swaps}</bdi> تبديل</td>`; }).join('')}</tr>`).join('') + '</tbody>';
+		load();
+	});
+</script>

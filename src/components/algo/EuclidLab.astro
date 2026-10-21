@@ -1,0 +1,77 @@
+---
+// خوارزمية إقليدس للقاسم المشترك الأكبر: الطالب بيدخل عددين، وبيشوف كل خطوة كمستطيل بيتقسّم لمربعات.
+---
+
+<div class="not-content wl-box" data-euclid>
+	<h4>📐 أقدم خوارزمية مكتوبة: القاسم المشترك الأكبر</h4>
+	<div class="wl-row">
+		<label>a = <input type="number" min="1" max="9999" value="48" data-k="a" dir="ltr" style="width:5rem" /></label>
+		<label>b = <input type="number" min="1" max="9999" value="18" data-k="b" dir="ltr" style="width:5rem" /></label>
+		<button type="button" class="wl-btn primary" data-go>احسب خطوة خطوة</button>
+	</div>
+	<svg class="eu-svg" data-out="svg" role="img" aria-label="مستطيل يتقسّم إلى مربعات، وآخر مربع ضلعه هو القاسم المشترك الأكبر"></svg>
+	<ol class="eu-steps" dir="ltr" data-out="steps"></ol>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.eu-svg { width: 100%; max-width: 26rem; height: auto; display: block; margin-inline: auto; }
+	.eu-svg rect { stroke: var(--sl-color-bg); stroke-width: 1.5; }
+	.eu-steps { margin: 0; padding-left: 1.6rem; font-family: var(--__sl-font-mono); font-size: 0.85rem; text-align: left; }
+	.eu-steps li { opacity: 0; transition: opacity 0.3s; }
+	.eu-steps li.show { opacity: 1; }
+</style>
+
+<script>
+	const COLORS = ['#3a9ec2', '#2fb36b', '#e0a030', '#c678dd', '#e5534b', '#56b6c2'];
+	document.querySelectorAll<HTMLElement>('[data-euclid]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		let timers: number[] = [];
+		const go = () => {
+			timers.forEach(clearTimeout); timers = [];
+			let a = Math.max(1, Math.min(9999, Math.round(+root.querySelector<HTMLInputElement>('[data-k="a"]')!.value) || 1));
+			let b = Math.max(1, Math.min(9999, Math.round(+root.querySelector<HTMLInputElement>('[data-k="b"]')!.value) || 1));
+			if (a < b) [a, b] = [b, a];
+			const W = 400, scale = W / a, H = Math.max(20, b * scale);
+			svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+			svg.innerHTML = '';
+			const steps: string[] = [];
+			const squares: { x: number; y: number; s: number; c: string }[] = [];
+			// منقسم المستطيل لمربعات: كل خطوة من إقليدس = عدد من المربعات بضلع الأصغر
+			let x = 0, y = 0, w = a, h = b, horiz = true, ci = 0;
+			let p = a, q = b;
+			while (q > 0) {
+				const k = Math.floor(p / q), r = p % q;
+				steps.push(`${p} = ${k} × ${q} + ${r}`);
+				const c = COLORS[ci++ % COLORS.length];
+				for (let j = 0; j < k; j++) {
+					if (horiz) squares.push({ x: x + j * q, y, s: q, c }); else squares.push({ x, y: y + j * q, s: q, c });
+				}
+				if (horiz) { x += k * q; w -= k * q; } else { y += k * q; h -= k * q; }
+				horiz = !horiz;
+				p = q; q = r;
+			}
+			const g = p;
+			$('steps').innerHTML = steps.map((s) => `<li>${s}</li>`).join('');
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = '';
+			const NS = 'http://www.w3.org/2000/svg';
+			squares.forEach((s, i) => timers.push(window.setTimeout(() => {
+				const r = document.createElementNS(NS, 'rect');
+				r.setAttribute('x', String(s.x * scale)); r.setAttribute('y', String(s.y * scale));
+				r.setAttribute('width', String(s.s * scale)); r.setAttribute('height', String(s.s * scale));
+				r.setAttribute('fill', s.c);
+				svg.append(r);
+			}, Math.min(120, 2400 / squares.length) * i)));
+			const lis = [...root.querySelectorAll('.eu-steps li')];
+			lis.forEach((li, i) => timers.push(window.setTimeout(() => li.classList.add('show'), 500 * i)));
+			timers.push(window.setTimeout(() => {
+				$('msg').className = 'wl-msg wl-good';
+				$('msg').textContent = `القاسم المشترك الأكبر = ${g}. وهو ضلع أصغر مربع في الرسمة: مربع واحد يملأ المستطيل كله دون أن يبقى شيء. احتجنا ${steps.length} ${steps.length <= 2 ? (steps.length === 1 ? 'خطوة واحدة' : 'خطوتين') : steps.length <= 10 ? 'خطوات' : 'خطوة'} فقط.`;
+			}, Math.max(500 * lis.length, 2500)));
+		};
+		root.querySelector('[data-go]')!.addEventListener('click', go);
+		go();
+	});
+</script>

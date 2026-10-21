@@ -1,0 +1,70 @@
+---
+// مكدس الاستدعاءات للمضروب: كل استدعاء صحن بينحط فوق التاني، وبالرجوع بتنشال الصحون وبتطلع القيم.
+// المحرك factTrace بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-stacklab>
+	<h4>🍽️ مكدس الاستدعاءات: المضروب</h4>
+	<pre class="sk-code" dir="ltr">{`def fact(n):
+    if n <= 1:          # base case
+        return 1
+    return n * fact(n - 1)`}</pre>
+	<div class="wl-row">
+		<label dir="ltr">fact(<input type="number" min="1" max="6" value="4" data-k="n" style="width:3.5rem;margin-inline:0.25rem" />)</label>
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+	</div>
+	<div class="sk-stack" dir="ltr" data-out="stack"></div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.sk-code { font-size: 0.82rem; padding: 0.6rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); margin: 0; overflow-x: auto; }
+	.sk-stack { display: flex; flex-direction: column-reverse; align-items: center; gap: 4px; min-height: 13rem; padding: 0.5rem; border-bottom: 4px solid var(--sl-color-gray-4); }
+	.sk-frame { width: min(100%, 16rem); padding: 0.35rem 0.6rem; border-radius: 0.4rem; background: #3a9ec2; color: #111; font-family: var(--__sl-font-mono); font-weight: 700; display: flex; justify-content: space-between; animation: sk-in 0.25s; }
+	.sk-frame.top { outline: 3px solid #e0a030; }
+	.sk-frame.base { background: #a371f7; }
+	.sk-frame.ret { background: #2fb36b; }
+	@keyframes sk-in { from { transform: translateY(-0.8rem); opacity: 0; } }
+</style>
+
+<script>
+	import { factTrace, type RecStep } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-stacklab]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const nIn = root.querySelector<HTMLInputElement>('[data-k="n"]')!;
+		let steps: RecStep[] = [], i = 0, timer = 0, n = 4;
+		const draw = () => {
+			const s = steps[i];
+			$('stack').innerHTML = s.stack.map((f, k) => {
+				const top = k === s.stack.length - 1;
+				const cls = f.ret ? 'ret' : s.note === 'base' && top ? 'base' : '';
+				return `<div class="sk-frame ${cls}${top ? ' top' : ''}"><span>${f.call}</span><span>${f.ret ? '= ' + f.ret : '...'}</span></div>`;
+			}).join('');
+			const top = s.stack.at(-1);
+			const msg = $('msg');
+			msg.className = 'wl-msg';
+			if (i === 0) msg.textContent = `استدعينا ${top!.call}. لا يعرف الجواب بعد، فهو يحتاج fact(${n - 1}) أولاً. اضغط «خطوة».`;
+			else if (s.note === 'call') msg.textContent = `${top!.call} ينتظر، ويستدعي fact(${+top!.call.slice(5, -1) - 1}). صحن جديد فوق المكدس.`;
+			else if (s.note === 'base') msg.textContent = `${top!.call}: هذه الحالة الأساسية! نعرف الجواب مباشرة (1) دون أي استدعاء جديد. الآن يبدأ الرجوع.`;
+			else if (s.note === 'empty') { msg.className = 'wl-msg wl-good'; msg.textContent = `✓ فرغ المكدس، والنتيجة fact(${n}) = ${steps[i - 1].note.split(' ')[1]}. أعلى ارتفاع وصل إليه المكدس: ${n} ${n <= 2 ? (n === 1 ? 'صحن' : 'صحنان') : 'صحون'}.`; }
+			else {
+				const k = +top!.call.slice(5, -1);
+				msg.textContent = k <= 1 ? `fact(1) يعيد 1 إلى من استدعاه، ويُرفع صحنه.` : `fact(${k}) = ${k} × ${+top!.ret! / k} = ${top!.ret}. يعيد النتيجة ويُرفع صحنه.`;
+			}
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i === steps.length - 1;
+		};
+		const load = () => { clearInterval(timer); n = Math.max(1, Math.min(6, Math.round(+nIn.value) || 1)); steps = factTrace(n); i = 0; draw(); };
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < steps.length - 1) { i++; draw(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i > 0) { i--; draw(); } });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= steps.length - 1) i = 0;
+			timer = window.setInterval(() => { if (i >= steps.length - 1) { clearInterval(timer); return; } i++; draw(); }, 750);
+		});
+		nIn.addEventListener('change', load);
+		load();
+	});
+</script>

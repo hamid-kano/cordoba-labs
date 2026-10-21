@@ -1,0 +1,81 @@
+---
+// سباق البحث الخطي ضد الثنائي على صف من 32 بطاقة مرتبة: الطالب بيختار الرقم المطلوب،
+// والبطاقات بتنقلب وحدة وحدة. وبالآخر عدّاد المقارنات للاتنين.
+const N = 32;
+const arr = Array.from({ length: N }, (_, i) => 3 + i * 3); // 3, 6, ..., 96
+---
+
+<div class="not-content wl-box" data-race data-arr={JSON.stringify(arr)}>
+	<h4>🏃 سباق: البحث الخطي ضد البحث الثنائي</h4>
+	<p class="se-hint">32 بطاقة مرتبة، فيها مضاعفات العدد 3 من 3 إلى 96. اختر رقماً، وشاهد كم بطاقة يقلب كل واحد.</p>
+	<div class="wl-row">
+		<label>ابحث عن <input type="number" min="1" max="99" value="72" data-k="t" dir="ltr" style="width:4.5rem" /></label>
+		<button type="button" class="wl-btn primary" data-go>▶ انطلق</button>
+	</div>
+	<div class="sr-lane"><b>الخطي</b><div class="sr-cards" dir="ltr" data-lane="lin"></div><span dir="ltr" data-c="lin">0</span></div>
+	<div class="sr-lane"><b>الثنائي</b><div class="sr-cards" dir="ltr" data-lane="bin"></div><span dir="ltr" data-c="bin">0</span></div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.sr-lane { display: grid; grid-template-columns: 3.4rem 1fr 2rem; align-items: center; gap: 0.4rem; }
+	.sr-lane > b { font-size: var(--sl-text-sm); }
+	.sr-lane > span { font-weight: 700; font-size: 1.1rem; text-align: center; }
+	.sr-cards { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+	.sr-cards i { aspect-ratio: 0.8; border-radius: 0.2rem; background: var(--sl-color-gray-5); font-style: normal; font-size: clamp(0.45rem, 1.6vw, 0.72rem); display: grid; place-items: center; color: transparent; transition: background 0.2s, color 0.2s; }
+	.sr-cards i.look { background: #e0a030; color: #111; }
+	.sr-cards i.out { background: var(--sl-color-gray-6); color: var(--sl-color-gray-4); }
+	.sr-cards i.hit { background: #2fb36b; color: #111; font-weight: 700; }
+</style>
+
+<script>
+	import { arCount } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-race]').forEach((root) => {
+		const arr: number[] = JSON.parse(root.dataset.arr!);
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const lanes = { lin: root.querySelector<HTMLElement>('[data-lane="lin"]')!, bin: root.querySelector<HTMLElement>('[data-lane="bin"]')! };
+		let timers: number[] = [];
+		const fill = () => Object.values(lanes).forEach((l) => (l.innerHTML = arr.map((v) => `<i>${v}</i>`).join('')));
+		const go = () => {
+			timers.forEach(clearTimeout); timers = [];
+			fill();
+			const t = Math.round(+root.querySelector<HTMLInputElement>('[data-k="t"]')!.value);
+			root.querySelectorAll<HTMLElement>('[data-c]').forEach((c) => (c.textContent = '0'));
+			// خطوات الخطي
+			const lin: { i: number; hit: boolean }[] = [];
+			for (let i = 0; i < arr.length; i++) { lin.push({ i, hit: arr[i] === t }); if (arr[i] === t) break; }
+			// خطوات الثنائي: كل خطوة بتشطب نص
+			const bin: { m: number; lo: number; hi: number; hit: boolean }[] = [];
+			let lo = 0, hi = arr.length - 1;
+			while (lo <= hi) {
+				const m = (lo + hi) >> 1;
+				bin.push({ m, lo, hi, hit: arr[m] === t });
+				if (arr[m] === t) break;
+				if (arr[m] < t) lo = m + 1; else hi = m - 1;
+			}
+			const cardsL = [...lanes.lin.children] as HTMLElement[], cardsB = [...lanes.bin.children] as HTMLElement[];
+			const D = 260;
+			lin.forEach((s, k) => timers.push(window.setTimeout(() => {
+				if (k > 0) cardsL[lin[k - 1].i].className = 'out';
+				cardsL[s.i].className = s.hit ? 'hit' : 'look';
+				root.querySelector('[data-c="lin"]')!.textContent = String(k + 1);
+			}, k * D)));
+			bin.forEach((s, k) => timers.push(window.setTimeout(() => {
+				cardsB.forEach((c, i) => { if (i < s.lo || i > s.hi) c.className = 'out'; else if (c.className !== 'out') c.className = ''; });
+				cardsB[s.m].className = s.hit ? 'hit' : 'look';
+				root.querySelector('[data-c="bin"]')!.textContent = String(k + 1);
+			}, k * D)));
+			const end = Math.max(lin.length, bin.length) * D;
+			msg.className = 'wl-msg';
+			msg.textContent = '';
+			timers.push(window.setTimeout(() => {
+				const found = bin[bin.length - 1].hit;
+				if (!found) cardsB.forEach((c) => (c.className = 'out'));
+				msg.className = 'wl-msg wl-good';
+				msg.textContent = `${found ? `وجدا ${t}.` : `${t} غير موجود.`} الخطي قلب ${arCount(lin.length, 'بطاقة واحدة', 'بطاقتين', 'بطاقات', 'بطاقة')}، والثنائي ${arCount(bin.length, 'بطاقة واحدة', 'بطاقتين', 'بطاقات', 'بطاقة')}. ${found ? '' : 'لاحظ: لمعرفة أن العدد غير موجود، قلب الخطي كل البطاقات.'} جرّب 3 (أفضل حالة للخطي)، و 48، و 50.`;
+			}, end + 100));
+		};
+		root.querySelector('[data-go]')!.addEventListener('click', go);
+		fill();
+	});
+</script>

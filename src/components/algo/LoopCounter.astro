@@ -1,0 +1,106 @@
+---
+// عدّاد الحلقات: 4 مقاطع كود، والطالب بيشوف كل تنفيذ كمربع بيضوي، والعدّاد بيزيد، وبالآخر الصيغة.
+const snippets = [
+	{ k: 'single', name: 'حلقة واحدة', code: 'for i in range(n):\n    count += 1', big: 'O(n)', formula: 'n' },
+	{ k: 'nested', name: 'حلقتان متداخلتان', code: 'for i in range(n):\n    for j in range(n):\n        count += 1', big: 'O(n²)', formula: 'n × n' },
+	{ k: 'triangle', name: 'الحلقة الداخلية تبدأ من i+1', code: 'for i in range(n):\n    for j in range(i + 1, n):\n        count += 1', big: 'O(n²)', formula: 'n(n − 1) / 2' },
+	{ k: 'halving', name: 'القسمة على 2 كل مرة', code: 'i = n\nwhile i >= 1:\n    count += 1\n    i = i // 2', big: 'O(log n)', formula: '⌊log₂ n⌋ + 1' },
+];
+---
+
+<div class="not-content wl-box" data-loops data-sn={JSON.stringify(snippets)}>
+	<h4>🔢 عُدّ العمليات بنفسك</h4>
+	<div class="wl-row" data-tabs>
+		{snippets.map((s, i) => <button type="button" class={`wl-btn${i === 0 ? ' primary' : ''}`} data-s={i}>{s.name}</button>)}
+	</div>
+	<pre class="lc-code" dir="ltr" data-out="code"></pre>
+	<div class="se-predict" data-predict>
+		<p><b>توقّع:</b> كم مرة ينفَّذ <code>count += 1</code> عندما <bdi dir="ltr">n = <span data-out="nv"></span></bdi>؟</p>
+		<div class="wl-row"><input type="number" min="0" data-k="guess" dir="ltr" style="width:6rem" /><button type="button" class="wl-btn primary" data-run>▶ شغّل وعُدّ</button></div>
+	</div>
+	<label class="ai-slider"><span><bdi dir="ltr">n</bdi><output data-o="n"></output></span><input type="range" min="1" max="12" step="1" value="8" data-k="n" /></label>
+	<div class="lc-cells" dir="ltr" data-out="cells"></div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>العدّاد</span><strong data-out="count">0</strong></div>
+		<div class="wl-out"><span>الصيغة</span><strong data-out="formula">—</strong></div>
+		<div class="wl-out"><span>الصنف</span><strong data-out="big">—</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.lc-code { font-size: 0.85rem; padding: 0.6rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); margin: 0; overflow-x: auto; }
+	.lc-cells { display: flex; flex-direction: column; gap: 3px; min-height: 2rem; }
+	.lc-row { display: flex; gap: 3px; align-items: center; }
+	.lc-row b { width: 3.2rem; font-size: 0.72rem; color: var(--sl-color-gray-3); font-weight: 400; }
+	.lc-c { width: 1.1rem; height: 1.1rem; border-radius: 0.2rem; background: var(--sl-color-gray-6); border: 1px solid var(--sl-color-gray-5); transition: background 0.15s; }
+	.lc-c.on { background: #e0a030; border-color: #e0a030; }
+	.lc-c.ghost { visibility: hidden; }
+</style>
+
+<script>
+	import { loopOps } from '../../scripts/algo';
+	type Sn = { k: keyof typeof loopOps; name: string; code: string; big: string; formula: string };
+	document.querySelectorAll<HTMLElement>('[data-loops]').forEach((root) => {
+		const sn: Sn[] = JSON.parse(root.dataset.sn!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const nIn = root.querySelector<HTMLInputElement>('[data-k="n"]')!;
+		const guess = root.querySelector<HTMLInputElement>('[data-k="guess"]')!;
+		let cur = 0, timer = 0;
+		// كل مقطع: قائمة صفوف، وكل صف عدد خانات فعّالة (والباقي شبح للمحاذاة)
+		const layout = (k: string, n: number): { label: string; on: number; ghost: number }[] => {
+			if (k === 'single') return [{ label: '', on: n, ghost: 0 }];
+			if (k === 'nested') return Array.from({ length: n }, (_, i) => ({ label: `i=${i}`, on: n, ghost: 0 }));
+			if (k === 'triangle') return Array.from({ length: n }, (_, i) => ({ label: `i=${i}`, on: n - 1 - i, ghost: i + 1 }));
+			const rows: { label: string; on: number; ghost: number }[] = [];
+			for (let i = n; i >= 1; i = Math.floor(i / 2)) rows.push({ label: `i=${i}`, on: 1, ghost: 0 });
+			return rows;
+		};
+		const reset = () => {
+			clearInterval(timer);
+			const s = sn[cur], n = +nIn.value;
+			root.querySelector('[data-o="n"]')!.textContent = String(n);
+			$('nv').textContent = String(n);
+			$('code').textContent = s.code;
+			$('cells').innerHTML = layout(s.k, n).map((r) => `<div class="lc-row">${r.label ? `<b>${r.label}</b>` : ''}${'<i class="lc-c ghost"></i>'.repeat(r.ghost)}${'<i class="lc-c"></i>'.repeat(r.on)}</div>`).join('');
+			$('count').textContent = '0';
+			$('formula').textContent = '—';
+			$('big').textContent = '—';
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = 'اكتب توقعك، ثم اضغط «شغّل وعُدّ».';
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-s]').forEach((b) =>
+			b.addEventListener('click', () => {
+				cur = +b.dataset.s!;
+				root.querySelectorAll('[data-s]').forEach((x) => x.classList.toggle('primary', x === b));
+				guess.value = '';
+				reset();
+			}),
+		);
+		nIn.addEventListener('input', reset);
+		root.querySelector('[data-run]')!.addEventListener('click', () => {
+			reset();
+			const s = sn[cur], n = +nIn.value;
+			const cells = [...root.querySelectorAll<HTMLElement>('.lc-c:not(.ghost)')];
+			const total = loopOps[s.k](n);
+			let i = 0;
+			const speed = Math.max(15, Math.min(160, 2200 / Math.max(1, cells.length)));
+			timer = window.setInterval(() => {
+				if (i >= cells.length) {
+					clearInterval(timer);
+					$('formula').textContent = s.formula;
+					$('big').textContent = s.big;
+					const g = guess.value === '' ? null : +guess.value;
+					$('msg').className = 'wl-msg ' + (g === total ? 'wl-good' : g === null ? '' : 'wl-bad');
+					$('msg').textContent = (g === null ? '' : g === total ? '✓ توقعك صحيح! ' : `✗ توقعت ${g}. `) + `العدد ${total}. ` +
+						(s.k === 'halving' ? 'جرّب 12 ثم 6: العدد بالكاد يتغيّر، لأن n يُقسم على 2 في كل دورة.' : s.k === 'triangle' ? 'تقريباً نصف الحلقتين المتداخلتين، لكن النصف ثابت لا يغيّر الصنف: ما زالت O(n²).' : s.k === 'nested' ? 'ضاعف n فيصبح العدد أربعة أضعاف.' : 'ضاعف n فيتضاعف العدد.');
+					return;
+				}
+				cells[i].classList.add('on');
+				i++;
+				$('count').textContent = String(i);
+			}, speed);
+		});
+		reset();
+	});
+</script>

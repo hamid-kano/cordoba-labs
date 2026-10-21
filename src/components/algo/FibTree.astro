@@ -1,0 +1,95 @@
+---
+// شجرة استدعاءات فيبوناتشي: كل عقدة استدعاء، ولون العقدة حسب n فبيبيّن التكرار.
+// مع «التذكّر» الاستدعاءات المكررة بتصير رمادية (بترجع فوراً من الذاكرة).
+---
+
+<div class="not-content wl-box" data-fibtree>
+	<h4>🌳 شجرة استدعاءات فيبوناتشي</h4>
+	<div class="wl-row">
+		<label dir="ltr">fib(<input type="number" min="2" max="7" value="5" data-k="n" style="width:3.5rem;margin-inline:0.25rem" />)</label>
+		<label class="ai-check"><input type="checkbox" data-k="memo" /> مع التذكّر</label>
+	</div>
+	<div class="fb-scroll" dir="ltr"><svg class="fb-svg" data-out="svg" role="img" aria-label="شجرة الاستدعاءات"></svg></div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>استدعاءات في الرسمة</span><strong data-out="calls"></strong></div>
+		<div class="wl-out"><span>fib(30) بلا تذكّر</span><strong>2,692,537</strong></div>
+		<div class="wl-out"><span>fib(30) مع التذكّر</span><strong>59</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.fb-scroll { overflow-x: auto; max-width: 100%; min-width: 0; }
+	.fb-svg { display: block; height: auto; min-width: 100%; direction: ltr; }
+	.fb-svg line { stroke: var(--sl-color-gray-4); stroke-width: 1.5; }
+	.fb-svg text { font: 700 12px sans-serif; text-anchor: middle; fill: #111; }
+	.fb-svg circle { stroke: var(--sl-color-bg); stroke-width: 1.5; }
+	.fb-svg g.memo circle { fill: var(--sl-color-gray-5) !important; }
+	.fb-svg g.memo text { fill: var(--sl-color-gray-2); }
+	.fb-svg g.skip { opacity: 0.12; }
+</style>
+
+<script>
+	import { fibTree, fibCalls, type FibNode } from '../../scripts/algo';
+	const COL = ['#8b949e', '#8b949e', '#2fb36b', '#3a9ec2', '#e0a030', '#a371f7', '#e5534b', '#56b6c2'];
+	document.querySelectorAll<HTMLElement>('[data-fibtree]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		const nIn = root.querySelector<HTMLInputElement>('[data-k="n"]')!;
+		const memo = root.querySelector<HTMLInputElement>('[data-k="memo"]')!;
+		const draw = () => {
+			const n = Math.max(2, Math.min(7, Math.round(+nIn.value) || 2));
+			const tree = fibTree(n);
+			// الأوراق بالترتيب بتاخد x، والأب بالنص بين أولاده
+			let leaf = 0, depth = 0;
+			const pos = new Map<number, { x: number; y: number }>();
+			const lay = (t: FibNode, d: number): number => {
+				depth = Math.max(depth, d);
+				const x = t.kids.length ? (t.kids.map((k) => lay(k, d + 1)).reduce((a, b) => a + b) / t.kids.length) : leaf++;
+				pos.set(t.id, { x, y: d });
+				return x;
+			};
+			lay(tree, 0);
+			const DX = 34, DY = 48, PAD = 20;
+			const W = Math.max(300, leaf * DX + PAD * 2), H = (depth + 1) * DY + PAD;
+			svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+			svg.style.width = `${W}px`;
+			// مع التذكّر: أول مرة منحسب n (بترتيب الاستدعاء: يسار أولاً)، والباقي من الذاكرة، وأولاده ما بينحسبوا
+			const seen = new Set<number>();
+			const state = new Map<number, 'full' | 'memo' | 'skip'>();
+			const walk = (t: FibNode, skip: boolean) => {
+				if (skip) { state.set(t.id, 'skip'); t.kids.forEach((k) => walk(k, true)); return; }
+				if (memo.checked && t.n >= 2 && seen.has(t.n)) { state.set(t.id, 'memo'); t.kids.forEach((k) => walk(k, true)); return; }
+				state.set(t.id, 'full'); seen.add(t.n);
+				t.kids.forEach((k) => walk(k, false));
+			};
+			walk(tree, false);
+			const X = (x: number) => PAD + x * DX + DX / 2, Y = (y: number) => PAD + y * DY;
+			let lines = '', nodes = '';
+			const draw1 = (t: FibNode) => {
+				const p = pos.get(t.id)!;
+				t.kids.forEach((k) => {
+					const q = pos.get(k.id)!;
+					lines += `<line x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" style="opacity:${state.get(k.id) === 'skip' ? 0.12 : 1}"/>`;
+					draw1(k);
+				});
+				nodes += `<g class="${state.get(t.id)}"><circle cx="${X(p.x)}" cy="${Y(p.y)}" r="13" fill="${COL[t.n]}"/><text x="${X(p.x)}" y="${Y(p.y) + 4}">${t.n}</text></g>`;
+			};
+			draw1(tree);
+			svg.innerHTML = lines + nodes;
+			const sc = svg.parentElement!;
+			sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2;
+			const real = [...state.values()].filter((s) => s !== 'skip').length;
+			$('calls').textContent = String(real);
+			const plain = fibCalls(n).calls;
+			const fib2 = [...state.entries()].filter(([, s]) => s !== 'skip').length;
+			$('msg').className = 'wl-msg';
+			$('msg').textContent = memo.checked
+				? `مع التذكّر: ${fib2} استدعاء بدل ${plain}. الرمادي يعيد الجواب فوراً من الذاكرة، والباهت لا يُستدعى أبداً.`
+				: `كل لون رقم واحد. عُدّ كم دائرة لونها مثل fib(${n - 2}): نحسب الشيء نفسه مرات كثيرة! المجموع ${plain} استدعاء.`;
+		};
+		nIn.addEventListener('input', draw);
+		memo.addEventListener('change', draw);
+		draw();
+	});
+</script>
