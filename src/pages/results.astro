@@ -19,7 +19,8 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 				<label>بحث <input type="search" data-f="q" placeholder="اسم أو رقم جامعي" /></label>
 			</div>
 			<div class="wl-row">
-				<button type="button" class="wl-btn primary" data-view="best">ملخص الطلاب</button>
+				<button type="button" class="wl-btn primary" data-view="student">حسب الطالب</button>
+				<button type="button" class="wl-btn" data-view="best">حسب الاختبار</button>
 				<button type="button" class="wl-btn" data-view="all">كل المحاولات</button>
 				<button type="button" class="wl-btn" data-reload>↻ تحديث</button>
 				<button type="button" class="wl-btn" data-csv>⬇ تنزيل Excel</button>
@@ -66,7 +67,7 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 	const f = (k: string) => root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-f="${k}"]`)!;
 	const panel = root.querySelector<HTMLElement>('[data-panel]')!;
 	const loginBtn = root.querySelector<HTMLButtonElement>('[data-login]')!, logoutBtn = root.querySelector<HTMLButtonElement>('[data-logout]')!;
-	let rows: Row[] = [], view: 'best' | 'all' = 'best';
+	let rows: Row[] = [], view: 'student' | 'best' | 'all' = 'student';
 	const say = (t: string, k = '') => { const m = $('msg'); m.className = 'wl-msg' + (k ? ' ' + k : ''); m.textContent = t; };
 
 	const filtered = () => {
@@ -84,6 +85,19 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 		}
 		return [...m.values()].sort((a, b) => a.r.quiz.localeCompare(b.r.quiz) || a.r.name.localeCompare(b.r.name, 'ar'));
 	};
+	// سطر لكل طالب: كم اختبار مختلف عمل، وكم محاولة، ومعدل أعلى علاماته بالاختبارات، ومجموع الخروج
+	const byStudent = (rs: Row[]) => {
+		const m = new Map<string, { name: string; quizzes: Set<string>; n: number; best: Map<string, number>; left: number; last: Date | null }>();
+		for (const r of rs) {
+			let e = m.get(r.sid);
+			if (!e) { e = { name: r.name, quizzes: new Set(), n: 0, best: new Map(), left: 0, last: null }; m.set(r.sid, e); }
+			e.quizzes.add(r.quiz); e.n++; e.left += r.left ?? 0;
+			e.best.set(r.quiz, Math.max(e.best.get(r.quiz) ?? 0, r.score / r.total));
+			if (r.at && (!e.last || r.at > e.last)) { e.last = r.at; e.name = r.name; }
+		}
+		return [...m.entries()].map(([sid, e]) => ({ sid, ...e, avg: Math.round(([...e.best.values()].reduce((a, b) => a + b, 0) / e.best.size) * 100) })).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+	};
+	const pctCls = (p: number) => (p >= 80 ? 'hi' : p < 50 ? 'lo' : '');
 	const cls = (s: number, t: number) => (s / t >= 0.8 ? 'hi' : s / t < 0.5 ? 'lo' : '');
 	const render = () => {
 		const rs = filtered();
@@ -91,7 +105,10 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 		$('students').textContent = String(new Set(rs.map((r) => r.sid)).size);
 		$('avg').textContent = rs.length ? `${Math.round((rs.reduce((s, r) => s + r.score / r.total, 0) / rs.length) * 100)}%` : '—';
 		const t = $('table');
-		if (view === 'all') {
+		if (view === 'student') {
+			t.innerHTML = '<thead><tr><th>الطالب</th><th>الرقم</th><th>اختبارات مختلفة</th><th>المحاولات</th><th>معدل أعلى العلامات</th><th>خروج</th><th>آخر نشاط</th></tr></thead><tbody>' +
+				byStudent(rs).map((e) => `<tr><td>${esc(e.name)}</td><td class="num">${esc(e.sid)}</td><td class="num">${e.quizzes.size}</td><td class="num">${e.n}</td><td class="num ${pctCls(e.avg)}">${e.avg}%</td>${leftCell(e.left)}<td class="num">${fmtDate(e.last)}</td></tr>`).join('') + '</tbody>';
+		} else if (view === 'all') {
 			t.innerHTML = '<thead><tr><th>الوقت</th><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>العلامة</th><th>خروج</th><th>المدة</th><th></th></tr></thead><tbody>' +
 				rs.map((r) => `<tr><td class="num">${fmtDate(r.at)}</td><td>${esc(r.name)}</td><td class="num">${esc(r.sid)}</td><td>${quizName(r.quiz)}</td><td class="num ${cls(r.score, r.total)}">${mark(r.score, r.total)}</td>${leftCell(r.left)}<td class="num">${dur(r.secs)}</td><td><button type="button" class="wl-btn rs-del" data-del="${r.id}" title="حذف هذه المحاولة">🗑</button></td></tr>`).join('') + '</tbody>';
 		} else {
@@ -121,7 +138,9 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 	const csv = () => {
 		const rs = filtered();
 		const q = (s: string | number) => `"${String(s).replace(/"/g, '""')}"`;
-		const lines = view === 'all'
+		const lines = view === 'student'
+			? [['الطالب', 'الرقم الجامعي', 'اختبارات مختلفة', 'المحاولات', 'معدل أعلى العلامات %', 'خروج', 'آخر نشاط'], ...byStudent(rs).map((e) => [e.name, e.sid, e.quizzes.size, e.n, e.avg, e.left, fmtDate(e.last)])]
+			: view === 'all'
 			? [['الوقت', 'الطالب', 'الرقم الجامعي', 'الاختبار', 'العلامة', 'من', 'خروج', 'المدة'], ...rs.map((r) => [fmtDate(r.at), r.name, r.sid, quizName(r.quiz), r.score, r.total, r.left ?? '', dur(r.secs)])]
 			: [['الطالب', 'الرقم الجامعي', 'الاختبار', 'أعلى علامة', 'من', 'المحاولات', 'خروج', 'آخر محاولة'], ...summary(rs).map((e) => [e.r.name, e.r.sid, quizName(e.r.quiz), e.best, e.r.total, e.n, e.left, fmtDate(e.last)])];
 		// BOM لحتى Excel يقرا العربي صح
@@ -150,7 +169,7 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 		logoutBtn.addEventListener('click', () => signOut(auth));
 	}
 	root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((b) => b.addEventListener('click', () => {
-		view = b.dataset.view as 'best' | 'all';
+		view = b.dataset.view as 'student' | 'best' | 'all';
 		root.querySelectorAll('[data-view]').forEach((x) => x.classList.toggle('primary', x === b));
 		render();
 	}));
