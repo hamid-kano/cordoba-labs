@@ -39,19 +39,22 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 	.rs-filters label { display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--sl-text-sm); }
 	.rs-filters select, .rs-filters input { padding: 0.35rem 0.5rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-4); background: var(--sl-color-bg); color: var(--sl-color-white); }
 	.rs-t { width: 100%; font-size: var(--sl-text-sm); }
+	.rs-del { padding: 0.1rem 0.45rem; }
 	.rs-t td.num { direction: ltr; text-align: right; white-space: nowrap; }
 	.rs-t td.lo { color: #e5534b; font-weight: 700; } .rs-t td.hi { color: #2fb36b; font-weight: 700; }
 </style>
 
 <script>
 	import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-	import { getFirestore, collection, getDocs, query, orderBy, limit, Timestamp } from 'firebase/firestore/lite';
+	import { getFirestore, collection, getDocs, query, orderBy, limit, Timestamp, deleteDoc, doc } from 'firebase/firestore/lite';
 	import { app } from '../scripts/quizStore';
 	import { firebaseReady, TEACHER_EMAIL } from '../data/firebase-config';
 
-	interface Row { quiz: string; course: string; name: string; sid: string; score: number; total: number; at: Date | null; client: string }
+	interface Row { id: string; quiz: string; course: string; name: string; sid: string; score: number; total: number; at: Date | null; client: string }
 	const COURSE: Record<string, string> = { ai2: 'الذكاء الصنعي 2', wireless: 'الشبكات اللاسلكية', os1: 'نظم التشغيل 1', rts: 'نظم الزمن الحقيقي' };
-	const quizName = (id: string) => { const [c, k] = id.split('-'); return `${COURSE[c] ?? c}: ${k === 'exam' ? 'اختبار المادة' : 'الجلسة ' + k.slice(1)}`; };
+	// اسم مقروء للاختبار، وأي معرّف غريب (متل محاولات الفحص) بيطلع متل ما هو
+const quizName = (id: string) => { const m = id.match(/^(ai2|wireless|os1|rts)-(exam|s(\d+))$/); return m ? `${COURSE[m[1]]}: ${m[2] === 'exam' ? 'اختبار المادة' : 'الجلسة ' + m[3]}` : id; };
+const mark = (s: number, t: number) => `${s} من ${t}`;
 	const fmtDate = (d: Date | null) => (d ? d.toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—');
 	const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
@@ -86,11 +89,11 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 		$('avg').textContent = rs.length ? `${Math.round((rs.reduce((s, r) => s + r.score / r.total, 0) / rs.length) * 100)}%` : '—';
 		const t = $('table');
 		if (view === 'all') {
-			t.innerHTML = '<thead><tr><th>الوقت</th><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>العلامة</th></tr></thead><tbody>' +
-				rs.map((r) => `<tr><td class="num">${fmtDate(r.at)}</td><td>${esc(r.name)}</td><td class="num">${esc(r.sid)}</td><td>${quizName(r.quiz)}</td><td class="num ${cls(r.score, r.total)}">${r.score} / ${r.total}</td></tr>`).join('') + '</tbody>';
+			t.innerHTML = '<thead><tr><th>الوقت</th><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>العلامة</th><th></th></tr></thead><tbody>' +
+				rs.map((r) => `<tr><td class="num">${fmtDate(r.at)}</td><td>${esc(r.name)}</td><td class="num">${esc(r.sid)}</td><td>${quizName(r.quiz)}</td><td class="num ${cls(r.score, r.total)}">${mark(r.score, r.total)}</td><td><button type="button" class="wl-btn rs-del" data-del="${r.id}" title="حذف هذه المحاولة">🗑</button></td></tr>`).join('') + '</tbody>';
 		} else {
 			t.innerHTML = '<thead><tr><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>أعلى علامة</th><th>المحاولات</th><th>آخر محاولة</th></tr></thead><tbody>' +
-				summary(rs).map((e) => `<tr><td>${esc(e.r.name)}</td><td class="num">${esc(e.r.sid)}</td><td>${quizName(e.r.quiz)}</td><td class="num ${cls(e.best, e.r.total)}">${e.best} / ${e.r.total}</td><td class="num">${e.n}</td><td class="num">${fmtDate(e.last)}</td></tr>`).join('') + '</tbody>';
+				summary(rs).map((e) => `<tr><td>${esc(e.r.name)}</td><td class="num">${esc(e.r.sid)}</td><td>${quizName(e.r.quiz)}</td><td class="num ${cls(e.best, e.r.total)}">${mark(e.best, e.r.total)}</td><td class="num">${e.n}</td><td class="num">${fmtDate(e.last)}</td></tr>`).join('') + '</tbody>';
 		}
 	};
 	const fillQuizzes = () => {
@@ -104,7 +107,7 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 		say('جارٍ تحميل النتائج...');
 		try {
 			const snap = await getDocs(query(collection(getFirestore(app()), 'attempts'), orderBy('at', 'desc'), limit(5000)));
-			rows = snap.docs.map((d) => { const x = d.data(); return { ...x, at: x.at instanceof Timestamp ? x.at.toDate() : null } as Row; });
+			rows = snap.docs.map((d) => { const x = d.data(); return { ...x, id: d.id, at: x.at instanceof Timestamp ? x.at.toDate() : null } as Row; });
 			fillQuizzes(); render();
 			say(`✓ ${rows.length} محاولة.`, 'wl-good');
 		} catch (e) {
@@ -152,5 +155,19 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 	f('quiz').addEventListener('change', render);
 	f('q').addEventListener('input', render);
 	root.querySelector('[data-reload]')!.addEventListener('click', load);
+	// حذف محاولة (للمحاولات التجريبية أو الغلط): بس بجدول «كل المحاولات»
+	root.addEventListener('click', async (ev) => {
+		const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('[data-del]');
+		if (!b) return;
+		const r = rows.find((x) => x.id === b.dataset.del);
+		if (!r || !confirm(`حذف محاولة «${r.name}» في «${quizName(r.quiz)}» (${mark(r.score, r.total)})؟ لا يمكن التراجع.`)) return;
+		b.disabled = true;
+		try {
+			await deleteDoc(doc(getFirestore(app()), 'attempts', r.id));
+			rows = rows.filter((x) => x.id !== r.id);
+			fillQuizzes(); render();
+			say('✓ حُذفت المحاولة.', 'wl-good');
+		} catch (e) { console.error(e); b.disabled = false; say('تعذّر الحذف.', 'wl-bad'); }
+	});
 	root.querySelector('[data-csv]')!.addEventListener('click', csv);
 </script>
