@@ -1,0 +1,119 @@
+---
+// البحث عن نمط بنص: البسيط مقابل KMP خطوة خطوة. النمط بينزاح تحت النص، والحرف المقارن بيتلوّن.
+// المحرك naiveSearch/kmpSearch/kmpTable بـ src/scripts/algo.ts.
+const PRE = [
+	['ABABDABACDABABCABAB', 'ABABCABAB'],
+	['AAAAAAAAAAAAAAAAAAAB', 'AAAAB'],
+	['GATTACAGATTACA', 'TACA'],
+];
+---
+
+<div class="not-content wl-box" data-strlab data-pre={JSON.stringify(PRE)}>
+	<h4>🔍 ابحث عن كلمة في نص</h4>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-alg="naive">البسيط</button>
+		<button type="button" class="wl-btn" data-alg="kmp">KMP</button>
+	</div>
+	<div class="wl-row">
+		{PRE.map((p, i) => <button type="button" class={`wl-btn${i === 0 ? ' primary' : ''}`} data-p={i}><bdi dir="ltr">{p[1]}</bdi></button>)}
+	</div>
+	<div class="wl-row">
+		<input type="text" data-k="t" dir="ltr" maxlength="28" style="flex:1;min-width:10rem;font-family:var(--__sl-font-mono)" />
+		<input type="text" data-k="p" dir="ltr" maxlength="10" style="width:7rem;font-family:var(--__sl-font-mono)" />
+		<button type="button" class="wl-btn" data-go>ابحث</button>
+	</div>
+	<div class="st-wrap" dir="ltr">
+		<div class="st-row" data-out="text"></div>
+		<div class="st-row" data-out="pat"></div>
+	</div>
+	<div class="st-lps" dir="ltr" data-out="lps" hidden></div>
+	<p class="sl-note" data-out="note"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>مقارنة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+		<button type="button" class="wl-btn" data-end>⏭ النهاية</button>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>مقارنات البسيط</span><strong data-out="cn">0</strong></div>
+		<div class="wl-out"><span>مقارنات KMP</span><strong data-out="ck">0</strong></div>
+	</div>
+</div>
+
+<style is:global>
+	.st-wrap { overflow-x: auto; display: flex; flex-direction: column; gap: 2px; padding-bottom: 0.2rem; }
+	.st-row { display: flex; font-family: var(--__sl-font-mono); }
+	.st-row i { flex: 0 0 1.4rem; height: 1.6rem; display: grid; place-items: center; font-style: normal; font-weight: 700; border-radius: 0.2rem; }
+	.st-row[data-out='text'] i { background: var(--sl-color-gray-6); }
+	.st-row i.hit { background: rgb(47 179 107 / 0.55) !important; }
+	.st-row i.ok { background: rgb(47 179 107 / 0.35); }
+	.st-row i.bad { background: rgb(229 83 75 / 0.6); }
+	.st-row i.cur { outline: 2px solid #e0a030; }
+	.st-row i.p { background: rgb(58 158 194 / 0.35); }
+	.st-lps { display: flex; gap: 2px; font-family: var(--__sl-font-mono); font-size: 0.8rem; flex-wrap: wrap; align-items: center; }
+	.st-lps span { display: inline-flex; flex-direction: column; align-items: center; width: 1.6rem; border: 1px solid var(--sl-color-gray-5); border-radius: 0.2rem; }
+	.st-lps span b { color: #e0a030; }
+</style>
+
+<script>
+	import { naiveSearch, kmpSearch, arCount, type SStep } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-strlab]').forEach((root) => {
+		const PRE: string[][] = JSON.parse(root.dataset.pre!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const tIn = root.querySelector<HTMLInputElement>('[data-k="t"]')!, pIn = root.querySelector<HTMLInputElement>('[data-k="p"]')!;
+		let alg = 'naive', T = '', P = '', steps: SStep[] = [], lps: number[] = [], i = -1, timer = 0, found: number[] = [];
+		const draw = () => {
+			const s = steps[i];
+			const hits = new Set(found.filter((f) => steps.slice(0, i + 1).some((x) => x.found && x.shift === f)).flatMap((f) => [...P].map((_, k) => f + k)));
+			$('text').innerHTML = [...T].map((c, k) => {
+				let cls = hits.has(k) ? 'hit' : '';
+				if (s && k === s.shift + s.j) cls += s.ok ? ' ok cur' : ' bad cur';
+				return `<i class="${cls}">${c === ' ' ? '·' : c}</i>`;
+			}).join('');
+			const sh = s ? s.shift : 0;
+			$('pat').innerHTML = '<i></i>'.repeat(sh) + [...P].map((c, k) => `<i class="p${s && k === s.j ? (s.ok ? ' ok cur' : ' bad cur') : s && k < s.j ? ' ok' : ''}">${c}</i>`).join('');
+			$('lps').hidden = alg !== 'kmp';
+			$('lps').innerHTML = '<small>جدول الإزاحة:</small>' + [...P].map((c, k) => `<span>${c}<b>${lps[k]}</b></span>`).join('');
+			const note = $('note');
+			if (!s) note.textContent = alg === 'naive' ? 'البسيط: نضع النمط تحت أول النص، ونقارن حرفاً حرفاً. عند أول اختلاف، نزيح النمط خانة واحدة ونبدأ من جديد.' : 'KMP: قبل البحث نحسب «جدول الإزاحة» للنمط. وعند الاختلاف لا نرجع في النص أبداً، بل نزيح النمط بذكاء حسب الجدول.';
+			else if (s.found) note.textContent = `✓ وجدنا النمط عند الموقع ${s.shift}.`;
+			else if (s.ok) note.textContent = `«${T[s.shift + s.j]}» = «${P[s.j]}»: نكمل إلى الحرف التالي.`;
+			else note.textContent = alg === 'naive'
+				? (s.j ? `«${T[s.shift + s.j]}» ≠ «${P[s.j]}»: نزيح النمط خانة واحدة، ونرجع إلى أول النمط. ${arCount(s.j, 'الحرف الذي طابقناه سنعيد مقارنته', 'الحرفان اللذان طابقناهما سنعيد مقارنتهما', 'حروف طابقناها سنعيد مقارنتها', 'حرفاً طابقناها سنعيد مقارنتها')}!` : `«${T[s.shift]}» ≠ «${P[0]}»: نزيح النمط خانة واحدة.`)
+				: s.j > 0 ? `«${T[s.shift + s.j]}» ≠ «${P[s.j]}»: طابقنا ${arCount(s.j, 'حرفاً واحداً', 'حرفين', 'حروف', 'حرفاً')}. ${lps[s.j - 1] ? `والجدول يقول إن آخر ${arCount(lps[s.j - 1], 'حرف منها يطابق', 'حرفين منها يطابقان', 'حروف منها تطابق', 'حرفاً منها تطابق')} بداية النمط، فنزيح النمط لتبقى مطابقة` : 'والجدول يقول إن لا شيء منها يطابق بداية النمط، فنبدأ النمط من أوله'}، دون أن نرجع في النص.` : `«${T[s.shift + s.j]}» ≠ «${P[0]}»: ننتقل إلى الحرف التالي في النص.`;
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i < 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i >= steps.length - 1;
+		};
+		const load = () => {
+			clearInterval(timer);
+			T = tIn.value.toUpperCase().slice(0, 28); P = pIn.value.toUpperCase().slice(0, 10);
+			if (!T || !P || P.length > T.length) return;
+			const nv = naiveSearch(T, P), k = kmpSearch(T, P);
+			lps = k.lps;
+			const r = alg === 'naive' ? nv : k;
+			steps = r.steps; found = r.found; i = -1;
+			$('cn').textContent = String(nv.cmps); $('ck').textContent = String(k.cmps);
+			draw();
+		};
+		const setPre = (n: number) => { tIn.value = PRE[n][0]; pIn.value = PRE[n][1]; load(); };
+		root.querySelectorAll<HTMLButtonElement>('[data-alg]').forEach((b) => b.addEventListener('click', () => {
+			alg = b.dataset.alg!;
+			root.querySelectorAll('[data-alg]').forEach((x) => x.classList.toggle('primary', x === b));
+			load();
+		}));
+		root.querySelectorAll<HTMLButtonElement>('[data-p]').forEach((b) => b.addEventListener('click', () => {
+			root.querySelectorAll('[data-p]').forEach((x) => x.classList.toggle('primary', x === b));
+			setPre(+b.dataset.p!);
+		}));
+		root.querySelector('[data-go]')!.addEventListener('click', load);
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < steps.length - 1) { i++; draw(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i >= 0) { i--; draw(); } });
+		root.querySelector('[data-end]')!.addEventListener('click', () => { clearInterval(timer); i = steps.length - 1; draw(); });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= steps.length - 1) i = -1;
+			timer = window.setInterval(() => { if (i >= steps.length - 1) { clearInterval(timer); return; } i++; draw(); }, 280);
+		});
+		setPre(0);
+	});
+</script>

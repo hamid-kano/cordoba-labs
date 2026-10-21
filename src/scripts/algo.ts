@@ -826,3 +826,125 @@ export function subsetSum(nums: number[], target: number) {
 	go(0, [], 0);
 	return { out, calls };
 }
+
+// ===================== 18. البحث بالنصوص =====================
+export interface SStep { shift: number; j: number; ok: boolean; found: boolean; cmps: number }
+/** البحث البسيط: كل إزاحة، ومنقارن من أول النمط لحتى يختلف حرف */
+export function naiveSearch(text: string, pat: string) {
+	const steps: SStep[] = [];
+	const found: number[] = [];
+	let cmps = 0;
+	for (let s = 0; s + pat.length <= text.length; s++) {
+		for (let j = 0; j < pat.length; j++) {
+			cmps++;
+			const ok = text[s + j] === pat[j];
+			const full = ok && j === pat.length - 1;
+			if (full) found.push(s);
+			steps.push({ shift: s, j, ok, found: full, cmps });
+			if (!ok) break;
+		}
+	}
+	return { steps, found, cmps };
+}
+/** جدول KMP: lps[j] = طول أطول بادئة هي لاحقة كمان بـ pat[0..j] */
+export function kmpTable(pat: string): number[] {
+	const lps = new Array(pat.length).fill(0);
+	for (let i = 1, k = 0; i < pat.length; i++) {
+		while (k > 0 && pat[i] !== pat[k]) k = lps[k - 1];
+		if (pat[i] === pat[k]) k++;
+		lps[i] = k;
+	}
+	return lps;
+}
+/** KMP: مؤشر النص i ما بيرجع لورا أبداً */
+export function kmpSearch(text: string, pat: string) {
+	const lps = kmpTable(pat);
+	const steps: SStep[] = [];
+	const found: number[] = [];
+	let cmps = 0, j = 0;
+	for (let i = 0; i < text.length; i++) {
+		for (;;) {
+			cmps++;
+			const ok = text[i] === pat[j];
+			if (ok) {
+				const full = j === pat.length - 1;
+				steps.push({ shift: i - j, j, ok, found: full, cmps });
+				if (full) { found.push(i - j); j = lps[j]; } else j++;
+				break;
+			}
+			steps.push({ shift: i - j, j, ok, found: false, cmps });
+			if (j === 0) break;
+			j = lps[j - 1];
+		}
+	}
+	return { steps, found, cmps, lps };
+}
+
+// ===================== 19. المسائل الصعبة: البائع المتجول =====================
+export interface Pt { id: string; label: string; x: number; y: number }
+export const TSP_PTS: Pt[] = [
+	{ id: 'dam', label: 'دمشق', x: 220, y: 400 }, { id: 'hom', label: 'حمص', x: 250, y: 260 }, { id: 'alp', label: 'حلب', x: 300, y: 50 },
+	{ id: 'lat', label: 'اللاذقية', x: 80, y: 95 }, { id: 'dez', label: 'دير الزور', x: 610, y: 190 }, { id: 'dar', label: 'درعا', x: 190, y: 500 },
+	{ id: 'pal', label: 'تدمر', x: 450, y: 290 }, { id: 'raq', label: 'الرقة', x: 500, y: 85 }, { id: 'tar', label: 'طرطوس', x: 90, y: 215 },
+	{ id: 'ham', label: 'حماة', x: 280, y: 170 },
+];
+export const dist2 = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
+export const tourLen = (pts: Pt[], order: number[]) => order.reduce((s, k, i) => s + dist2(pts[k], pts[order[(i + 1) % order.length]]), 0);
+/** كل الجولات من المدينة 0 (بدون تكرار الاتجاه المعكوس): (n−1)!/2 */
+export function tspBrute(pts: Pt[]) {
+	const n = pts.length;
+	let best = Infinity, bestOrder: number[] = [], checked = 0;
+	const rest = Array.from({ length: n - 1 }, (_, i) => i + 1);
+	const perm = (k: number) => {
+		if (k === rest.length) {
+			if (n > 2 && rest[0] > rest[rest.length - 1]) return; // الاتجاه المعكوس نفس الجولة
+			checked++;
+			const o = [0, ...rest];
+			const L = tourLen(pts, o);
+			if (L < best) { best = L; bestOrder = o; }
+			return;
+		}
+		for (let i = k; i < rest.length; i++) {
+			[rest[k], rest[i]] = [rest[i], rest[k]];
+			perm(k + 1);
+			[rest[k], rest[i]] = [rest[i], rest[k]];
+		}
+	};
+	perm(0);
+	return { best, order: bestOrder, checked };
+}
+/** أقرب جار: من المدينة 0، كل مرة لأقرب مدينة ما زرناها */
+export function tspNearest(pts: Pt[]) {
+	const order = [0];
+	const left = new Set(pts.map((_, i) => i).slice(1));
+	while (left.size) {
+		const cur = pts[order.at(-1)!];
+		let bi = -1;
+		for (const i of left) if (bi < 0 || dist2(cur, pts[i]) < dist2(cur, pts[bi])) bi = i;
+		order.push(bi); left.delete(bi);
+	}
+	return { order, len: tourLen(pts, order) };
+}
+/** تحسين 2-opt: اعكس أي مقطع إذا بيقصّر الجولة، لحتى ما يبقى تحسين */
+export function twoOpt(pts: Pt[], start: number[]) {
+	const o = [...start];
+	let improved = true, rounds = 0;
+	while (improved) {
+		improved = false; rounds++;
+		for (let i = 1; i < o.length - 1; i++) for (let k = i + 1; k < o.length; k++) {
+			const n = [...o.slice(0, i), ...o.slice(i, k + 1).reverse(), ...o.slice(k + 1)];
+			if (tourLen(pts, n) + 1e-9 < tourLen(pts, o)) { o.splice(0, o.length, ...n); improved = true; }
+		}
+	}
+	return { order: o, len: tourLen(pts, o), rounds };
+}
+export const factorial = (n: number) => { let f = 1; for (let k = 2; k <= n; k++) f *= k; return f; };
+/** مجموعة جزئية مجموعها الهدف (للتحقق مقابل الإيجاد) */
+export const SUBSET_NUMS = [17, 31, 8, 23, 42, 15, 29, 11, 36, 5, 27, 19];
+export const SUBSET_TARGET = 100;
+export function countSubsetSolutions(nums: number[], target: number) {
+	let c = 0;
+	const n = nums.length;
+	for (let m = 1; m < 1 << n; m++) { let s = 0; for (let i = 0; i < n; i++) if (m & (1 << i)) s += nums[i]; if (s === target) c++; }
+	return c;
+}

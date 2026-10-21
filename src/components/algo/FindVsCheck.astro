@@ -1,0 +1,59 @@
+---
+// «الإيجاد صعب، والتحقق سهل»: 12 رقم، والطالب بيدوّر على مجموعة مجموعها 100.
+// كل مرة بيضغط رقم، الحاسوب بيتحقق فوراً. المحرك SUBSET_NUMS بـ src/scripts/algo.ts.
+import { SUBSET_NUMS, SUBSET_TARGET } from '../../scripts/algo';
+---
+
+<div class="not-content wl-box" data-fvc>
+	<h4>🔐 أوجد مجموعة مجموعها {SUBSET_TARGET}</h4>
+	<p class="se-hint">اختر أرقاماً من هذه الاثني عشر بحيث يكون مجموعها <b>{SUBSET_TARGET}</b> بالضبط. والوقت يعمل!</p>
+	<div class="wl-row fv-nums" dir="ltr">
+		{SUBSET_NUMS.map((x, i) => <button type="button" class="wl-btn" data-i={i}>{x}</button>)}
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>المجموع</span><strong data-out="sum">0</strong></div>
+		<div class="wl-out"><span>الوقت</span><strong data-out="time">0 s</strong></div>
+		<div class="wl-out"><span>زمن التحقق من اختيارك</span><strong data-out="check">—</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.fv-nums .wl-btn { min-width: 2.8rem; font-weight: 700; }
+	.fv-nums .wl-btn.on { background: #3a9ec2; border-color: #3a9ec2; color: #111; }
+	.fv-nums.win .wl-btn.on { background: #2fb36b; border-color: #2fb36b; }
+</style>
+
+<script>
+	import { SUBSET_NUMS, SUBSET_TARGET, countSubsetSolutions } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-fvc]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const row = root.querySelector<HTMLElement>('.fv-nums')!;
+		const on = new Set<number>();
+		let t0 = 0, timer = 0, done = false;
+		root.querySelectorAll<HTMLButtonElement>('[data-i]').forEach((b) => b.addEventListener('click', () => {
+			if (done) return;
+			if (!t0) { t0 = performance.now(); timer = window.setInterval(() => ($('time').textContent = `${Math.round((performance.now() - t0) / 1000)} s`), 500); }
+			const i = +b.dataset.i!;
+			if (on.has(i)) on.delete(i); else on.add(i);
+			b.classList.toggle('on', on.has(i));
+			// التحقق: جمع الأرقام المختارة ومقارنتها بالهدف
+			const c0 = performance.now();
+			const sum = [...on].reduce((s, k) => s + SUBSET_NUMS[k], 0);
+			const ok = sum === SUBSET_TARGET;
+			$('check').textContent = `${((performance.now() - c0) * 1000).toFixed(0)} µs`;
+			$('sum').textContent = String(sum);
+			const msg = $('msg');
+			if (ok) {
+				done = true; clearInterval(timer); row.classList.add('win');
+				msg.className = 'wl-msg wl-good';
+				const secs = Math.round((performance.now() - t0) / 1000);
+				msg.textContent = `✓ وجدتها في ${secs < 1 ? 'أقل من ثانية' : secs + ' ثانية'}! لاحظ: التحقق من اختيارك أخذ أجزاء من ألف من الثانية، أما الإيجاد فأخذ منك وقتاً. وفي الأرقام الاثني عشر ${2 ** SUBSET_NUMS.length} مجموعة ممكنة، منها ${countSubsetSolutions(SUBSET_NUMS, SUBSET_TARGET)} مجموعة صحيحة فقط.`;
+			} else {
+				msg.className = 'wl-msg';
+				msg.textContent = sum > SUBSET_TARGET ? 'تجاوزت الهدف. أزل رقماً.' : `بقي ${SUBSET_TARGET - sum}.`;
+			}
+		}));
+		$('msg').textContent = 'اضغط الأرقام لتختارها. والحاسوب يتحقق فوراً بعد كل ضغطة.';
+	});
+</script>

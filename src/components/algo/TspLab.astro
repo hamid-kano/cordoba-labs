@@ -1,0 +1,103 @@
+---
+// البائع المتجول: الطالب بيرسم جولته بالكبس على المدن، وبعدين بيقارن مع التجريب الكامل
+// (كم جولة فحص، وكم أخد وقت) ومع «أقرب جار» و 2-opt. المحرك tsp* بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-tsp>
+	<h4>🧳 البائع المتجول</h4>
+	<p class="se-hint">ابدأ من دمشق، وزُر كل المدن مرة واحدة، ثم ارجع إلى دمشق. اضغط المدن بالترتيب الذي تريده: هل تجد أقصر جولة؟</p>
+	<label class="ai-slider"><span>عدد المدن<output data-o="n"></output></span><input type="range" min="4" max="10" step="1" value="6" data-k="n" /></label>
+	<div class="tsp-wrap" dir="ltr"><svg class="gd-svg" viewBox="0 0 700 540" data-out="svg" role="img" aria-label="مدن على خريطة، وجولة تمر بها"></svg></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-undo>⌫ تراجع</button>
+		<button type="button" class="wl-btn primary" data-brute>💪 جرّب كل الجولات</button>
+		<button type="button" class="wl-btn" data-nn>🏃 أقرب جار</button>
+		<button type="button" class="wl-btn" data-opt>✂️ حسّن بـ 2-opt</button>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>جولتك</span><strong data-out="mine">—</strong></div>
+		<div class="wl-out"><span>الجولة المعروضة</span><strong data-out="shown">—</strong></div>
+		<div class="wl-out"><span>جولات ممكنة</span><strong data-out="count">—</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.tsp-wrap { overflow-x: auto; max-width: 100%; }
+	.tsp-wrap .gd-svg { min-width: 480px; }
+	.tsp-line { stroke: #3a9ec2; stroke-width: 4; fill: none; stroke-linejoin: round; }
+	.tsp-line.best { stroke: #2fb36b; }
+	.tsp-line.heur { stroke: #e0a030; stroke-dasharray: 10 6; }
+	.tsp-num { font: 700 12px sans-serif; text-anchor: middle; fill: var(--sl-color-white); }
+</style>
+
+<script>
+	import { TSP_PTS, tourLen, tspBrute, tspNearest, twoOpt, factorial } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-tsp]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('[data-out="svg"]')!;
+		const nIn = root.querySelector<HTMLInputElement>('[data-k="n"]')!;
+		let n = 6, mine: number[] = [0], shown: number[] = [], shownCls = '', best = Infinity;
+		const pts = () => TSP_PTS.slice(0, n);
+		const len = (o: number[]) => Math.round(tourLen(pts(), o));
+		const poly = (o: number[], cls: string, close: boolean) => `<polyline class="tsp-line ${cls}" points="${[...o, ...(close ? [o[0]] : [])].map((k) => `${pts()[k].x},${pts()[k].y}`).join(' ')}"/>`;
+		const draw = () => {
+			const P = pts();
+			let h = '';
+			if (shown.length) h += poly(shown, shownCls, true);
+			if (mine.length > 1) h += poly(mine, '', mine.length === n);
+			P.forEach((p, k) => {
+				const pos = mine.indexOf(k);
+				const cls = k === 0 ? 'path' : pos >= 0 ? 'hit' : '';
+				const w = Math.max(56, p.label.length * 11 + 16);
+				h += `<g class="gd-n tr-node ${cls}" data-id="${k}"><rect x="${p.x - w / 2}" y="${p.y - 16}" width="${w}" height="32" rx="16"/><text x="${p.x}" y="${p.y + 5}">${p.label}</text>${pos > 0 ? `<text class="tsp-num" x="${p.x}" y="${p.y - 22}">${pos}</text>` : ''}</g>`;
+			});
+			svg.innerHTML = h;
+			svg.querySelectorAll<SVGGElement>('.gd-n').forEach((g) => g.addEventListener('click', () => pick(+g.dataset.id!)));
+			$('mine').textContent = mine.length === n ? String(len(mine)) : '—';
+			$('shown').textContent = shown.length ? String(len(shown)) : '—';
+			$('count').textContent = (factorial(n - 1) / 2).toLocaleString('en');
+		};
+		const pick = (k: number) => {
+			if (mine.includes(k) || mine.length === n) return;
+			mine.push(k);
+			draw();
+			if (mine.length === n) {
+				const L = len(mine), msg = $('msg');
+				if (best === Infinity) best = Math.round(tspBrute(pts()).best);
+				msg.className = 'wl-msg ' + (L <= best ? 'wl-good' : '');
+				msg.textContent = L <= best ? `✓ جولتك ${L}، وهي أقصر جولة ممكنة!` : `جولتك ${L}. الأقصر ممكن ${best}. اضغط «جرّب كل الجولات» لتراها.`;
+			}
+		};
+		const reset = () => { n = +nIn.value; root.querySelector('[data-o="n"]')!.textContent = String(n); mine = [0]; shown = []; best = Infinity; $('msg').className = 'wl-msg'; $('msg').textContent = `${n} مدن: فيها ${(factorial(n - 1) / 2).toLocaleString('en')} جولة مختلفة.`; draw(); };
+		root.querySelector('[data-brute]')!.addEventListener('click', () => {
+			const t0 = performance.now();
+			const r = tspBrute(pts());
+			const ms = performance.now() - t0;
+			best = Math.round(r.best); shown = r.order; shownCls = 'best'; draw();
+			const msg = $('msg');
+			msg.className = 'wl-msg wl-good';
+			msg.textContent = `فحصنا كل الجولات (${r.checked.toLocaleString('en')}) في ${ms.toFixed(1)} ملي ثانية، والأقصر ${best}. ولو فحصنا مليون جولة في الثانية، فإن 20 مدينة تحتاج قرابة 1,900 سنة!`;
+		});
+		root.querySelector('[data-nn]')!.addEventListener('click', () => {
+			const r = tspNearest(pts());
+			if (best === Infinity) best = Math.round(tspBrute(pts()).best);
+			shown = r.order; shownCls = 'heur'; draw();
+			const L = Math.round(r.len), msg = $('msg');
+			msg.className = 'wl-msg';
+			msg.textContent = `أقرب جار: من كل مدينة إلى أقرب مدينة لم نزرها. طول الجولة ${L}، أي أطول من الأقصر (${best}) بـ ${(((L / best) - 1) * 100).toFixed(1)}%. سريع جداً، لكنه ليس الأفضل دائماً.`;
+		});
+		root.querySelector('[data-opt]')!.addEventListener('click', () => {
+			const start = shown.length ? shown : tspNearest(pts()).order;
+			const r = twoOpt(pts(), start);
+			if (best === Infinity) best = Math.round(tspBrute(pts()).best);
+			shown = r.order; shownCls = 'heur'; draw();
+			const L = Math.round(r.len), msg = $('msg');
+			msg.className = 'wl-msg' + (L <= best ? ' wl-good' : '');
+			msg.textContent = `2-opt: كلما تقاطع خطان في الجولة، نعكس الجزء بينهما فيختفي التقاطع وتقصر الجولة. النتيجة ${L}${L <= best ? '، وهي الأقصر هنا!' : `، قريبة جداً من الأقصر (${best})`}.`;
+		});
+		root.querySelector('[data-undo]')!.addEventListener('click', () => { if (mine.length > 1) mine.pop(); draw(); });
+		nIn.addEventListener('input', reset);
+		reset();
+	});
+</script>

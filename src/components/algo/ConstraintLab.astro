@@ -1,0 +1,55 @@
+---
+// من حجم المدخلات للتعقيد: الطالب بيدخل n، وبيشوف كم عملية بيحتاج كل صنف، وشو بيمشي بثانية (قرابة 10⁸ عملية).
+---
+
+<div class="not-content wl-box" data-constraint>
+	<h4>⏱️ اقرأ القيود قبل أن تكتب سطراً</h4>
+	<p class="se-hint">المسألة تقول: «n حتى ...» والحد الزمني ثانية واحدة. ما الخوارزمية التي تحتاجها؟</p>
+	<div class="wl-row">
+		{[10, 20, 500, 5000, 100000, 1000000, 1000000000].map((n, i) => <button type="button" class={`wl-btn${i === 4 ? ' primary' : ''}`} data-n={n}><bdi dir="ltr">{n.toLocaleString('en')}</bdi></button>)}
+	</div>
+	<div class="wl-scroll"><table class="wl-table ct-t" data-out="t"></table></div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.ct-t { width: 100%; font-size: var(--sl-text-sm); }
+	.ct-t td:nth-child(2), .ct-t td:nth-child(3) { direction: ltr; text-align: right; }
+	.ct-t tr.ok td { background: rgb(47 179 107 / 0.18); }
+	.ct-t tr.no td { color: var(--sl-color-gray-3); }
+	.ct-t tr.edge td { background: rgb(224 160 48 / 0.2); }
+</style>
+
+<script>
+	const ROWS = [
+		{ k: 'O(log n)', f: (n: number) => Math.log2(n), ex: 'بحث ثنائي' },
+		{ k: 'O(n)', f: (n: number) => n, ex: 'مرور واحد، أو جدول تجزئة' },
+		{ k: 'O(n log n)', f: (n: number) => n * Math.log2(n), ex: 'ترتيب، أو Dijkstra، أو كومة' },
+		{ k: 'O(n²)', f: (n: number) => n * n, ex: 'حلقتان، أو برمجة ديناميكية ثنائية الأبعاد' },
+		{ k: 'O(n³)', f: (n: number) => n ** 3, ex: 'ثلاث حلقات، أو Floyd-Warshall' },
+		{ k: 'O(2ⁿ)', f: (n: number) => 2 ** n, ex: 'كل المجموعات الجزئية، أو تراجع' },
+		{ k: 'O(n!)', f: (n: number) => { let r = 1; for (let i = 2; i <= n; i++) { r *= i; if (r > 1e30) return Infinity; } return r; }, ex: 'كل الترتيبات' },
+	];
+	const fmt = (x: number) => (!isFinite(x) || x > 1e300 ? '∞' : x < 1e6 ? Math.round(x).toLocaleString('en') : x.toExponential(1));
+	document.querySelectorAll<HTMLElement>('[data-constraint]').forEach((root) => {
+		const t = root.querySelector<HTMLElement>('[data-out="t"]')!;
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const show = (n: number) => {
+			let slowest = '';
+			t.innerHTML = '<thead><tr><th>الصنف</th><th>العمليات</th><th>الزمن التقريبي</th><th>أمثلة</th></tr></thead><tbody>' + ROWS.map((r) => {
+				const ops = r.f(n), sec = ops / 1e8;
+				const cls = sec <= 0.3 ? 'ok' : sec <= 3 ? 'edge' : 'no';
+				if (cls !== 'no') slowest = r.k;
+				const time = !isFinite(sec) || sec > 1e290 ? '∞' : sec < 0.001 ? '< 1 ms' : sec < 1 ? `${Math.round(sec * 1000)} ms` : sec < 3600 ? `${sec.toFixed(1)} s` : sec < 3.15e7 * 2 ? `${(sec / 3600).toFixed(0)} h` : `${(sec / 3.15e7).toExponential(0)} years`;
+				return `<tr class="${cls}"><td><b>${r.k}</b></td><td>${fmt(ops)}</td><td>${time}</td><td>${r.ex}</td></tr>`;
+			}).join('') + '</tbody>';
+			msg.className = 'wl-msg wl-good';
+			msg.innerHTML = slowest ? `مع <bdi dir="ltr">n = ${n.toLocaleString('en')}</bdi>، أبطأ صنف مسموح تقريباً: <bdi dir="ltr">${slowest}</bdi>. فابحث عن خوارزمية من هذا الصنف أو أسرع.` : 'حتى O(log n) فقط! غالباً يوجد قانون رياضي مباشر O(1).';
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-n]').forEach((b) => b.addEventListener('click', () => {
+			root.querySelectorAll('[data-n]').forEach((x) => x.classList.toggle('primary', x === b));
+			show(+b.dataset.n!);
+		}));
+		show(100000);
+	});
+</script>
