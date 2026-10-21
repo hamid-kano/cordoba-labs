@@ -11,6 +11,7 @@ import Concept from '../../../components/Concept.astro';
 import Term from '../../../components/Term.astro';
 import SubnetCalc from '../../../components/wireless/SubnetCalc.astro';
 import IpClassDiagram from '../../../components/wireless/IpClassDiagram.astro';
+import Quiz from '../../../components/Quiz.astro';
 
 <div class="lab-meta">
 	<span><strong>المدة:</strong> ساعتان</span>
@@ -211,3 +212,9 @@ $$
 
 يعني أن أول 24 بت من العنوان للشبكة. والقناع `255.255.255.0`، ويبقى 8 بتات للأجهزة: $2^8 - 2 = 254$ جهازاً.
 </details>
+
+## اختبار الجلسة
+
+أجب عن الأسئلة الخمسة، ثم اضغط «سلّم الإجابات». ستظهر علامتك والإجابات الصحيحة مع الشرح، وتصل نتيجتك إلى المدرّس. ويمكنك أن تعيد المحاولة متى شئت.
+
+<Quiz course="wireless" k="s3" />

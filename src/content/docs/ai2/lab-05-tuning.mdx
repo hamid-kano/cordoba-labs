@@ -11,6 +11,7 @@ import Term from '../../../components/Term.astro';
 import SessionWords from '../../../components/ai2/SessionWords.astro';
 import FuzzyLab from '../../../components/ai2/FuzzyLab.astro';
 import Concept from '../../../components/Concept.astro';
+import Quiz from '../../../components/Quiz.astro';
 
 <div class="lab-meta">
 	<span><strong>المدة:</strong> ساعتان</span>
@@ -208,3 +209,9 @@ simFuzzy(fis5, 1, 0.3, 4)
 
 لأنه يميّز بين «خطأ صغير» و«خطأ متوسط»، فيعطي دفعة أقوى في المنطقة الوسطى. ونرى ذلك في السطح: أحدّ في الوسط.
 </details>
+
+## اختبار الجلسة
+
+أجب عن الأسئلة الخمسة، ثم اضغط «سلّم الإجابات». ستظهر علامتك والإجابات الصحيحة مع الشرح، وتصل نتيجتك إلى المدرّس. ويمكنك أن تعيد المحاولة متى شئت.
+
+<Quiz course="ai2" k="s5" />

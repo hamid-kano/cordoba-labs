@@ -10,6 +10,7 @@ import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 import Term from '../../../components/Term.astro';
 import FuzzyLab from '../../../components/ai2/FuzzyLab.astro';
 import Concept from '../../../components/Concept.astro';
+import Quiz from '../../../components/Quiz.astro';
 
 <div class="lab-meta">
 	<span><strong>المدة:</strong> أسبوعان للتحضير + جلسة مناقشة</span>
@@ -200,3 +201,9 @@ import Concept from '../../../components/Concept.astro';
 
 لا، فهذه نتيجة عادية. المهم أنك جرّبت بشكل صحيح وتعرف كيف تشرح السبب. ففي الأنظمة البسيطة يصعب التفوّق على PID مضبوط جيداً. وميزة المتحكم الضبابي أنه مبني على **قواعد بالكلام** نستطيع فهمها وتعديلها.
 </details>
+
+## اختبار الجلسة
+
+أجب عن الأسئلة الخمسة، ثم اضغط «سلّم الإجابات». ستظهر علامتك والإجابات الصحيحة مع الشرح، وتصل نتيجتك إلى المدرّس. ويمكنك أن تعيد المحاولة متى شئت.
+
+<Quiz course="ai2" k="s8" />

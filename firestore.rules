@@ -1,0 +1,28 @@
+rules_version = '2';
+// قواعد أمان Firestore لاختبارات الموقع.
+// الطالب: بيضيف محاولة بس (بشروط على الحقول)، وما بيقدر يقرا ولا يعدّل ولا يحذف.
+// المدرّس: بيقرا ويحذف بس بعد تسجيل الدخول بإيميله. غيّر TEACHER_EMAIL لإيميلك (نفسه يلي بـ src/data/firebase-config.ts).
+// انشرها من Firebase Console ← Firestore Database ← Rules: الصق هالملف كله واكبس Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isTeacher() {
+      return request.auth != null
+        && request.auth.token.email == 'TEACHER_EMAIL'
+        && request.auth.token.email_verified == true;
+    }
+    match /attempts/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['quiz', 'course', 'name', 'sid', 'score', 'total', 'answers', 'client', 'at'])
+        && request.resource.data.quiz is string && request.resource.data.quiz.size() <= 30
+        && request.resource.data.course in ['ai2', 'wireless', 'os1', 'rts']
+        && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 60
+        && request.resource.data.sid is string && request.resource.data.sid.size() >= 1 && request.resource.data.sid.size() <= 20
+        && request.resource.data.total is int && request.resource.data.total >= 1 && request.resource.data.total <= 50
+        && request.resource.data.score is int && request.resource.data.score >= 0 && request.resource.data.score <= request.resource.data.total
+        && request.resource.data.answers is list && request.resource.data.answers.size() == request.resource.data.total
+        && request.resource.data.client is string && request.resource.data.client.size() <= 20
+        && request.resource.data.at == request.time;
+      allow read, delete: if isTeacher();
+      allow update: if false;
+    }
+  }
+}

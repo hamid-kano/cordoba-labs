@@ -1,0 +1,149 @@
+---
+// اختبار اختيار من متعدد بالاسم والرقم الجامعي. بعد التسليم: العلامة، والصح والغلط، والشرح.
+// كل محاولة بتنحفظ بـ Firestore (إذا الإعدادات معبّاية)، والمحاولات بلا حدود.
+// الأسئلة من src/data/quizzes/<course>.ts بالمفتاح k (s1..s8 أو exam).
+import { QUIZ as ai2 } from '../data/quizzes/ai2';
+import { QUIZ as wireless } from '../data/quizzes/wireless';
+import { QUIZ as os1 } from '../data/quizzes/os1';
+import { QUIZ as rts } from '../data/quizzes/rts';
+import type { QuizQ } from '../data/quizzes/types';
+
+interface Props { course: 'ai2' | 'wireless' | 'os1' | 'rts'; k: string; title?: string }
+const { course, k, title } = Astro.props;
+const ALL = { ai2, wireless, os1, rts };
+const qs: QuizQ[] = ALL[course][k] ?? [];
+if (!qs.length) throw new Error(`Quiz ${course}/${k} has no questions`);
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// الكود بين backticks، وأي [أرقام بين قوسين] بتنعزل LTR لحتى ما تنقلب جوّا الجملة العربية
+const fmt = (s: string) => esc(s).replace(/`([^`]+)`/g, '<code dir="ltr">$1</code>').replace(/\[[^\]<]*\]/g, (m) => `<bdi dir="ltr">${m}</bdi>`);
+const id = `${course}-${k}`;
+const key = qs.map((q) => q.a);
+const whys = qs.map((q) => fmt(q.why));
+const label = title ?? (k === 'exam' ? 'اختبار المادة' : 'اختبار الجلسة');
+---
+
+<div class="not-content wl-box qz" data-quiz={id} data-course={course} data-key={JSON.stringify(key)} data-whys={JSON.stringify(whys)}>
+	<h4>📝 {label} <small>({qs.length} أسئلة)</small></h4>
+	<div class="qz-who">
+		<label>الاسم الكامل <input type="text" data-k="name" maxlength="60" autocomplete="name" /></label>
+		<label>الرقم الجامعي <input type="text" data-k="sid" maxlength="20" inputmode="numeric" dir="ltr" /></label>
+	</div>
+	<ol class="qz-list">
+		{qs.map((q, i) => (
+			<li data-q={i}>
+				<p class="qz-q" set:html={fmt(q.q)} />
+				<div class="qz-opts">
+					{q.options.map((o, j) => (
+						<label class="qz-opt"><input type="radio" name={`${id}-${i}`} value={j} /><span set:html={fmt(o)} /></label>
+					))}
+				</div>
+				<p class="qz-why" hidden></p>
+			</li>
+		))}
+	</ol>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-submit>✓ سلّم الإجابات</button>
+		<button type="button" class="wl-btn" data-retry hidden>↺ محاولة جديدة</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.qz h4 small { font-weight: 400; color: var(--sl-color-gray-3); font-size: var(--sl-text-sm); }
+	.qz-who { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+	@media (max-width: 30rem) { .qz-who { grid-template-columns: 1fr; } }
+	.qz-who label { display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--sl-text-sm); }
+	.qz-who input { padding: 0.4rem 0.5rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-4); background: var(--sl-color-bg); color: var(--sl-color-white); font-size: var(--sl-text-base); }
+	.qz-who input.need { border-color: #e5534b; box-shadow: 0 0 0 2px rgb(229 83 75 / 0.3); }
+	.qz-list { margin: 0; padding-inline-start: 1.4rem; display: flex; flex-direction: column; gap: 0.9rem; }
+	.qz-q { margin: 0 0 0.35rem; font-weight: 600; color: var(--sl-color-white); }
+	.qz-opts { display: flex; flex-direction: column; gap: 0.3rem; }
+	.qz-opt { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.4rem 0.6rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-5); cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+	.qz-opt:hover { border-color: var(--sl-color-accent); }
+	.qz-opt input { margin-top: 0.3rem; accent-color: var(--sl-color-accent); }
+	.qz-opt.right { border-color: #2fb36b; background: rgb(47 179 107 / 0.18); }
+	.qz-opt.wrong { border-color: #e5534b; background: rgb(229 83 75 / 0.18); }
+	.qz li.unanswered .qz-q { color: #e5534b; }
+	.qz-why { margin: 0.35rem 0 0; font-size: var(--sl-text-sm); }
+	.qz code { unicode-bidi: isolate; }
+	.qz.done .qz-opt { cursor: default; }
+</style>
+
+<script>
+	import { saveAttempt } from '../scripts/quizStore';
+	const STUDENT = 'cpu-student', CLIENT = 'cpu-client';
+	const store = {
+		get: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } },
+		set: (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* وضع خاص */ } },
+	};
+	const clientId = () => {
+		let c = store.get(CLIENT);
+		if (!c) { c = Math.random().toString(36).slice(2, 12); store.set(CLIENT, c); }
+		return c;
+	};
+	document.querySelectorAll<HTMLElement>('[data-quiz]').forEach((root) => {
+		const id = root.dataset.quiz!, course = root.dataset.course!;
+		const key: number[] = JSON.parse(root.dataset.key!);
+		const whys: string[] = JSON.parse(root.dataset.whys!);
+		const name = root.querySelector<HTMLInputElement>('[data-k="name"]')!;
+		const sid = root.querySelector<HTMLInputElement>('[data-k="sid"]')!;
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const submit = root.querySelector<HTMLButtonElement>('[data-submit]')!;
+		const retry = root.querySelector<HTMLButtonElement>('[data-retry]')!;
+		const items = [...root.querySelectorAll<HTMLLIElement>('li[data-q]')];
+		// الاسم والرقم بينحفظوا على الجهاز لكل الاختبارات
+		try { const s = JSON.parse(store.get(STUDENT) ?? '{}'); name.value = s.name ?? ''; sid.value = s.sid ?? ''; } catch { /* */ }
+		const remember = () => store.set(STUDENT, JSON.stringify({ name: name.value.trim(), sid: sid.value.trim() }));
+		name.addEventListener('change', remember);
+		sid.addEventListener('change', remember);
+		const attempts = () => +(store.get(`quiz-n-${id}`) ?? 0);
+
+		submit.addEventListener('click', async () => {
+			const answers = items.map((li) => { const r = li.querySelector<HTMLInputElement>('input:checked'); return r ? +r.value : -1; });
+			name.classList.toggle('need', name.value.trim().length < 2);
+			sid.classList.toggle('need', !sid.value.trim());
+			items.forEach((li, i) => li.classList.toggle('unanswered', answers[i] < 0));
+			if (name.value.trim().length < 2 || !sid.value.trim()) { msg.className = 'wl-msg wl-bad'; msg.textContent = 'اكتب اسمك الكامل ورقمك الجامعي أولاً.'; name.focus(); return; }
+			const missing = answers.filter((a) => a < 0).length;
+			if (missing) { msg.className = 'wl-msg wl-bad'; msg.textContent = `بقي ${missing === 1 ? 'سؤال واحد' : missing === 2 ? 'سؤالان' : missing + ' أسئلة'} دون إجابة (بالأحمر).`; return; }
+			remember();
+			const score = answers.filter((a, i) => a === key[i]).length;
+			// التصحيح على الصفحة
+			root.classList.add('done');
+			items.forEach((li, i) => {
+				li.querySelectorAll<HTMLLabelElement>('.qz-opt').forEach((lab, j) => {
+					lab.classList.toggle('right', j === key[i]);
+					lab.classList.toggle('wrong', j === answers[i] && j !== key[i]);
+					lab.querySelector('input')!.disabled = true;
+				});
+				const w = li.querySelector<HTMLElement>('.qz-why')!;
+				w.hidden = false;
+				w.innerHTML = (answers[i] === key[i] ? '✓ ' : '✗ ') + whys[i];
+				w.className = 'qz-why ' + (answers[i] === key[i] ? 'wl-good' : 'wl-bad');
+			});
+			submit.hidden = true;
+			const n = attempts() + 1;
+			store.set(`quiz-n-${id}`, String(n));
+			const pct = Math.round((score / key.length) * 100);
+			msg.className = 'wl-msg ' + (pct >= 60 ? 'wl-good' : 'wl-bad');
+			msg.textContent = `علامتك ${score} من ${key.length} (${pct}%). المحاولة رقم ${n}. جارٍ الحفظ...`;
+			const res = await saveAttempt({ quiz: id, course, name: name.value.trim(), sid: sid.value.trim(), score, total: key.length, answers, client: clientId() });
+			msg.textContent = `علامتك ${score} من ${key.length} (${pct}%). المحاولة رقم ${n}. ` +
+				(res === 'saved' ? '✓ وصلت نتيجتك إلى المدرّس.' : res === 'off' ? '(الحفظ غير مفعّل بعد، فالنتيجة لم تُرسل.)' : '⚠ لم نستطع إرسال النتيجة. تأكد من الإنترنت وأعد المحاولة.');
+			retry.hidden = false;
+		});
+
+		retry.addEventListener('click', () => {
+			root.classList.remove('done');
+			items.forEach((li) => {
+				li.classList.remove('unanswered');
+				li.querySelectorAll<HTMLInputElement>('input').forEach((r) => { r.checked = false; r.disabled = false; });
+				li.querySelectorAll('.qz-opt').forEach((l) => l.classList.remove('right', 'wrong'));
+				li.querySelector<HTMLElement>('.qz-why')!.hidden = true;
+			});
+			submit.hidden = false; retry.hidden = true;
+			msg.className = 'wl-msg'; msg.textContent = '';
+			items[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+		});
+	});
+</script>

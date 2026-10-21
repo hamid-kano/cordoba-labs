@@ -1,0 +1,156 @@
+---
+// صفحة نتائج الاختبارات للمدرّس: تسجيل دخول بـ Google، والقراءة مسموحة بس لـ TEACHER_EMAIL (بقواعد Firestore).
+// مش ظاهرة بالقائمة ولا بالبحث، والطلاب لو فتحوها ما بيشوفوا شي.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+---
+
+<StarlightPage frontmatter={{ title: 'نتائج الاختبارات', pagefind: false, head: [{ tag: 'meta', attrs: { name: 'robots', content: 'noindex' } }] }}>
+	<div class="not-content wl-box rs" data-results>
+		<div class="wl-row" data-out-row>
+			<button type="button" class="wl-btn primary" data-login>تسجيل الدخول بحساب Google</button>
+			<button type="button" class="wl-btn" data-logout hidden>تسجيل الخروج</button>
+			<span class="se-note" data-out="who"></span>
+		</div>
+		<p class="wl-msg" data-out="msg"></p>
+		<div data-panel hidden>
+			<div class="rs-filters">
+				<label>المادة <select data-f="course"><option value="">الكل</option><option value="ai2">الذكاء الصنعي 2</option><option value="wireless">الشبكات اللاسلكية</option><option value="os1">نظم التشغيل 1</option><option value="rts">نظم الزمن الحقيقي</option></select></label>
+				<label>الاختبار <select data-f="quiz"><option value="">الكل</option></select></label>
+				<label>بحث <input type="search" data-f="q" placeholder="اسم أو رقم جامعي" /></label>
+			</div>
+			<div class="wl-row">
+				<button type="button" class="wl-btn primary" data-view="best">ملخص الطلاب</button>
+				<button type="button" class="wl-btn" data-view="all">كل المحاولات</button>
+				<button type="button" class="wl-btn" data-reload>↻ تحديث</button>
+				<button type="button" class="wl-btn" data-csv>⬇ تنزيل Excel</button>
+			</div>
+			<div class="wl-grid">
+				<div class="wl-out"><span>محاولات</span><strong data-out="n">0</strong></div>
+				<div class="wl-out"><span>طلاب</span><strong data-out="students">0</strong></div>
+				<div class="wl-out"><span>متوسط العلامة</span><strong data-out="avg">—</strong></div>
+			</div>
+			<div class="wl-scroll"><table class="wl-table rs-t" data-out="table"></table></div>
+		</div>
+	</div>
+</StarlightPage>
+
+<style is:global>
+	.rs-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.5rem; }
+	.rs-filters label { display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--sl-text-sm); }
+	.rs-filters select, .rs-filters input { padding: 0.35rem 0.5rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-4); background: var(--sl-color-bg); color: var(--sl-color-white); }
+	.rs-t { width: 100%; font-size: var(--sl-text-sm); }
+	.rs-t td.num { direction: ltr; text-align: right; white-space: nowrap; }
+	.rs-t td.lo { color: #e5534b; font-weight: 700; } .rs-t td.hi { color: #2fb36b; font-weight: 700; }
+</style>
+
+<script>
+	import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+	import { getFirestore, collection, getDocs, query, orderBy, limit, Timestamp } from 'firebase/firestore/lite';
+	import { app } from '../scripts/quizStore';
+	import { firebaseReady, TEACHER_EMAIL } from '../data/firebase-config';
+
+	interface Row { quiz: string; course: string; name: string; sid: string; score: number; total: number; at: Date | null; client: string }
+	const COURSE: Record<string, string> = { ai2: 'الذكاء الصنعي 2', wireless: 'الشبكات اللاسلكية', os1: 'نظم التشغيل 1', rts: 'نظم الزمن الحقيقي' };
+	const quizName = (id: string) => { const [c, k] = id.split('-'); return `${COURSE[c] ?? c}: ${k === 'exam' ? 'اختبار المادة' : 'الجلسة ' + k.slice(1)}`; };
+	const fmtDate = (d: Date | null) => (d ? d.toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—');
+	const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+	const root = document.querySelector<HTMLElement>('[data-results]')!;
+	const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+	const f = (k: string) => root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-f="${k}"]`)!;
+	const panel = root.querySelector<HTMLElement>('[data-panel]')!;
+	const loginBtn = root.querySelector<HTMLButtonElement>('[data-login]')!, logoutBtn = root.querySelector<HTMLButtonElement>('[data-logout]')!;
+	let rows: Row[] = [], view: 'best' | 'all' = 'best';
+	const say = (t: string, k = '') => { const m = $('msg'); m.className = 'wl-msg' + (k ? ' ' + k : ''); m.textContent = t; };
+
+	const filtered = () => {
+		const c = f('course').value, qz = f('quiz').value, q = f('q').value.trim().toLowerCase();
+		return rows.filter((r) => (!c || r.course === c) && (!qz || r.quiz === qz) && (!q || r.name.toLowerCase().includes(q) || r.sid.includes(q)));
+	};
+	// ملخص: سطر لكل (طالب، اختبار): أعلى علامة، وعدد المحاولات، وآخر محاولة
+	const summary = (rs: Row[]) => {
+		const m = new Map<string, { r: Row; best: number; n: number; last: Date | null }>();
+		for (const r of rs) {
+			const k = `${r.sid}|${r.quiz}`;
+			const e = m.get(k);
+			if (!e) m.set(k, { r, best: r.score, n: 1, last: r.at });
+			else { e.n++; if (r.score > e.best) e.best = r.score; if (r.at && (!e.last || r.at > e.last)) e.last = r.at; }
+		}
+		return [...m.values()].sort((a, b) => a.r.quiz.localeCompare(b.r.quiz) || a.r.name.localeCompare(b.r.name, 'ar'));
+	};
+	const cls = (s: number, t: number) => (s / t >= 0.8 ? 'hi' : s / t < 0.5 ? 'lo' : '');
+	const render = () => {
+		const rs = filtered();
+		$('n').textContent = String(rs.length);
+		$('students').textContent = String(new Set(rs.map((r) => r.sid)).size);
+		$('avg').textContent = rs.length ? `${Math.round((rs.reduce((s, r) => s + r.score / r.total, 0) / rs.length) * 100)}%` : '—';
+		const t = $('table');
+		if (view === 'all') {
+			t.innerHTML = '<thead><tr><th>الوقت</th><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>العلامة</th></tr></thead><tbody>' +
+				rs.map((r) => `<tr><td class="num">${fmtDate(r.at)}</td><td>${esc(r.name)}</td><td class="num">${esc(r.sid)}</td><td>${quizName(r.quiz)}</td><td class="num ${cls(r.score, r.total)}">${r.score} / ${r.total}</td></tr>`).join('') + '</tbody>';
+		} else {
+			t.innerHTML = '<thead><tr><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>أعلى علامة</th><th>المحاولات</th><th>آخر محاولة</th></tr></thead><tbody>' +
+				summary(rs).map((e) => `<tr><td>${esc(e.r.name)}</td><td class="num">${esc(e.r.sid)}</td><td>${quizName(e.r.quiz)}</td><td class="num ${cls(e.best, e.r.total)}">${e.best} / ${e.r.total}</td><td class="num">${e.n}</td><td class="num">${fmtDate(e.last)}</td></tr>`).join('') + '</tbody>';
+		}
+	};
+	const fillQuizzes = () => {
+		const c = f('course').value;
+		const ids = [...new Set(rows.filter((r) => !c || r.course === c).map((r) => r.quiz))].sort();
+		const sel = f('quiz') as HTMLSelectElement, cur = sel.value;
+		sel.innerHTML = '<option value="">الكل</option>' + ids.map((id) => `<option value="${id}">${quizName(id)}</option>`).join('');
+		if (ids.includes(cur)) sel.value = cur;
+	};
+	const load = async () => {
+		say('جارٍ تحميل النتائج...');
+		try {
+			const snap = await getDocs(query(collection(getFirestore(app()), 'attempts'), orderBy('at', 'desc'), limit(5000)));
+			rows = snap.docs.map((d) => { const x = d.data(); return { ...x, at: x.at instanceof Timestamp ? x.at.toDate() : null } as Row; });
+			fillQuizzes(); render();
+			say(`✓ ${rows.length} محاولة.`, 'wl-good');
+		} catch (e) {
+			console.error(e);
+			say('تعذّر تحميل النتائج. تأكد أنك مسجّل بحساب المدرّس، وأن قواعد Firestore منشورة.', 'wl-bad');
+		}
+	};
+	const csv = () => {
+		const rs = filtered();
+		const q = (s: string | number) => `"${String(s).replace(/"/g, '""')}"`;
+		const lines = view === 'all'
+			? [['الوقت', 'الطالب', 'الرقم الجامعي', 'الاختبار', 'العلامة', 'من'], ...rs.map((r) => [fmtDate(r.at), r.name, r.sid, quizName(r.quiz), r.score, r.total])]
+			: [['الطالب', 'الرقم الجامعي', 'الاختبار', 'أعلى علامة', 'من', 'المحاولات', 'آخر محاولة'], ...summary(rs).map((e) => [e.r.name, e.r.sid, quizName(e.r.quiz), e.best, e.r.total, e.n, fmtDate(e.last)])];
+		// BOM لحتى Excel يقرا العربي صح
+		const blob = new Blob(['﻿' + lines.map((l) => l.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(blob);
+		a.download = `results-${new Date().toISOString().slice(0, 10)}.csv`;
+		a.click();
+		URL.revokeObjectURL(a.href);
+	};
+
+	if (!firebaseReady()) {
+		loginBtn.disabled = true;
+		say('الحفظ غير مفعّل بعد: عبّئ إعدادات Firebase في src/data/firebase-config.ts.', 'wl-bad');
+	} else {
+		const auth = getAuth(app());
+		onAuthStateChanged(auth, (u) => {
+			loginBtn.hidden = !!u; logoutBtn.hidden = !u;
+			$('who').textContent = u ? u.email ?? '' : '';
+			panel.hidden = !u;
+			if (!u) { say('سجّل الدخول بحساب المدرّس لترى النتائج.'); return; }
+			if (TEACHER_EMAIL && u.email !== TEACHER_EMAIL) { panel.hidden = true; say('هذا الحساب ليس حساب المدرّس.', 'wl-bad'); return; }
+			load();
+		});
+		loginBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => say('فشل تسجيل الدخول: ' + e.code, 'wl-bad')));
+		logoutBtn.addEventListener('click', () => signOut(auth));
+	}
+	root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((b) => b.addEventListener('click', () => {
+		view = b.dataset.view as 'best' | 'all';
+		root.querySelectorAll('[data-view]').forEach((x) => x.classList.toggle('primary', x === b));
+		render();
+	}));
+	f('course').addEventListener('change', () => { fillQuizzes(); render(); });
+	f('quiz').addEventListener('change', render);
+	f('q').addEventListener('input', render);
+	root.querySelector('[data-reload]')!.addEventListener('click', load);
+	root.querySelector('[data-csv]')!.addEventListener('click', csv);
+</script>
