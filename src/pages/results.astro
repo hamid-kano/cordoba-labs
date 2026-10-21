@@ -50,11 +50,14 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 	import { app } from '../scripts/quizStore';
 	import { firebaseReady, TEACHER_EMAIL } from '../data/firebase-config';
 
-	interface Row { id: string; quiz: string; course: string; name: string; sid: string; score: number; total: number; at: Date | null; client: string }
+	interface Row { id: string; quiz: string; course: string; name: string; sid: string; score: number; total: number; at: Date | null; client: string; left?: number; secs?: number }
 	const COURSE: Record<string, string> = { ai2: 'الذكاء الصنعي 2', wireless: 'الشبكات اللاسلكية', os1: 'نظم التشغيل 1', rts: 'نظم الزمن الحقيقي' };
 	// اسم مقروء للاختبار، وأي معرّف غريب (متل محاولات الفحص) بيطلع متل ما هو
 const quizName = (id: string) => { const m = id.match(/^(ai2|wireless|os1|rts)-(exam|s(\d+))$/); return m ? `${COURSE[m[1]]}: ${m[2] === 'exam' ? 'اختبار المادة' : 'الجلسة ' + m[3]}` : id; };
 const mark = (s: number, t: number) => `${s} من ${t}`;
+	// الخروج من الصفحة أثناء الاختبار، والمدة (للمحاولات القديمة قبل الاختبار المتسلسل: —)
+	const leftCell = (n?: number) => (n === undefined ? '<td class="num">—</td>' : `<td class="num${n ? ' lo' : ''}">${n ? '⚠ ' + n : '0'}</td>`);
+	const dur = (s?: number) => (s === undefined ? '—' : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
 	const fmtDate = (d: Date | null) => (d ? d.toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—');
 	const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
@@ -72,12 +75,12 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 	};
 	// ملخص: سطر لكل (طالب، اختبار): أعلى علامة، وعدد المحاولات، وآخر محاولة
 	const summary = (rs: Row[]) => {
-		const m = new Map<string, { r: Row; best: number; n: number; last: Date | null }>();
+		const m = new Map<string, { r: Row; best: number; n: number; last: Date | null; left: number }>();
 		for (const r of rs) {
 			const k = `${r.sid}|${r.quiz}`;
 			const e = m.get(k);
-			if (!e) m.set(k, { r, best: r.score, n: 1, last: r.at });
-			else { e.n++; if (r.score > e.best) e.best = r.score; if (r.at && (!e.last || r.at > e.last)) e.last = r.at; }
+			if (!e) m.set(k, { r, best: r.score, n: 1, last: r.at, left: r.left ?? 0 });
+			else { e.n++; e.left += r.left ?? 0; if (r.score > e.best) e.best = r.score; if (r.at && (!e.last || r.at > e.last)) e.last = r.at; }
 		}
 		return [...m.values()].sort((a, b) => a.r.quiz.localeCompare(b.r.quiz) || a.r.name.localeCompare(b.r.name, 'ar'));
 	};
@@ -89,11 +92,11 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 		$('avg').textContent = rs.length ? `${Math.round((rs.reduce((s, r) => s + r.score / r.total, 0) / rs.length) * 100)}%` : '—';
 		const t = $('table');
 		if (view === 'all') {
-			t.innerHTML = '<thead><tr><th>الوقت</th><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>العلامة</th><th></th></tr></thead><tbody>' +
-				rs.map((r) => `<tr><td class="num">${fmtDate(r.at)}</td><td>${esc(r.name)}</td><td class="num">${esc(r.sid)}</td><td>${quizName(r.quiz)}</td><td class="num ${cls(r.score, r.total)}">${mark(r.score, r.total)}</td><td><button type="button" class="wl-btn rs-del" data-del="${r.id}" title="حذف هذه المحاولة">🗑</button></td></tr>`).join('') + '</tbody>';
+			t.innerHTML = '<thead><tr><th>الوقت</th><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>العلامة</th><th>خروج</th><th>المدة</th><th></th></tr></thead><tbody>' +
+				rs.map((r) => `<tr><td class="num">${fmtDate(r.at)}</td><td>${esc(r.name)}</td><td class="num">${esc(r.sid)}</td><td>${quizName(r.quiz)}</td><td class="num ${cls(r.score, r.total)}">${mark(r.score, r.total)}</td>${leftCell(r.left)}<td class="num">${dur(r.secs)}</td><td><button type="button" class="wl-btn rs-del" data-del="${r.id}" title="حذف هذه المحاولة">🗑</button></td></tr>`).join('') + '</tbody>';
 		} else {
-			t.innerHTML = '<thead><tr><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>أعلى علامة</th><th>المحاولات</th><th>آخر محاولة</th></tr></thead><tbody>' +
-				summary(rs).map((e) => `<tr><td>${esc(e.r.name)}</td><td class="num">${esc(e.r.sid)}</td><td>${quizName(e.r.quiz)}</td><td class="num ${cls(e.best, e.r.total)}">${mark(e.best, e.r.total)}</td><td class="num">${e.n}</td><td class="num">${fmtDate(e.last)}</td></tr>`).join('') + '</tbody>';
+			t.innerHTML = '<thead><tr><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>أعلى علامة</th><th>المحاولات</th><th>خروج</th><th>آخر محاولة</th></tr></thead><tbody>' +
+				summary(rs).map((e) => `<tr><td>${esc(e.r.name)}</td><td class="num">${esc(e.r.sid)}</td><td>${quizName(e.r.quiz)}</td><td class="num ${cls(e.best, e.r.total)}">${mark(e.best, e.r.total)}</td><td class="num">${e.n}</td>${leftCell(e.left)}<td class="num">${fmtDate(e.last)}</td></tr>`).join('') + '</tbody>';
 		}
 	};
 	const fillQuizzes = () => {
@@ -119,8 +122,8 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 		const rs = filtered();
 		const q = (s: string | number) => `"${String(s).replace(/"/g, '""')}"`;
 		const lines = view === 'all'
-			? [['الوقت', 'الطالب', 'الرقم الجامعي', 'الاختبار', 'العلامة', 'من'], ...rs.map((r) => [fmtDate(r.at), r.name, r.sid, quizName(r.quiz), r.score, r.total])]
-			: [['الطالب', 'الرقم الجامعي', 'الاختبار', 'أعلى علامة', 'من', 'المحاولات', 'آخر محاولة'], ...summary(rs).map((e) => [e.r.name, e.r.sid, quizName(e.r.quiz), e.best, e.r.total, e.n, fmtDate(e.last)])];
+			? [['الوقت', 'الطالب', 'الرقم الجامعي', 'الاختبار', 'العلامة', 'من', 'خروج', 'المدة'], ...rs.map((r) => [fmtDate(r.at), r.name, r.sid, quizName(r.quiz), r.score, r.total, r.left ?? '', dur(r.secs)])]
+			: [['الطالب', 'الرقم الجامعي', 'الاختبار', 'أعلى علامة', 'من', 'المحاولات', 'خروج', 'آخر محاولة'], ...summary(rs).map((e) => [e.r.name, e.r.sid, quizName(e.r.quiz), e.best, e.r.total, e.n, e.left, fmtDate(e.last)])];
 		// BOM لحتى Excel يقرا العربي صح
 		const blob = new Blob(['﻿' + lines.map((l) => l.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
 		const a = document.createElement('a');

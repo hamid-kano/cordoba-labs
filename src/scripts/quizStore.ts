@@ -11,7 +11,10 @@ export interface Attempt {
 	sid: string;
 	score: number;
 	total: number;
-	answers: number[];
+	answers: number[]; // رقم الخيار الأصلي لكل سؤال، و −1 إذا خلص الوقت
+	qs: number[]; // أرقام الأسئلة يلي انسحبت من البنك
+	left: number; // كم مرة طلع الطالب من الصفحة
+	secs: number; // مدة المحاولة بالثواني
 	client: string; // معرّف عشوائي للجهاز، لحتى نميّز المحاولات من نفس الجهاز
 }
 

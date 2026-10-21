@@ -11,7 +11,7 @@ service cloud.firestore {
         && request.auth.token.email_verified == true;
     }
     match /attempts/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['quiz', 'course', 'name', 'sid', 'score', 'total', 'answers', 'client', 'at'])
+      allow create: if request.resource.data.keys().hasOnly(['quiz', 'course', 'name', 'sid', 'score', 'total', 'answers', 'qs', 'left', 'secs', 'client', 'at'])
         && request.resource.data.quiz is string && request.resource.data.quiz.size() <= 30
         && request.resource.data.course in ['ai2', 'wireless', 'os1', 'rts']
         && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 60
@@ -19,6 +19,9 @@ service cloud.firestore {
         && request.resource.data.total is int && request.resource.data.total >= 1 && request.resource.data.total <= 50
         && request.resource.data.score is int && request.resource.data.score >= 0 && request.resource.data.score <= request.resource.data.total
         && request.resource.data.answers is list && request.resource.data.answers.size() == request.resource.data.total
+        && request.resource.data.qs is list && request.resource.data.qs.size() == request.resource.data.total
+        && request.resource.data.left is int && request.resource.data.left >= 0 && request.resource.data.left <= 1000
+        && request.resource.data.secs is int && request.resource.data.secs >= 0 && request.resource.data.secs <= 36000
         && request.resource.data.client is string && request.resource.data.client.size() <= 20
         && request.resource.data.at == request.time;
       allow read, delete: if isTeacher();

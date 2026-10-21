@@ -1,7 +1,7 @@
 ---
-// اختبار اختيار من متعدد بالاسم والرقم الجامعي. بعد التسليم: العلامة، والصح والغلط، والشرح.
-// كل محاولة بتنحفظ بـ Firestore (إذا الإعدادات معبّاية)، والمحاولات بلا حدود.
-// الأسئلة من src/data/quizzes/<course>.ts بالمفتاح k (s1..s8 أو exam).
+// اختبار متسلسل: شاشة بداية (اسم ورقم جامعي وزر «ابدأ الاختبار»)، ثم سؤال بسؤال بمؤقّت، بلا رجوع،
+// والأسئلة والخيارات مخلوطة بكل محاولة. اختبار الجلسة بيسحب 5 عشوائياً من بنك الجلسة وبيعرض الأجوبة والشرح بالآخر،
+// واختبار المادة (exam) بيعرض العلامة بس. الخروج من الصفحة بينعدّ وبينحفظ مع المحاولة.
 import { QUIZ as ai2 } from '../data/quizzes/ai2';
 import { QUIZ as wireless } from '../data/quizzes/wireless';
 import { QUIZ as os1 } from '../data/quizzes/os1';
@@ -11,139 +11,230 @@ import type { QuizQ } from '../data/quizzes/types';
 interface Props { course: 'ai2' | 'wireless' | 'os1' | 'rts'; k: string; title?: string }
 const { course, k, title } = Astro.props;
 const ALL = { ai2, wireless, os1, rts };
-const qs: QuizQ[] = ALL[course][k] ?? [];
-if (!qs.length) throw new Error(`Quiz ${course}/${k} has no questions`);
+const bank: QuizQ[] = ALL[course][k] ?? [];
+if (!bank.length) throw new Error(`Quiz ${course}/${k} has no questions`);
+const isExam = k === 'exam';
+const take = isExam ? bank.length : Math.min(5, bank.length);
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-// الكود بين backticks، وأي [أرقام بين قوسين] بتنعزل LTR لحتى ما تنقلب جوّا الجملة العربية
-const fmt = (s: string) => esc(s).replace(/`([^`]+)`/g, '<code dir="ltr">$1</code>').replace(/\[[^\]<]*\]/g, (m) => `<bdi dir="ltr">${m}</bdi>`);
+// أي مقطع غير عربي فيه أرقام ورمز رياضي (= × ÷ + − % [ ...) بينعزل LTR، لحتى «10 − 5 = 5» و «30%» ما ينقلبوا بالجملة العربية
+const bdi = (s: string) => `<bdi dir="ltr">${s}</bdi>`;
+const isoMath = (t: string) => {
+	const keep: string[] = [];
+	const hold = (s: string) => `\u0001${keep.push(bdi(s)) - 1}\u0001`;
+	// 1. مجموعة كاملة بين قوسين أو معقوفين فيها رقم، حتى لو فيها فاصلة عربية: (C = 2، T = 5) و [10 20 30]
+	t = t.replace(/\((?:[^()؀-؋؍-ۿ])*\d(?:[^()؀-؋؍-ۿ])*\)|\[[^\]؀-ۿ]*\d[^\]؀-ۿ]*\]/g, hold);
+	// 2. مقاطع رياضية: من أول حرف/رقم لآخر حرف/رقم، والرموز يلي بالطرفين (متل = البداية) بتضل برّا
+	t = t.replace(/[A-Za-z0-9.=×÷+−\-≤≥/%²³√^ &;:]+/g, (m) => {
+		if (!/\d/.test(m) || !/[=×÷+−≤≥%/]|&[lg]t;/.test(m)) return m;
+		const r = m.match(/^([^A-Za-z0-9]*)(.*?[A-Za-z0-9%])([^A-Za-z0-9%]*)$/);
+		return r ? r[1] + hold(r[2]) + r[3] : m;
+	});
+	return t.replace(/\u0001(\d+)\u0001/g, (_, i) => keep[+i]);
+};
+// الكود بين backticks بيصير <code>، والباقي بيمر على isoMath
+const fmt = (s: string) => esc(s).split(/(`[^`]+`)/).map((p, i) => (i % 2 ? `<code dir="ltr">${p.slice(1, -1)}</code>` : isoMath(p))).join('');
+const data = bank.map((q) => ({ q: fmt(q.q), o: q.options.map(fmt), a: q.a, t: q.time ?? 45, w: isExam ? '' : fmt(q.why) }));
+// مش حماية حقيقية، بس بتمنع قراءة الأسئلة والأجوبة بسهولة من مصدر الصفحة
+const packed = Buffer.from(JSON.stringify(data), 'utf8').toString('base64').split('').reverse().join('');
 const id = `${course}-${k}`;
-const key = qs.map((q) => q.a);
-const whys = qs.map((q) => fmt(q.why));
-const label = title ?? (k === 'exam' ? 'اختبار المادة' : 'اختبار الجلسة');
+const label = title ?? (isExam ? 'اختبار المادة' : 'اختبار الجلسة');
+const minutes = Math.ceil(data.slice(0, take).reduce((s, x) => s + x.t, 0) / 60);
 ---
 
-<div class="not-content wl-box qz" data-quiz={id} data-course={course} data-key={JSON.stringify(key)} data-whys={JSON.stringify(whys)}>
-	<h4>📝 {label} <small>({qs.length} أسئلة)</small></h4>
-	<div class="qz-who">
-		<label>الاسم الكامل <input type="text" data-k="name" maxlength="60" autocomplete="name" /></label>
-		<label>الرقم الجامعي <input type="text" data-k="sid" maxlength="20" inputmode="numeric" dir="ltr" /></label>
-	</div>
-	<ol class="qz-list">
-		{qs.map((q, i) => (
-			<li data-q={i}>
-				<p class="qz-q" set:html={fmt(q.q)} />
-				<div class="qz-opts">
-					{q.options.map((o, j) => (
-						<label class="qz-opt"><input type="radio" name={`${id}-${i}`} value={j} /><span set:html={fmt(o)} /></label>
-					))}
-				</div>
-				<p class="qz-why" hidden></p>
-			</li>
-		))}
-	</ol>
-	<div class="wl-row">
-		<button type="button" class="wl-btn primary" data-submit>✓ سلّم الإجابات</button>
-		<button type="button" class="wl-btn" data-retry hidden>↺ محاولة جديدة</button>
-	</div>
-	<p class="wl-msg" data-out="msg"></p>
+<div class="not-content wl-box qz" data-quiz={id} data-course={course} data-take={take} data-exam={isExam ? '1' : ''} data-pack={packed}>
+	<section data-screen="intro">
+		<h4>📝 {label}</h4>
+		<ul class="qz-rules">
+			<li><b>{take}</b> أسئلة{isExam ? '' : ' تُختار عشوائياً من بنك الجلسة'}، تظهر سؤالاً بعد سؤال.</li>
+			<li>لكل سؤال وقت محدد (<b>45</b> ثانية عادة، و<b>90</b> لأسئلة الأدوات). إذا انتهى الوقت ينتقل الاختبار وحده، ويُحسب السؤال خطأ.</li>
+			<li><b>لا يمكن الرجوع</b> إلى سؤال سابق.</li>
+			<li>الخروج من الصفحة أو فتح تطبيق آخر <b>يُسجَّل</b> ويظهر للمدرّس.</li>
+			<li>{isExam ? 'بعد التسليم تظهر علامتك فقط.' : 'بعد التسليم تظهر علامتك والإجابات الصحيحة مع الشرح.'} ويمكنك أن تعيد المحاولة متى شئت.</li>
+		</ul>
+		<div class="qz-who">
+			<label>الاسم الكامل <input type="text" data-k="name" maxlength="60" autocomplete="name" /></label>
+			<label>الرقم الجامعي <input type="text" data-k="sid" maxlength="20" inputmode="numeric" dir="ltr" /></label>
+		</div>
+		<div class="wl-row">
+			<button type="button" class="wl-btn primary qz-start" data-start>▶ ابدأ الاختبار</button>
+			<span class="se-note">قرابة {minutes} {minutes <= 2 ? (minutes === 1 ? 'دقيقة' : 'دقيقتين') : minutes <= 10 ? 'دقائق' : 'دقيقة'}</span>
+		</div>
+		<p class="wl-msg" data-out="intro-msg"></p>
+	</section>
+
+	<section data-screen="q" hidden>
+		<div class="qz-top">
+			<span data-out="pos"></span>
+			<span class="qz-clock" data-out="clock"></span>
+		</div>
+		<div class="qz-bar"><i data-out="bar"></i></div>
+		<div class="qz-time"><i data-out="tbar"></i></div>
+		<p class="qz-tool" data-out="tool" hidden>🛠 سؤال أداة: استخدم الأداة التفاعلية في هذه الصفحة لتجد الجواب.</p>
+		<p class="qz-q" data-out="q"></p>
+		<div class="qz-opts" data-out="opts"></div>
+		<div class="wl-row">
+			<button type="button" class="wl-btn primary" data-next disabled>التالي ←</button>
+		</div>
+		<p class="qz-warn" data-out="warn" hidden></p>
+	</section>
+
+	<section data-screen="done" hidden>
+		<h4 data-out="score"></h4>
+		<p class="wl-msg" data-out="save"></p>
+		<ol class="qz-review" data-out="review"></ol>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-retry>↺ محاولة جديدة</button>
+		</div>
+	</section>
 </div>
 
 <style is:global>
-	.qz h4 small { font-weight: 400; color: var(--sl-color-gray-3); font-size: var(--sl-text-sm); }
+	.qz h4 { margin: 0; }
+	.qz-rules { margin: 0; padding-inline-start: 1.3rem; font-size: var(--sl-text-sm); display: flex; flex-direction: column; gap: 0.2rem; }
 	.qz-who { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 	@media (max-width: 30rem) { .qz-who { grid-template-columns: 1fr; } }
 	.qz-who label { display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--sl-text-sm); }
-	.qz-who input { padding: 0.4rem 0.5rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-4); background: var(--sl-color-bg); color: var(--sl-color-white); font-size: var(--sl-text-base); }
+	.qz-who input { padding: 0.45rem 0.55rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-4); background: var(--sl-color-bg); color: var(--sl-color-white); font-size: var(--sl-text-base); }
 	.qz-who input.need { border-color: #e5534b; box-shadow: 0 0 0 2px rgb(229 83 75 / 0.3); }
-	.qz-list { margin: 0; padding-inline-start: 1.4rem; display: flex; flex-direction: column; gap: 0.9rem; }
-	.qz-q { margin: 0 0 0.35rem; font-weight: 600; color: var(--sl-color-white); }
-	.qz-opts { display: flex; flex-direction: column; gap: 0.3rem; }
-	.qz-opt { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.4rem 0.6rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-5); cursor: pointer; transition: background 0.2s, border-color 0.2s; }
-	.qz-opt:hover { border-color: var(--sl-color-accent); }
-	.qz-opt input { margin-top: 0.3rem; accent-color: var(--sl-color-accent); }
-	.qz-opt.right { border-color: #2fb36b; background: rgb(47 179 107 / 0.18); }
-	.qz-opt.wrong { border-color: #e5534b; background: rgb(229 83 75 / 0.18); }
-	.qz li.unanswered .qz-q { color: #e5534b; }
-	.qz-why { margin: 0.35rem 0 0; font-size: var(--sl-text-sm); }
+	.qz-start { font-size: var(--sl-text-base); padding: 0.55rem 1.4rem; }
+	.qz section { display: flex; flex-direction: column; gap: 0.7rem; }
+	.qz section[hidden] { display: none; }
+	.qz-top { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: var(--sl-text-sm); }
+	.qz-clock { font-size: 1.3rem; direction: ltr; font-variant-numeric: tabular-nums; }
+	.qz-clock.low { color: #e5534b; }
+	.qz-bar, .qz-time { height: 0.45rem; border-radius: 0.25rem; background: var(--sl-color-gray-6); overflow: hidden; }
+	.qz-time { height: 0.3rem; }
+	.qz-bar i, .qz-time i { display: block; height: 100%; background: var(--sl-color-accent); transition: width 0.3s; }
+	.qz-time i { background: #3a9ec2; transition: width 0.25s linear; }
+	.qz-time i.low { background: #e5534b; }
+	.qz-tool { margin: 0; font-size: var(--sl-text-sm); color: #e0a030; font-weight: 700; }
+	.qz-q { margin: 0; font-size: 1.08rem; font-weight: 700; color: var(--sl-color-white); line-height: 1.7; }
+	.qz-opts { display: flex; flex-direction: column; gap: 0.4rem; }
+	.qz-opts button { all: unset; box-sizing: border-box; padding: 0.6rem 0.8rem; border-radius: 0.5rem; border: 2px solid var(--sl-color-gray-5); cursor: pointer; transition: border-color 0.15s, background 0.15s; line-height: 1.6; }
+	.qz-opts button:hover, .qz-opts button:focus-visible { border-color: var(--sl-color-accent); }
+	.qz-opts button.sel { border-color: var(--sl-color-accent); background: color-mix(in srgb, var(--sl-color-accent) 18%, transparent); font-weight: 700; }
+	.qz-warn { margin: 0; font-size: var(--sl-text-sm); color: #e5534b; font-weight: 700; }
+	.qz.active [data-screen='q'] { user-select: none; -webkit-user-select: none; }
 	.qz code { unicode-bidi: isolate; }
-	.qz.done .qz-opt { cursor: default; }
+	.qz-review { margin: 0; padding-inline-start: 1.3rem; display: flex; flex-direction: column; gap: 0.8rem; font-size: var(--sl-text-sm); }
+	.qz-review li > b { color: var(--sl-color-white); }
+	.qz-review .ok { color: #2fb36b; } .qz-review .no { color: #e5534b; }
+	.qz-review p { margin: 0.2rem 0 0; }
 </style>
 
 <script>
 	import { saveAttempt } from '../scripts/quizStore';
+	interface Item { q: string; o: string[]; a: number; t: number; w: string }
 	const STUDENT = 'cpu-student', CLIENT = 'cpu-client';
 	const store = {
 		get: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } },
 		set: (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* وضع خاص */ } },
 	};
-	const clientId = () => {
-		let c = store.get(CLIENT);
-		if (!c) { c = Math.random().toString(36).slice(2, 12); store.set(CLIENT, c); }
-		return c;
-	};
-	document.querySelectorAll<HTMLElement>('[data-quiz]').forEach((root) => {
-		const id = root.dataset.quiz!, course = root.dataset.course!;
-		const key: number[] = JSON.parse(root.dataset.key!);
-		const whys: string[] = JSON.parse(root.dataset.whys!);
-		const name = root.querySelector<HTMLInputElement>('[data-k="name"]')!;
-		const sid = root.querySelector<HTMLInputElement>('[data-k="sid"]')!;
-		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
-		const submit = root.querySelector<HTMLButtonElement>('[data-submit]')!;
-		const retry = root.querySelector<HTMLButtonElement>('[data-retry]')!;
-		const items = [...root.querySelectorAll<HTMLLIElement>('li[data-q]')];
-		// الاسم والرقم بينحفظوا على الجهاز لكل الاختبارات
-		try { const s = JSON.parse(store.get(STUDENT) ?? '{}'); name.value = s.name ?? ''; sid.value = s.sid ?? ''; } catch { /* */ }
-		const remember = () => store.set(STUDENT, JSON.stringify({ name: name.value.trim(), sid: sid.value.trim() }));
-		name.addEventListener('change', remember);
-		sid.addEventListener('change', remember);
-		const attempts = () => +(store.get(`quiz-n-${id}`) ?? 0);
+	const clientId = () => { let c = store.get(CLIENT); if (!c) { c = Math.random().toString(36).slice(2, 12); store.set(CLIENT, c); } return c; };
+	const unpack = (s: string): Item[] => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.split('').reverse().join('')), (c) => c.charCodeAt(0))));
+	const shuffle = <T,>(a: T[]) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+	let current: HTMLElement | null = null; // الاختبار الشغّال بالصفحة (لعدّ الخروج)
 
-		submit.addEventListener('click', async () => {
-			const answers = items.map((li) => { const r = li.querySelector<HTMLInputElement>('input:checked'); return r ? +r.value : -1; });
+	document.querySelectorAll<HTMLElement>('[data-quiz]').forEach((root) => {
+		const id = root.dataset.quiz!, course = root.dataset.course!, take = +root.dataset.take!, isExam = !!root.dataset.exam;
+		const bank = unpack(root.dataset.pack!);
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const screen = (s: string) => root.querySelectorAll<HTMLElement>('[data-screen]').forEach((x) => (x.hidden = x.dataset.screen !== s));
+		const name = root.querySelector<HTMLInputElement>('[data-k="name"]')!, sid = root.querySelector<HTMLInputElement>('[data-k="sid"]')!;
+		const next = root.querySelector<HTMLButtonElement>('[data-next]')!;
+		try { const s = JSON.parse(store.get(STUDENT) ?? '{}'); name.value = s.name ?? ''; sid.value = s.sid ?? ''; } catch { /* */ }
+
+		// حالة المحاولة
+		let order: number[] = [], perms: number[][] = [], answers: number[] = [], i = 0, chosen = -1, deadline = 0, tick = 0, started = 0, left = 0;
+
+		const stopClock = () => { clearInterval(tick); tick = 0; };
+		const show = () => {
+			const it = bank[order[i]], perm = perms[i];
+			chosen = -1; next.disabled = true;
+			next.textContent = i === order.length - 1 ? '✓ سلّم' : 'التالي ←';
+			$('pos').textContent = `السؤال ${i + 1} من ${order.length}`;
+			$('bar').style.width = `${(i / order.length) * 100}%`;
+			$('tool').hidden = it.t <= 45;
+			$('q').innerHTML = it.q;
+			$('opts').innerHTML = perm.map((orig, j) => `<button type="button" data-j="${j}">${it.o[orig]}</button>`).join('');
+			$('opts').querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => {
+				chosen = +b.dataset.j!;
+				$('opts').querySelectorAll('button').forEach((x) => x.classList.toggle('sel', x === b));
+				next.disabled = false;
+			}));
+			deadline = Date.now() + it.t * 1000;
+			stopClock();
+			const upd = () => {
+				const ms = Math.max(0, deadline - Date.now()), s = Math.ceil(ms / 1000);
+				$('clock').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+				$('clock').classList.toggle('low', s <= 10);
+				$('tbar').style.width = `${(ms / (it.t * 1000)) * 100}%`;
+				$('tbar').classList.toggle('low', s <= 10);
+				if (ms <= 0) advance();
+			};
+			upd();
+			tick = window.setInterval(upd, 250);
+		};
+		const advance = () => {
+			stopClock();
+			// الجواب بيتسجّل برقم الخيار الأصلي (قبل الخلط)، و −1 إذا خلص الوقت بدون اختيار
+			answers.push(chosen >= 0 ? perms[i][chosen] : -1);
+			i++;
+			if (i < order.length) show(); else finish();
+		};
+		const finish = async () => {
+			stopClock();
+			root.classList.remove('active'); current = null;
+			const secs = Math.round((Date.now() - started) / 1000);
+			const items = order.map((o) => bank[o]);
+			const score = answers.filter((a, k) => a === items[k].a).length;
+			const pct = Math.round((score / items.length) * 100);
+			screen('done');
+			$('score').textContent = `${pct >= 60 ? '🎉' : '📘'} علامتك ${score} من ${items.length} (${pct}%)`;
+			$('review').innerHTML = isExam ? '' : items.map((it, k) => {
+				const a = answers[k], ok = a === it.a;
+				return `<li><b>${it.q}</b><p class="${ok ? 'ok' : 'no'}">${ok ? '✓ ' : '✗ '}${a < 0 ? 'لم تُجب (انتهى الوقت).' : `إجابتك: ${it.o[a]}`}</p>${ok ? '' : `<p class="ok">الصحيح: ${it.o[it.a]}</p>`}<p>${it.w}</p></li>`;
+			}).join('');
+			const n = +(store.get(`quiz-n-${id}`) ?? 0) + 1;
+			store.set(`quiz-n-${id}`, String(n));
+			const sv = $('save');
+			sv.className = 'wl-msg'; sv.textContent = 'جارٍ إرسال النتيجة...';
+			const res = await saveAttempt({ quiz: id, course, name: name.value.trim(), sid: sid.value.trim(), score, total: items.length, answers, qs: order, left, secs, client: clientId() });
+			sv.className = 'wl-msg ' + (res === 'saved' ? 'wl-good' : res === 'off' ? '' : 'wl-bad');
+			sv.textContent = `المحاولة رقم ${n}. ` + (res === 'saved' ? '✓ وصلت نتيجتك إلى المدرّس.' : res === 'off' ? '(الحفظ غير مفعّل بعد.)' : '⚠ لم نستطع إرسال النتيجة. تأكد من الإنترنت وأعد المحاولة.') + (isExam ? ' لا تُعرض الإجابات في اختبار المادة.' : '');
+			root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		};
+
+		root.querySelector('[data-start]')!.addEventListener('click', () => {
 			name.classList.toggle('need', name.value.trim().length < 2);
 			sid.classList.toggle('need', !sid.value.trim());
-			items.forEach((li, i) => li.classList.toggle('unanswered', answers[i] < 0));
-			if (name.value.trim().length < 2 || !sid.value.trim()) { msg.className = 'wl-msg wl-bad'; msg.textContent = 'اكتب اسمك الكامل ورقمك الجامعي أولاً.'; name.focus(); return; }
-			const missing = answers.filter((a) => a < 0).length;
-			if (missing) { msg.className = 'wl-msg wl-bad'; msg.textContent = `بقي ${missing === 1 ? 'سؤال واحد' : missing === 2 ? 'سؤالان' : missing + ' أسئلة'} دون إجابة (بالأحمر).`; return; }
-			remember();
-			const score = answers.filter((a, i) => a === key[i]).length;
-			// التصحيح على الصفحة
-			root.classList.add('done');
-			items.forEach((li, i) => {
-				li.querySelectorAll<HTMLLabelElement>('.qz-opt').forEach((lab, j) => {
-					lab.classList.toggle('right', j === key[i]);
-					lab.classList.toggle('wrong', j === answers[i] && j !== key[i]);
-					lab.querySelector('input')!.disabled = true;
-				});
-				const w = li.querySelector<HTMLElement>('.qz-why')!;
-				w.hidden = false;
-				w.innerHTML = (answers[i] === key[i] ? '✓ ' : '✗ ') + whys[i];
-				w.className = 'qz-why ' + (answers[i] === key[i] ? 'wl-good' : 'wl-bad');
-			});
-			submit.hidden = true;
-			const n = attempts() + 1;
-			store.set(`quiz-n-${id}`, String(n));
-			const pct = Math.round((score / key.length) * 100);
-			msg.className = 'wl-msg ' + (pct >= 60 ? 'wl-good' : 'wl-bad');
-			msg.textContent = `علامتك ${score} من ${key.length} (${pct}%). المحاولة رقم ${n}. جارٍ الحفظ...`;
-			const res = await saveAttempt({ quiz: id, course, name: name.value.trim(), sid: sid.value.trim(), score, total: key.length, answers, client: clientId() });
-			msg.textContent = `علامتك ${score} من ${key.length} (${pct}%). المحاولة رقم ${n}. ` +
-				(res === 'saved' ? '✓ وصلت نتيجتك إلى المدرّس.' : res === 'off' ? '(الحفظ غير مفعّل بعد، فالنتيجة لم تُرسل.)' : '⚠ لم نستطع إرسال النتيجة. تأكد من الإنترنت وأعد المحاولة.');
-			retry.hidden = false;
+			if (name.value.trim().length < 2 || !sid.value.trim()) { const m = $('intro-msg'); m.className = 'wl-msg wl-bad'; m.textContent = 'اكتب اسمك الكامل ورقمك الجامعي أولاً.'; return; }
+			if (current && current !== root) { const m = $('intro-msg'); m.className = 'wl-msg wl-bad'; m.textContent = 'يوجد اختبار آخر يعمل في هذه الصفحة. أنهه أولاً.'; return; }
+			store.set(STUDENT, JSON.stringify({ name: name.value.trim(), sid: sid.value.trim() }));
+			// سحب الأسئلة وخلطها، وخلط خيارات كل سؤال
+			order = shuffle(bank.map((_, k) => k)).slice(0, take);
+			perms = order.map((o) => shuffle(bank[o].o.map((_, j) => j)));
+			answers = []; i = 0; left = 0; started = Date.now();
+			$('warn').hidden = true;
+			root.classList.add('active'); current = root;
+			screen('q');
+			root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			show();
 		});
+		next.addEventListener('click', () => { if (chosen >= 0) advance(); });
+		root.querySelector('[data-retry]')!.addEventListener('click', () => { screen('intro'); $('intro-msg').textContent = ''; root.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 
-		retry.addEventListener('click', () => {
-			root.classList.remove('done');
-			items.forEach((li) => {
-				li.classList.remove('unanswered');
-				li.querySelectorAll<HTMLInputElement>('input').forEach((r) => { r.checked = false; r.disabled = false; });
-				li.querySelectorAll('.qz-opt').forEach((l) => l.classList.remove('right', 'wrong'));
-				li.querySelector<HTMLElement>('.qz-why')!.hidden = true;
-			});
-			submit.hidden = false; retry.hidden = true;
-			msg.className = 'wl-msg'; msg.textContent = '';
-			items[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+		// منع النسخ وقائمة الزر اليمين أثناء الأسئلة
+		['copy', 'cut', 'contextmenu'].forEach((ev) => root.addEventListener(ev, (e) => { if (root.classList.contains('active')) e.preventDefault(); }));
+		// عدّ الخروج من الصفحة
+		document.addEventListener('visibilitychange', () => {
+			if (document.visibilityState !== 'hidden' || current !== root) return;
+			left++;
+			const w = $('warn');
+			w.hidden = false;
+			w.textContent = `⚠ خرجت من الصفحة (${left === 1 ? 'مرة واحدة' : left === 2 ? 'مرتين' : left + ' مرات'}). سيظهر هذا للمدرّس، والوقت لا يتوقف.`;
 		});
 	});
+	// تحذير قبل إغلاق الصفحة أثناء اختبار
+	window.addEventListener('beforeunload', (e) => { if (current) e.preventDefault(); });
 </script>
