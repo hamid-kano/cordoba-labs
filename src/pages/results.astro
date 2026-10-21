@@ -41,6 +41,7 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 	.rs-filters select, .rs-filters input { padding: 0.35rem 0.5rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-4); background: var(--sl-color-bg); color: var(--sl-color-white); }
 	.rs-t { width: 100%; font-size: var(--sl-text-sm); }
 	.rs-del { padding: 0.1rem 0.45rem; }
+	.rs-t td.mk { white-space: nowrap; }
 	.rs-t td.num { direction: ltr; text-align: right; white-space: nowrap; }
 	.rs-t td.lo { color: #e5534b; font-weight: 700; } .rs-t td.hi { color: #2fb36b; font-weight: 700; }
 </style>
@@ -110,10 +111,10 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 				byStudent(rs).map((e) => `<tr><td>${esc(e.name)}</td><td class="num">${esc(e.sid)}</td><td class="num">${e.quizzes.size}</td><td class="num">${e.n}</td><td class="num ${pctCls(e.avg)}">${e.avg}%</td>${leftCell(e.left)}<td class="num">${fmtDate(e.last)}</td></tr>`).join('') + '</tbody>';
 		} else if (view === 'all') {
 			t.innerHTML = '<thead><tr><th>الوقت</th><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>العلامة</th><th>خروج</th><th>المدة</th><th></th></tr></thead><tbody>' +
-				rs.map((r) => `<tr><td class="num">${fmtDate(r.at)}</td><td>${esc(r.name)}</td><td class="num">${esc(r.sid)}</td><td>${quizName(r.quiz)}</td><td class="num ${cls(r.score, r.total)}">${mark(r.score, r.total)}</td>${leftCell(r.left)}<td class="num">${dur(r.secs)}</td><td><button type="button" class="wl-btn rs-del" data-del="${r.id}" title="حذف هذه المحاولة">🗑</button></td></tr>`).join('') + '</tbody>';
+				rs.map((r) => `<tr><td class="num">${fmtDate(r.at)}</td><td>${esc(r.name)}</td><td class="num">${esc(r.sid)}</td><td>${quizName(r.quiz)}</td><td class="mk ${cls(r.score, r.total)}">${mark(r.score, r.total)}</td>${leftCell(r.left)}<td class="num">${dur(r.secs)}</td><td><button type="button" class="wl-btn rs-del" data-del="${r.id}" title="حذف هذه المحاولة">🗑</button></td></tr>`).join('') + '</tbody>';
 		} else {
 			t.innerHTML = '<thead><tr><th>الطالب</th><th>الرقم</th><th>الاختبار</th><th>أعلى علامة</th><th>المحاولات</th><th>خروج</th><th>آخر محاولة</th></tr></thead><tbody>' +
-				summary(rs).map((e) => `<tr><td>${esc(e.r.name)}</td><td class="num">${esc(e.r.sid)}</td><td>${quizName(e.r.quiz)}</td><td class="num ${cls(e.best, e.r.total)}">${mark(e.best, e.r.total)}</td><td class="num">${e.n}</td>${leftCell(e.left)}<td class="num">${fmtDate(e.last)}</td></tr>`).join('') + '</tbody>';
+				summary(rs).map((e) => `<tr><td>${esc(e.r.name)}</td><td class="num">${esc(e.r.sid)}</td><td>${quizName(e.r.quiz)}</td><td class="mk ${cls(e.best, e.r.total)}">${mark(e.best, e.r.total)}</td><td class="num">${e.n}</td>${leftCell(e.left)}<td class="num">${fmtDate(e.last)}</td></tr>`).join('') + '</tbody>';
 		}
 	};
 	const fillQuizzes = () => {
