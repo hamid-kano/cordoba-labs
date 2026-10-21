@@ -645,3 +645,184 @@ export const G_COURSES: Graph = {
 		{ a: 'p2', b: 'db' }, { a: 'al', b: 'ai' }, { a: 'dm', b: 'db' },
 	],
 };
+
+// ===================== 15. الخوارزميات الجشعة =====================
+/** الفكّة الجشعة: أكبر قطعة ممكنة كل مرة */
+export function greedyCoins(amount: number, coins: number[]): number[] {
+	const out: number[] = [];
+	const cs = [...coins].sort((a, b) => b - a);
+	let left = amount;
+	for (const c of cs) while (left >= c) { out.push(c); left -= c; }
+	return left === 0 ? out : [];
+}
+/** أقل عدد قطع (برمجة ديناميكية)، مع القطع نفسها */
+export function minCoins(amount: number, coins: number[]): number[] {
+	const best: (number[] | null)[] = [[]];
+	for (let a = 1; a <= amount; a++) {
+		best[a] = null;
+		for (const c of coins) {
+			const prev = a - c >= 0 ? best[a - c] : null;
+			if (prev && (!best[a] || prev.length + 1 < best[a]!.length)) best[a] = [...prev, c].sort((x, y) => y - x);
+		}
+	}
+	return best[amount] ?? [];
+}
+/** أصغر مبلغ بيفشل فيه الجشع (أو 0 إذا ما في حتى max) */
+export function firstGreedyFail(coins: number[], max = 100): number {
+	for (let a = 1; a <= max; a++) if (greedyCoins(a, coins).length !== minCoins(a, coins).length) return a;
+	return 0;
+}
+export interface Act { id: string; name: string; s: number; e: number }
+export const ACTS: Act[] = [
+	{ id: 'a', name: 'محاضرة رياضيات', s: 8, e: 10 },
+	{ id: 'b', name: 'ورشة طويلة', s: 7.5, e: 15 },
+	{ id: 'c', name: 'ندوة قصيرة', s: 9.5, e: 11 },
+	{ id: 'd', name: 'نادي البرمجة', s: 10, e: 12 },
+	{ id: 'e', name: 'امتحان', s: 11.5, e: 13 },
+	{ id: 'f', name: 'محاضرة فيزياء', s: 12, e: 14 },
+	{ id: 'g', name: 'تدريب', s: 13, e: 16 },
+	{ id: 'h', name: 'حفل التخرج', s: 14, e: 17 },
+];
+export type ActRule = 'end' | 'start' | 'short';
+/** جدولة القاعة: رتّب حسب القاعدة، وخذ كل نشاط ما بيتعارض مع يلي قبله */
+export function greedySchedule(acts: Act[], rule: ActRule): Act[] {
+	const sorted = [...acts].sort((x, y) => (rule === 'end' ? x.e - y.e : rule === 'start' ? x.s - y.s : (x.e - x.s) - (y.e - y.s)) || x.s - y.s);
+	const out: Act[] = [];
+	for (const a of sorted) if (out.every((b) => a.e <= b.s || a.s >= b.e)) out.push(a);
+	return out.sort((x, y) => x.s - y.s);
+}
+
+// ===================== 16. البرمجة الديناميكية =====================
+export interface Item { id: string; name: string; w: number; v: number }
+export const ITEMS: Item[] = [
+	{ id: 'tent', name: 'خيمة', w: 6, v: 30 },
+	{ id: 'water', name: 'ماء', w: 3, v: 14 },
+	{ id: 'food', name: 'طعام', w: 4, v: 16 },
+	{ id: 'cam', name: 'كاميرا', w: 2, v: 9 },
+];
+export interface KCell { i: number; w: number; val: number; take: boolean; from: [number, number][] }
+/** جدول حقيبة الظهر 0/1: T[i][w] أفضل قيمة بأول i أغراض وسعة w. كل خانة بخطوة */
+export function knapsack(items: Item[], W: number) {
+	const T: number[][] = Array.from({ length: items.length + 1 }, () => new Array(W + 1).fill(0));
+	const cells: KCell[] = [];
+	for (let i = 1; i <= items.length; i++) {
+		const it = items[i - 1];
+		for (let w = 0; w <= W; w++) {
+			const skip = T[i - 1][w];
+			const take = it.w <= w ? T[i - 1][w - it.w] + it.v : -1;
+			T[i][w] = Math.max(skip, take);
+			cells.push({ i, w, val: T[i][w], take: take > skip, from: take > skip ? [[i - 1, w - it.w]] : [[i - 1, w]] });
+		}
+	}
+	// الرجوع من آخر خانة لنعرف شو أخدنا
+	const chosen: Item[] = [];
+	let w = W;
+	for (let i = items.length; i >= 1; i--) if (T[i][w] !== T[i - 1][w]) { chosen.unshift(items[i - 1]); w -= items[i - 1].w; }
+	return { T, cells, best: T[items.length][W], chosen };
+}
+/** أفضل قيمة بالطمع (أعلى قيمة لكل كيلو) للمقارنة */
+export function greedyKnapsack(items: Item[], W: number) {
+	const out: Item[] = [];
+	let left = W;
+	for (const it of [...items].sort((a, b) => b.v / b.w - a.v / a.w)) if (it.w <= left) { out.push(it); left -= it.w; }
+	return { chosen: out, value: out.reduce((s, x) => s + x.v, 0) };
+}
+/** أطول تسلسل مشترك: الجدول، والتسلسل، وطريق الرجوع */
+export function lcs(a: string, b: string) {
+	const n = a.length, m = b.length;
+	const T: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+	for (let i = 1; i <= n; i++) for (let j = 1; j <= m; j++) T[i][j] = a[i - 1] === b[j - 1] ? T[i - 1][j - 1] + 1 : Math.max(T[i - 1][j], T[i][j - 1]);
+	let i = n, j = m, s = '';
+	const path: [number, number][] = [];
+	while (i > 0 && j > 0) {
+		if (a[i - 1] === b[j - 1]) { s = a[i - 1] + s; path.push([i, j]); i--; j--; }
+		else if (T[i - 1][j] >= T[i][j - 1]) i--; else j--;
+	}
+	return { T, s, path };
+}
+/** فيبوناتشي من تحت لفوق: جدول القيم */
+export const fibTable = (n: number) => { const f = [0, 1]; for (let k = 2; k <= n; k++) f.push(f[k - 1] + f[k - 2]); return f.slice(0, n + 1); };
+/** عدد طرق صعود درج n، خطوة أو خطوتين */
+export const stairs = (n: number) => { const f = [1, 1]; for (let k = 2; k <= n; k++) f.push(f[k - 1] + f[k - 2]); return f[n]; };
+
+// ===================== 17. التراجع =====================
+export interface QEvent { kind: 'try' | 'place' | 'clash' | 'remove' | 'solved'; row: number; col: number; board: number[] }
+/** الملكات: ملكة بكل صف. board[r] = العمود. بيوقف عند أول حل، وبيسجّل كل محاولة */
+export function nQueens(n: number, all = false) {
+	const board: number[] = [];
+	const events: QEvent[] = [];
+	let solutions = 0, placements = 0;
+	const ok = (r: number, c: number) => board.every((cc, rr) => cc !== c && Math.abs(cc - c) !== r - rr);
+	const go = (r: number): boolean => {
+		if (r === n) { solutions++; if (!all) { events.push({ kind: 'solved', row: r, col: -1, board: [...board] }); return true; } return false; }
+		for (let c = 0; c < n; c++) {
+			if (!ok(r, c)) { if (!all) events.push({ kind: 'clash', row: r, col: c, board: [...board] }); continue; }
+			board.push(c); placements++;
+			if (!all) events.push({ kind: 'place', row: r, col: c, board: [...board] });
+			if (go(r + 1)) return true;
+			board.pop();
+			if (!all) events.push({ kind: 'remove', row: r, col: c, board: [...board] });
+		}
+		return false;
+	};
+	go(0);
+	return { events, solutions, placements, first: events.at(-1)?.board ?? [] };
+}
+/** الخانات يلي بتهاجمها الملكات */
+export function attacked(board: (number | null)[], n: number): boolean[][] {
+	const A = Array.from({ length: n }, () => new Array(n).fill(false));
+	board.forEach((c, r) => {
+		if (c === null) return;
+		for (let k = 0; k < n; k++) { A[r][k] = true; A[k][c] = true; }
+		for (let d = -n; d <= n; d++) { const r1 = r + d, c1 = c + d, c2 = c - d; if (r1 >= 0 && r1 < n) { if (c1 >= 0 && c1 < n) A[r1][c1] = true; if (c2 >= 0 && c2 < n) A[r1][c2] = true; } }
+	});
+	return A;
+}
+/** سودوكو 4×4 بالتراجع: 0 = فاضي. بيسجّل كل كتابة ومسح */
+export interface SEvent { kind: 'set' | 'undo' | 'solved'; r: number; c: number; v: number; grid: number[][] }
+export function sudoku4(start: number[][]) {
+	const g = start.map((r) => [...r]);
+	const events: SEvent[] = [];
+	const ok = (r: number, c: number, v: number) => {
+		for (let k = 0; k < 4; k++) if (g[r][k] === v || g[k][c] === v) return false;
+		const br = r - (r % 2), bc = c - (c % 2);
+		for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) if (g[br + i][bc + j] === v) return false;
+		return true;
+	};
+	const go = (p: number): boolean => {
+		if (p === 16) { events.push({ kind: 'solved', r: -1, c: -1, v: 0, grid: g.map((r) => [...r]) }); return true; }
+		const r = p >> 2, c = p & 3;
+		if (g[r][c]) return go(p + 1);
+		for (let v = 1; v <= 4; v++) {
+			if (!ok(r, c, v)) continue;
+			g[r][c] = v;
+			events.push({ kind: 'set', r, c, v, grid: g.map((x) => [...x]) });
+			if (go(p + 1)) return true;
+			g[r][c] = 0;
+			events.push({ kind: 'undo', r, c, v, grid: g.map((x) => [...x]) });
+		}
+		return false;
+	};
+	go(0);
+	return events;
+}
+export const SUDOKU4 = [
+	[0, 0, 0, 0],
+	[0, 0, 0, 0],
+	[0, 0, 0, 0],
+	[0, 0, 4, 3],
+];
+/** كل المجموعات الجزئية بمجموع معيّن (شجرة القرار) */
+export function subsetSum(nums: number[], target: number) {
+	const out: number[][] = [];
+	let calls = 0;
+	const go = (k: number, cur: number[], sum: number) => {
+		calls++;
+		if (sum === target) { out.push([...cur]); return; }
+		if (k === nums.length || sum > target) return;
+		cur.push(nums[k]); go(k + 1, cur, sum + nums[k]); cur.pop();
+		go(k + 1, cur, sum);
+	};
+	go(0, [], 0);
+	return { out, calls };
+}

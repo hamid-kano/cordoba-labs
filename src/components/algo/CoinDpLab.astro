@@ -1,0 +1,65 @@
+---
+// الفكّة بالبرمجة الديناميكية: صف خانات من 0 لـ 12، كل خانة = أقل عدد قطع، بتنحسب من خانات أصغر.
+// القطع 1، 3، 4 (يلي فشل فيها الجشع).
+---
+
+<div class="not-content wl-box" data-coindp>
+	<h4>🧮 جدول الفكّة: كل مبلغ من المبالغ الأصغر</h4>
+	<p class="se-hint">القطع 1، 3، 4. لكل مبلغ نسأل: «إذا كانت آخر قطعة 1 أو 3 أو 4، فكم قطعة احتاج الباقي؟» ونأخذ الأقل.</p>
+	<div class="cd-row" dir="ltr" data-out="row"></div>
+	<p class="sl-note" data-out="note"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+	</div>
+</div>
+
+<style is:global>
+	.cd-row { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 3px; }
+	.cd-cell { display: flex; flex-direction: column; align-items: center; border: 2px solid var(--sl-color-gray-5); border-radius: 0.3rem; padding: 0.15rem 0; min-width: 0; }
+	.cd-cell small { font-size: 0.6rem; color: var(--sl-color-gray-3); }
+	.cd-cell b { font-size: 1rem; min-height: 1.3em; }
+	.cd-cell em { font-style: normal; font-size: 0.6rem; color: #e0a030; min-height: 1em; }
+	.cd-cell.now { border-color: #a371f7; background: rgb(163 113 247 / 0.2); }
+	.cd-cell.src { border-color: #e0a030; background: rgb(224 160 48 / 0.2); }
+	.cd-cell.done { border-color: #2fb36b; }
+</style>
+
+<script>
+	const COINS = [1, 3, 4], N = 12;
+	document.querySelectorAll<HTMLElement>('[data-coindp]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		// احسب الجدول مرة وحدة
+		const best: number[] = [0], last: number[] = [0];
+		for (let a = 1; a <= N; a++) {
+			best[a] = Infinity;
+			for (const c of COINS) if (c <= a && best[a - c] + 1 < best[a]) { best[a] = best[a - c] + 1; last[a] = c; }
+		}
+		let i = 0, timer = 0;
+		const draw = () => {
+			const a = i; // الخانة الحالية
+			$('row').innerHTML = Array.from({ length: N + 1 }, (_, k) => {
+				const cls = k === a && i > 0 ? 'now' : i > 0 && a - last[a] === k && k < a ? 'src' : k < a || (i > 0 && k === a) ? 'done' : '';
+				const shown = k < a || (k === a && i > 0) || k === 0;
+				return `<div class="cd-cell ${cls}"><small>${k}</small><b>${shown ? best[k] : ''}</b><em>${shown && k ? '+' + last[k] : ''}</em></div>`;
+			}).join('');
+			const note = $('note');
+			if (i === 0) note.textContent = 'المبلغ 0 يحتاج 0 قطعة. هذه الحالة الأساسية. اضغط «خطوة».';
+			else {
+				const opts = COINS.filter((c) => c <= a).map((c) => `آخر قطعة ${c}: ${best[a - c]} + 1 = ${best[a - c] + 1}`).join('، ');
+				note.textContent = `المبلغ ${a}: ${opts}. الأقل ${best[a]}، بآخر قطعة ${last[a]}.` + (a === 6 ? ' هنا فشل الجشع (4 + 1 + 1)، أما الجدول فوجد 3 + 3!' : '') + (a === N ? ` لنعرف القطع نرجع: ${(() => { const out: number[] = []; let x = N; while (x) { out.push(last[x]); x -= last[x]; } return out.join(' + '); })()}.` : '');
+			}
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i === 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i === N;
+		};
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < N) { i++; draw(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i > 0) { i--; draw(); } });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= N) i = 0;
+			timer = window.setInterval(() => { if (i >= N) { clearInterval(timer); return; } i++; draw(); }, 1100);
+		});
+		draw();
+	});
+</script>

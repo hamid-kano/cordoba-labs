@@ -1,0 +1,115 @@
+---
+// الملكات: الطالب بيحط ملكات بإيده (الخانات المهدّدة بتضوّي)، أو بيشوف التراجع خطوة خطوة.
+// المحرك nQueens/attacked بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-queens>
+	<h4>👑 الملكات على رقعة الشطرنج</h4>
+	<p class="se-hint">ضع ملكة في كل صف، بحيث لا تهاجم أي ملكة غيرها: لا في السطر نفسه، ولا العمود، ولا القطر.</p>
+	<div class="wl-row">
+		<span>الرقعة:</span>
+		{[4, 5, 6, 8].map((n) => <button type="button" class={`wl-btn${n === 4 ? ' primary' : ''}`} data-n={n}><bdi dir="ltr">{n}×{n}</bdi></button>)}
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-mode="hand">✋ أنا أحاول</button>
+		<button type="button" class="wl-btn" data-mode="auto">🤖 التراجع خطوة خطوة</button>
+	</div>
+	<div class="qn-board" dir="ltr" data-out="board"></div>
+	<div class="wl-row" data-auto-ui hidden>
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+		<button type="button" class="wl-btn" data-end>⏭ الحل</button>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>ملكات وُضعت (مع ما رُفع)</span><strong data-out="places">0</strong></div>
+		<div class="wl-out"><span>عدد كل الحلول</span><strong data-out="sols">2</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.qn-board { display: grid; gap: 0; width: min(100%, 22rem); margin-inline: auto; border: 3px solid var(--sl-color-gray-4); }
+	.qn-board button { aspect-ratio: 1; min-width: 0; border: 0; padding: 0; font-size: clamp(0.9rem, 5vw, 1.6rem); cursor: pointer; display: grid; place-items: center; line-height: 1; }
+	.qn-board button.l { background: #e8d9b5; } .qn-board button.d { background: #b58863; }
+	.qn-board button.hit { box-shadow: inset 0 0 0 100px rgb(229 83 75 / 0.35); }
+	.qn-board button.try { box-shadow: inset 0 0 0 100px rgb(224 160 48 / 0.6); }
+	.qn-board button.bad { box-shadow: inset 0 0 0 100px rgb(229 83 75 / 0.75); }
+	.qn-board button.win { box-shadow: inset 0 0 0 100px rgb(47 179 107 / 0.55); }
+</style>
+
+<script>
+	import { nQueens, attacked, arCount, type QEvent } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-queens]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const ui = root.querySelector<HTMLElement>('[data-auto-ui]')!;
+		let n = 4, mode = 'hand', hand: (number | null)[] = [], events: QEvent[] = [], i = 0, timer = 0;
+		const SOL: Record<number, number> = { 4: 2, 5: 10, 6: 4, 8: 92 };
+		const board = (q: (number | null)[], cls: (r: number, c: number) => string) => {
+			const el = $('board');
+			el.style.gridTemplateColumns = `repeat(${n}, minmax(0, 1fr))`;
+			el.innerHTML = Array.from({ length: n * n }, (_, k) => {
+				const r = Math.floor(k / n), c = k % n;
+				return `<button type="button" data-r="${r}" data-c="${c}" class="${(r + c) % 2 ? 'd' : 'l'} ${cls(r, c)}">${q[r] === c ? '♛' : ''}</button>`;
+			}).join('');
+		};
+		const drawHand = () => {
+			const A = attacked(hand, n);
+			const placed = hand.filter((x) => x !== null).length;
+			const won = placed === n;
+			board(hand, (r, c) => (won ? 'win' : hand[r] === c ? '' : A[r][c] ? 'hit' : ''));
+			$('board').querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => {
+				const r = +b.dataset.r!, c = +b.dataset.c!;
+				if (hand[r] === c) { hand[r] = null; drawHand(); return; }
+				const others = hand.map((x, rr) => (rr === r ? null : x));
+				if (attacked(others, n)[r][c]) { $('msg').className = 'wl-msg wl-bad'; $('msg').textContent = 'هذه الخانة مهدَّدة (بالأحمر). جرّب غيرها، أو ارفع ملكة.'; return; }
+				hand[r] = c; drawHand();
+			}));
+			const msg = $('msg');
+			msg.className = 'wl-msg' + (won ? ' wl-good' : '');
+			msg.textContent = won ? `✓ رائع! ${n} ملكات بلا أي هجوم.` : placed && hand.some((x, r) => x === null && attacked(hand, n)[r].every(Boolean)) ? 'يوجد صف كل خاناته مهدَّدة! لا مخرج: يجب أن ترجع وتغيّر ملكة سابقة. هذا هو «التراجع».' : 'اضغط خانة لتضع ملكة، واضغطها مرة أخرى لترفعها.';
+		};
+		const drawAuto = () => {
+			const e = events[i];
+			const q: (number | null)[] = Array.from({ length: n }, (_, r) => (e && r < e.board.length ? e.board[r] : null));
+			board(q, (r, c) => (!e ? '' : e.kind === 'solved' ? (q[r] === c ? 'win' : '') : r === e.row && c === e.col ? (e.kind === 'clash' ? 'bad' : e.kind === 'remove' ? 'try' : 'try') : ''));
+			const placed = events.slice(0, i + 1).filter((x) => x.kind === 'place').length;
+			$('places').textContent = String(placed);
+			const msg = $('msg');
+			msg.className = 'wl-msg';
+			if (!e) msg.textContent = 'رقعة فارغة. نبدأ بالصف الأول، ونجرّب الأعمدة من اليسار.';
+			else if (e.kind === 'place') msg.textContent = `الصف ${e.row + 1}: العمود ${e.col + 1} آمن، فنضع ملكة وننتقل إلى الصف التالي.`;
+			else if (e.kind === 'clash') msg.textContent = `الصف ${e.row + 1}، العمود ${e.col + 1}: مهدَّد، فنجرّب العمود التالي.`;
+			else if (e.kind === 'remove') { msg.className = 'wl-msg wl-bad'; msg.textContent = `↩ لا يوجد مكان آمن في الصفوف التالية! نرفع ملكة الصف ${e.row + 1} ونجرّب عموداً آخر لها. هذا هو التراجع.`; }
+			else { msg.className = 'wl-msg wl-good'; msg.textContent = `✓ وجدنا حلاً بعد أن وضعنا ${arCount(placed, 'ملكة واحدة', 'ملكتين', 'ملكات', 'ملكة')} (ورفعنا بعضها). لو جرّبنا كل الترتيبات الممكنة دون تراجع لاحتجنا ${n}^${n} = ${(n ** n).toLocaleString('en')} محاولة.`; }
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i < 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i >= events.length - 1;
+		};
+		const reset = () => {
+			clearInterval(timer);
+			$('sols').textContent = String(SOL[n]);
+			$('places').textContent = '0';
+			if (mode === 'hand') { ui.hidden = true; hand = Array(n).fill(null); drawHand(); }
+			else { ui.hidden = false; events = nQueens(n).events; i = -1; drawAuto(); }
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-n]').forEach((b) => b.addEventListener('click', () => {
+			n = +b.dataset.n!;
+			root.querySelectorAll('[data-n]').forEach((x) => x.classList.toggle('primary', x === b));
+			reset();
+		}));
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+			mode = b.dataset.mode!;
+			root.querySelectorAll('[data-mode]').forEach((x) => x.classList.toggle('primary', x === b));
+			reset();
+		}));
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < events.length - 1) { i++; drawAuto(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i >= 0) { i--; drawAuto(); } });
+		root.querySelector('[data-end]')!.addEventListener('click', () => { clearInterval(timer); i = events.length - 1; drawAuto(); });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= events.length - 1) i = -1;
+			timer = window.setInterval(() => { if (i >= events.length - 1) { clearInterval(timer); return; } i++; drawAuto(); }, n >= 8 ? 60 : n >= 6 ? 150 : 450);
+		});
+		reset();
+	});
+</script>

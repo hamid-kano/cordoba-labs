@@ -1,0 +1,108 @@
+---
+// حقيبة الرحلة 0/1: الطالب بيجرّب يعبّي بإيده أولاً، وبعدين الجدول بيتعبّى خانة خانة،
+// وكل خانة بتضوّي الخانتين يلي انحسبت منهن. وبالآخر الرجوع بيبيّن الأغراض. المحرك knapsack بـ src/scripts/algo.ts.
+import { ITEMS } from '../../scripts/algo';
+const W = 10;
+---
+
+<div class="not-content wl-box" data-knap>
+	<h4>🎒 حقيبة الرحلة: 10 كيلو فقط</h4>
+	<div class="wl-row" data-items>
+		{ITEMS.map((it) => <button type="button" class="wl-btn" data-it={it.id}>{it.name} <bdi dir="ltr">({it.w} kg، {it.v})</bdi></button>)}
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>الوزن في حقيبتك</span><strong data-out="w">0 / 10</strong></div>
+		<div class="wl-out"><span>مجموع الأهمية</span><strong data-out="v">0</strong></div>
+	</div>
+	<p class="wl-msg" data-out="hand"></p>
+	<hr />
+	<p class="se-hint"><b>الجدول:</b> الخانة في السطر i والعمود w = أفضل أهمية ممكنة بأول i أغراض وحقيبة سعتها w.</p>
+	<div class="wl-scroll">
+		<table class="wl-table kn-t" dir="ltr" data-out="table">
+			<thead><tr><th></th>{Array.from({ length: W + 1 }, (_, w) => <th>{w}</th>)}</tr></thead>
+		</table>
+	</div>
+	<p class="sl-note" data-out="note"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خانة ←</button>
+		<button type="button" class="wl-btn" data-row>سطر كامل ⏩</button>
+		<button type="button" class="wl-btn" data-end>⏭ النتيجة</button>
+	</div>
+</div>
+
+<style is:global>
+	.kn-t { font-size: 0.78rem; text-align: center; width: 100%; }
+	.kn-t td, .kn-t th { padding: 0.2rem 0.3rem !important; min-width: 1.8rem; }
+	.kn-t th[scope='row'] { text-align: left; white-space: nowrap; }
+	.kn-t td.now { background: rgb(163 113 247 / 0.35); font-weight: 700; }
+	.kn-t td.src { background: rgb(224 160 48 / 0.35); }
+	.kn-t td.path { background: rgb(47 179 107 / 0.4); font-weight: 700; }
+	[data-knap] hr { border: 0; border-top: 1px solid var(--sl-color-gray-5); margin: 0.25rem 0; }
+	[data-items] .wl-btn.on { background: #2fb36b; border-color: #2fb36b; color: #111; }
+</style>
+
+<script>
+	import { ITEMS, knapsack, greedyKnapsack } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-knap]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const W = 10;
+		const K = knapsack(ITEMS, W);
+		const G = greedyKnapsack(ITEMS, W);
+		const table = root.querySelector<HTMLTableElement>('[data-out="table"]')!;
+		const tbody = document.createElement('tbody');
+		table.append(tbody);
+		// الحقيبة اليدوية
+		const bag = new Set<string>();
+		root.querySelectorAll<HTMLButtonElement>('[data-it]').forEach((b) => b.addEventListener('click', () => {
+			const id = b.dataset.it!;
+			if (bag.has(id)) bag.delete(id); else bag.add(id);
+			const items = ITEMS.filter((x) => bag.has(x.id));
+			const w = items.reduce((s, x) => s + x.w, 0), v = items.reduce((s, x) => s + x.v, 0);
+			if (w > W) { bag.delete(id); $('hand').className = 'wl-msg wl-bad'; $('hand').textContent = 'لا تتسع الحقيبة! أزل شيئاً أولاً.'; return; }
+			b.classList.toggle('on', bag.has(id));
+			$('w').textContent = `${w} / ${W}`;
+			$('v').textContent = String(v);
+			const hand = $('hand');
+			hand.className = 'wl-msg' + (v === K.best ? ' wl-good' : '');
+			hand.textContent = v === K.best ? `✓ ${v}: أفضل ما يمكن!` : `أهمية ${v}. الطريقة الجشعة (الأعلى أهمية لكل كيلو) تأخذ ${G.chosen.map((x) => x.name).join(' و')} فتصل إلى ${G.value}. هل تستطيع أكثر؟`;
+		}));
+		// الجدول خطوة خطوة: k = عدد الخانات المحسوبة
+		let k = 0;
+		const total = K.cells.length;
+		const draw = () => {
+			const shown = new Map<string, number>();
+			for (let w = 0; w <= W; w++) shown.set(`0,${w}`, 0);
+			K.cells.slice(0, k).forEach((c) => shown.set(`${c.i},${c.w}`, c.val));
+			const cur = k > 0 && k <= total ? K.cells[k - 1] : null;
+			const src = new Set(cur ? (cur.take ? [`${cur.from[0][0]},${cur.from[0][1]}`, `${cur.i - 1},${cur.w}`] : [`${cur.i - 1},${cur.w}`]) : []);
+			// طريق الرجوع بالنهاية
+			const path = new Set<string>();
+			if (k === total) { let w = W; for (let i = ITEMS.length; i >= 0; i--) { path.add(`${i},${w}`); if (i && K.T[i][w] !== K.T[i - 1][w]) w -= ITEMS[i - 1].w; } }
+			tbody.innerHTML = Array.from({ length: ITEMS.length + 1 }, (_, i) =>
+				`<tr><th scope="row">${i === 0 ? '—' : ITEMS[i - 1].name}</th>${Array.from({ length: W + 1 }, (_, w) => {
+					const key = `${i},${w}`;
+					const cls = path.has(key) ? 'path' : cur && cur.i === i && cur.w === w ? 'now' : src.has(key) ? 'src' : '';
+					return `<td class="${cls}">${shown.has(key) ? shown.get(key) : ''}</td>`;
+				}).join('')}</tr>`).join('');
+			const note = $('note');
+			if (!cur) note.textContent = 'السطر الأول: بلا أغراض، الأهمية 0 لأي سعة. اضغط «خانة».';
+			else if (k === total) note.textContent = `✓ أفضل أهمية ${K.best}: ${K.chosen.map((x) => x.name).join(' و')}. رجعنا من آخر خانة: كلما اختلفت الخانة عن التي فوقها، فقد أخذنا غرض هذا السطر. والجشع وصل إلى ${G.value} فقط.`;
+			else {
+				const it = ITEMS[cur.i - 1];
+				const skip = K.T[cur.i - 1][cur.w];
+				note.textContent = it.w > cur.w
+					? `${it.name} (${it.w} كيلو) لا يتسع في حقيبة سعتها ${cur.w}، فنأخذ قيمة الخانة فوقها: ${skip}.`
+					: `${it.name} في سعة ${cur.w}: دون أخذه ${skip}، أو نأخذه: ${it.v} + أفضل قيمة للسعة الباقية ${cur.w - it.w} = ${it.v + K.T[cur.i - 1][cur.w - it.w]}. الأكبر ${cur.val}.`;
+			}
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = k === 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = k === total;
+		};
+		root.querySelector('[data-step]')!.addEventListener('click', () => { if (k < total) { k++; draw(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { if (k > 0) { k--; draw(); } });
+		root.querySelector('[data-row]')!.addEventListener('click', () => { k = Math.min(total, (Math.floor(k / (W + 1)) + 1) * (W + 1)); draw(); });
+		root.querySelector('[data-end]')!.addEventListener('click', () => { k = total; draw(); });
+		draw();
+		$('hand').textContent = 'اختر ما تأخذه معك. الرقم الثاني «أهمية» الغرض.';
+	});
+</script>

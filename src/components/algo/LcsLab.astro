@@ -1,0 +1,68 @@
+---
+// أطول تسلسل مشترك بين كلمتين: جدول بيتعبّى، والخانة المتطابقة بتاخد من القطر +1،
+// وبالآخر طريق الرجوع بيطلّع الحروف المشتركة. المحرك lcs بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-lcs>
+	<h4>🧬 أطول تسلسل مشترك</h4>
+	<div class="wl-row">
+		<input type="text" data-k="a" dir="ltr" value="ALGORITHM" maxlength="10" style="width:8rem;font-family:var(--__sl-font-mono)" />
+		<input type="text" data-k="b" dir="ltr" value="LOGARITHM" maxlength="10" style="width:8rem;font-family:var(--__sl-font-mono)" />
+		<button type="button" class="wl-btn" data-go>احسب</button>
+	</div>
+	<div class="wl-scroll"><table class="wl-table lc-t" dir="ltr" data-out="t"></table></div>
+	<p class="sl-note" data-out="note"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-row>سطر ⏩</button>
+		<button type="button" class="wl-btn" data-end>⏭ النتيجة</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.lc-t { font-size: 0.78rem; text-align: center; font-family: var(--__sl-font-mono); }
+	.lc-t td, .lc-t th { padding: 0.2rem 0.35rem !important; min-width: 1.6rem; }
+	.lc-t td.eq { color: #e0a030; font-weight: 700; }
+	.lc-t td.path { background: rgb(47 179 107 / 0.45); font-weight: 700; }
+	.lc-t th.hit { background: rgb(47 179 107 / 0.45); }
+</style>
+
+<script>
+	import { lcs } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-lcs]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let A = '', B = '', R = lcs('', ''), rows = 0;
+		const draw = () => {
+			const done = rows > A.length;
+			const path = new Set(done ? R.path.map(([i, j]) => `${i},${j}`) : []);
+			const hitA = new Set(done ? R.path.map(([i]) => i) : []), hitB = new Set(done ? R.path.map(([, j]) => j) : []);
+			let h = `<thead><tr><th></th><th>∅</th>${[...B].map((c, j) => `<th class="${hitB.has(j + 1) ? 'hit' : ''}">${c}</th>`).join('')}</tr></thead><tbody>`;
+			for (let i = 0; i <= A.length; i++) {
+				h += `<tr><th class="${hitA.has(i) ? 'hit' : ''}">${i ? A[i - 1] : '∅'}</th>`;
+				for (let j = 0; j <= B.length; j++) {
+					const show = i < rows || i === 0 || j === 0;
+					const eq = i && j && A[i - 1] === B[j - 1];
+					h += `<td class="${path.has(`${i},${j}`) ? 'path' : eq && show ? 'eq' : ''}">${show ? R.T[i][j] : ''}</td>`;
+				}
+				h += '</tr>';
+			}
+			$('t').innerHTML = h + '</tbody>';
+			const note = $('note');
+			if (rows <= 1) note.textContent = 'كل خانة: إذا تطابق الحرفان (برتقالي)، نأخذ الخانة على القطر (يسار أعلى) + 1. وإلا نأخذ الأكبر من الخانة فوقها والخانة يسارها.';
+			else if (!done) note.textContent = `حسبنا ${rows - 1} ${rows - 1 <= 10 ? 'أسطر' : 'سطراً'}. كل سطر يعتمد فقط على السطر الذي فوقه.`;
+			else note.textContent = 'الأخضر طريق الرجوع من آخر خانة: كلما مشينا على قطر عند حرفين متطابقين، أخذنا هذا الحرف.';
+			const msg = $('msg');
+			msg.className = 'wl-msg' + (done ? ' wl-good' : '');
+			msg.textContent = done ? `أطول تسلسل مشترك: «${R.s}»، طوله ${R.s.length}. الحروف بالترتيب نفسه في الكلمتين، لكن ليست بالضرورة متجاورة.` : '';
+		};
+		const load = () => {
+			A = root.querySelector<HTMLInputElement>('[data-k="a"]')!.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 10) || 'A';
+			B = root.querySelector<HTMLInputElement>('[data-k="b"]')!.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 10) || 'A';
+			R = lcs(A, B); rows = 1; draw();
+		};
+		root.querySelector('[data-go]')!.addEventListener('click', load);
+		root.querySelector('[data-row]')!.addEventListener('click', () => { if (rows <= A.length) { rows++; draw(); } });
+		root.querySelector('[data-end]')!.addEventListener('click', () => { rows = A.length + 1; draw(); });
+		load();
+	});
+</script>

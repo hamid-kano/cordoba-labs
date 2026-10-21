@@ -1,0 +1,74 @@
+---
+// جدولة قاعة واحدة: أنشطة على خط زمني، والطالب بيختار بإيده أو بيجرّب تلات قواعد جشعة.
+// «ينتهي أولاً» دايماً الأفضل، و«يبدأ أولاً» و«الأقصر» بيفشلوا. المحرك greedySchedule بـ src/scripts/algo.ts.
+import { ACTS } from '../../scripts/algo';
+const T0 = 7.5, T1 = 17;
+const hours = [8, 10, 12, 14, 16];
+---
+
+<div class="not-content wl-box" data-hall>
+	<h4>🏛️ قاعة واحدة، وأنشطة كثيرة</h4>
+	<p class="se-hint">القاعة تستقبل نشاطاً واحداً في كل وقت. اختر أكبر عدد ممكن من الأنشطة دون تداخل: اضغط عليها بنفسك، أو جرّب قاعدة جشعة.</p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-rule="start">يبدأ أولاً</button>
+		<button type="button" class="wl-btn" data-rule="short">الأقصر أولاً</button>
+		<button type="button" class="wl-btn" data-rule="end">ينتهي أولاً</button>
+		<button type="button" class="wl-btn" data-clear>↺ امسح</button>
+	</div>
+	<div class="hs-time" dir="ltr">
+		<div class="hs-axis">{hours.map((h) => <span style={`left:${((h - T0) / (T1 - T0)) * 100}%`}>{h}:00</span>)}</div>
+		{ACTS.map((a) => (
+			<button type="button" class="hs-act" data-id={a.id} style={`left:${((a.s - T0) / (T1 - T0)) * 100}%;width:${((a.e - a.s) / (T1 - T0)) * 100}%`}>{a.name}</button>
+		))}
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.hs-time { position: relative; display: flex; flex-direction: column; gap: 4px; padding-top: 1.3rem; }
+	.hs-axis { position: absolute; top: 0; left: 0; right: 0; height: 1.2rem; font-size: 0.65rem; color: var(--sl-color-gray-3); }
+	.hs-axis span { position: absolute; transform: translateX(-50%); }
+	.hs-act { position: relative; height: 1.9rem; border: 2px solid var(--sl-color-gray-4); border-radius: 0.35rem; background: var(--sl-color-gray-6); color: var(--sl-color-white); font-size: 0.7rem; font-weight: 700; cursor: pointer; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 0.2rem; direction: rtl; }
+	.hs-act.on { background: #2fb36b; border-color: #2fb36b; color: #111; }
+	.hs-act.clash { background: #e5534b; border-color: #e5534b; color: #111; }
+</style>
+
+<script>
+	import { ACTS, greedySchedule, arCount, type ActRule } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-hall]').forEach((root) => {
+		const msg = root.querySelector<HTMLElement>('[data-out="msg"]')!;
+		const by = Object.fromEntries(ACTS.map((a) => [a.id, a]));
+		const BEST = greedySchedule(ACTS, 'end').length;
+		let picked = new Set<string>();
+		const n = (k: number) => arCount(k, 'نشاطاً واحداً', 'نشاطين', 'أنشطة', 'نشاطاً');
+		const overlap = (x: string, y: string) => by[x].s < by[y].e && by[y].s < by[x].e;
+		const draw = (clash = '') => root.querySelectorAll<HTMLButtonElement>('.hs-act').forEach((b) => {
+			b.classList.toggle('on', picked.has(b.dataset.id!));
+			b.classList.toggle('clash', b.dataset.id === clash);
+		});
+		root.querySelectorAll<HTMLButtonElement>('.hs-act').forEach((b) => b.addEventListener('click', () => {
+			const id = b.dataset.id!;
+			if (picked.has(id)) { picked.delete(id); draw(); msg.className = 'wl-msg'; msg.textContent = `اخترت ${n(picked.size)}.`; return; }
+			const c = [...picked].find((x) => overlap(x, id));
+			if (c) { draw(id); msg.className = 'wl-msg wl-bad'; msg.textContent = `«${by[id].name}» يتداخل مع «${by[c].name}».`; return; }
+			picked.add(id); draw();
+			msg.className = 'wl-msg' + (picked.size === BEST ? ' wl-good' : '');
+			msg.textContent = picked.size === BEST ? `✓ ${n(BEST)}: هذا أكبر عدد ممكن!` : `اخترت ${n(picked.size)}. هل يمكن أكثر؟`;
+		}));
+		const SAY: Record<ActRule, (k: number) => string> = {
+			start: (k) => `«يبدأ أولاً» أخذ الورشة الطويلة لأنها تبدأ 7:30، فاحتلت القاعة حتى 15:00: ${n(k)} فقط!`,
+			short: (k) => `«الأقصر أولاً» أخذ ${n(k)}. الندوة القصيرة تبدو ذكية، لكنها تتداخل مع نشاطين كانا سيعطيان أكثر.`,
+			end: (k) => `✓ «ينتهي أولاً» أخذ ${n(k)}، وهذا الأفضل. كلما انتهى النشاط أبكر، بقي وقت أكثر لغيره.`,
+		};
+		root.querySelectorAll<HTMLButtonElement>('[data-rule]').forEach((b) => b.addEventListener('click', () => {
+			const r = b.dataset.rule as ActRule;
+			const s = greedySchedule(ACTS, r);
+			picked = new Set(s.map((a) => a.id));
+			draw();
+			msg.className = 'wl-msg ' + (r === 'end' ? 'wl-good' : 'wl-bad');
+			msg.textContent = SAY[r](s.length);
+		}));
+		root.querySelector('[data-clear]')!.addEventListener('click', () => { picked.clear(); draw(); msg.className = 'wl-msg'; msg.textContent = 'اضغط على الأنشطة لتختارها.'; });
+		msg.textContent = 'اضغط على الأنشطة لتختارها.';
+	});
+</script>

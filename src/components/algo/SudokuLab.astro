@@ -1,0 +1,68 @@
+---
+// سودوكو صغيرة 4×4 بالتراجع: كل كتابة بتضوّي، وكل مسح (تراجع) أحمر. المحرك sudoku4 بـ src/scripts/algo.ts.
+---
+
+<div class="not-content wl-box" data-sudoku>
+	<h4>🔢 سودوكو صغيرة: جرّب، وإذا علقت ارجع</h4>
+	<p class="se-hint">كل سطر وكل عمود وكل مربع 2×2 فيه الأرقام 1 إلى 4 مرة واحدة. الأرقام الرمادية معطاة.</p>
+	<div class="sd-grid" dir="ltr" data-out="grid"></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-back>→ رجوع</button>
+		<button type="button" class="wl-btn primary" data-step>خطوة ←</button>
+		<button type="button" class="wl-btn" data-play>▶ تشغيل</button>
+	</div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>كتابات</span><strong data-out="sets">0</strong></div>
+		<div class="wl-out"><span>تراجعات</span><strong data-out="undos">0</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.sd-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(100%, 14rem); margin-inline: auto; border: 3px solid var(--sl-color-gray-3); }
+	.sd-grid i { aspect-ratio: 1; display: grid; place-items: center; font-style: normal; font-size: 1.4rem; font-weight: 700; border: 1px solid var(--sl-color-gray-5); transition: background 0.2s; }
+	.sd-grid i:nth-child(4n + 2) { border-right: 3px solid var(--sl-color-gray-3); }
+	.sd-grid i:nth-child(n + 5):nth-child(-n + 8) { border-bottom: 3px solid var(--sl-color-gray-3); }
+	.sd-grid i.given { color: var(--sl-color-gray-3); background: var(--sl-color-gray-6); }
+	.sd-grid i.set { background: rgb(224 160 48 / 0.45); }
+	.sd-grid i.undo { background: rgb(229 83 75 / 0.5); }
+	.sd-grid i.win { background: rgb(47 179 107 / 0.35); }
+</style>
+
+<script>
+	import { sudoku4, SUDOKU4, type SEvent } from '../../scripts/algo';
+	document.querySelectorAll<HTMLElement>('[data-sudoku]').forEach((root) => {
+		const $ = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const events: SEvent[] = sudoku4(SUDOKU4);
+		let i = -1, timer = 0;
+		const draw = () => {
+			const e = events[i];
+			const g = e ? e.grid : SUDOKU4;
+			$('grid').innerHTML = g.flatMap((row, r) => row.map((v, c) => {
+				const given = SUDOKU4[r][c] !== 0;
+				const cls = given ? 'given' : e && e.kind === 'solved' ? 'win' : e && e.r === r && e.c === c ? e.kind : '';
+				const show = e && e.kind === 'undo' && e.r === r && e.c === c ? e.v : v;
+				return `<i class="${cls}">${show || ''}</i>`;
+			})).join('');
+			const upto = events.slice(0, i + 1);
+			$('sets').textContent = String(upto.filter((x) => x.kind === 'set').length);
+			$('undos').textContent = String(upto.filter((x) => x.kind === 'undo').length);
+			const msg = $('msg');
+			msg.className = 'wl-msg';
+			if (!e) msg.textContent = 'نمرّ على الخانات الفارغة بالترتيب، ونكتب في كل خانة أصغر رقم لا يخالف القواعد.';
+			else if (e.kind === 'set') msg.textContent = `الخانة (سطر ${e.r + 1}، عمود ${e.c + 1}): نكتب ${e.v}، لأنه لا يخالف القواعد الآن.`;
+			else if (e.kind === 'undo') { msg.className = 'wl-msg wl-bad'; msg.textContent = `↩ وصلنا إلى خانة لا يصلح فيها أي رقم! نمسح ${e.v} من (سطر ${e.r + 1}، عمود ${e.c + 1}) ونجرّب رقماً أكبر.`; }
+			else { msg.className = 'wl-msg wl-good'; msg.textContent = `✓ حُلّت بـ ${upto.filter((x) => x.kind === 'set').length} كتابة و ${upto.filter((x) => x.kind === 'undo').length} تراجعات. البرنامج نفسه يحل سودوكو 9×9 الحقيقية في جزء من الثانية.`; }
+			root.querySelector<HTMLButtonElement>('[data-back]')!.disabled = i < 0;
+			root.querySelector<HTMLButtonElement>('[data-step]')!.disabled = i >= events.length - 1;
+		};
+		root.querySelector('[data-step]')!.addEventListener('click', () => { clearInterval(timer); if (i < events.length - 1) { i++; draw(); } });
+		root.querySelector('[data-back]')!.addEventListener('click', () => { clearInterval(timer); if (i >= 0) { i--; draw(); } });
+		root.querySelector('[data-play]')!.addEventListener('click', () => {
+			clearInterval(timer);
+			if (i >= events.length - 1) i = -1;
+			timer = window.setInterval(() => { if (i >= events.length - 1) { clearInterval(timer); return; } i++; draw(); }, 500);
+		});
+		draw();
+	});
+</script>
