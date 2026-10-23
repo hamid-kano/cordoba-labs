@@ -1,0 +1,50 @@
+---
+// الأرقام Kp و Ki و Kd كأوزان (الجلسة 2 وصفحة PID ببساطة): الخطأ بيتفرّع لتلات أجزاء،
+// وكل جزء بينضرب برقمه (متل أزرار الصوت بمازج)، وبعدين بينجمعوا بالدفعة u.
+const rows = [
+	{ y: 60, name: 'الخطأ الآن', sym: 'e', k: 'Kp', w: 'وزن الحاضر', cls: 'd-blue' },
+	{ y: 150, name: 'مجموع الخطأ', sym: '∫e dt', k: 'Ki', w: 'وزن الماضي', cls: 'd-orange' },
+	{ y: 240, name: 'سرعة تغيّره', sym: 'de/dt', k: 'Kd', w: 'وزن المستقبل', cls: 'd-green' },
+];
+---
+
+<figure class="wl-fig wl-wide">
+	<div class="wl-scroll">
+		<svg class="d-big" viewBox="0 0 640 300" role="img" aria-label="الخطأ يتفرّع إلى ثلاثة أجزاء: الخطأ الآن ومجموعه وسرعة تغيّره. يُضرب كل جزء برقمه Kp و Ki و Kd، ثم تُجمع الأجزاء الثلاثة لتعطي الدفعة u">
+			<defs>
+				<marker id="pw-ar" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto">
+					<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+				</marker>
+			</defs>
+			<!-- الخطأ داخل -->
+			<text x="45" y="136" class="d-s d-b">الخطأ</text>
+			<text x="45" y="174" class="d-s d-ltr">e</text>
+			<line x1="8" y1="150" x2="88" y2="150" class="d-line"></line>
+			<circle cx="88" cy="150" r="4" class="d-fgray"></circle>
+			{
+				rows.map((r) => (
+					<g>
+						<path d={`M88 150 V${r.y} H108`} class="d-line" marker-end="url(#pw-ar)"></path>
+						<rect x="110" y={r.y - 28} width="150" height="56" rx="10" class="d-box2"></rect>
+						<text x="185" y={r.y - 5} class="d-s d-b">{r.name}</text>
+						<text x="185" y={r.y + 18} class="d-s d-ltr">{r.sym}</text>
+						<line x1="260" y1={r.y} x2="288" y2={r.y} class="d-line" marker-end="url(#pw-ar)"></line>
+						<rect x="290" y={r.y - 28} width="90" height="56" rx="28" class={`d-box ${r.cls}`}></rect>
+						<text x="335" y={r.y - 3} class="d-t d-b d-ltr">× {r.k}</text>
+						<text x="335" y={r.y + 18} class="d-s">{r.w}</text>
+						<path d={`M380 ${r.y} H440 L503 ${150 + (r.y - 150) * 0.15}`} class={`d-line ${r.cls}`} marker-end="url(#pw-ar)"></path>
+					</g>
+				))
+			}
+			<!-- الجمع -->
+			<circle cx="520" cy="150" r="18" class="d-box2"></circle>
+			<text x="520" y="157" class="d-t d-ltr">Σ</text>
+			<line x1="538" y1="150" x2="630" y2="150" class="d-line" marker-end="url(#pw-ar)"></line>
+			<text x="588" y="136" class="d-s d-b">الدفعة</text>
+			<text x="588" y="174" class="d-s d-ltr">u</text>
+		</svg>
+	</div>
+	<figcaption>
+		كل جزء يمرّ على <strong>زر</strong> قبل الجمع، مثل أزرار الصوت في جهاز المزج: <code>Kp</code> يحدد كم نسمع صوت <strong>الحاضر</strong>، و <code>Ki</code> صوت <strong>الماضي</strong>، و <code>Kd</code> صوت <strong>المستقبل</strong>. والدفعة <code>u</code> هي مجموع الأصوات الثلاثة.
+	</figcaption>
+</figure>
