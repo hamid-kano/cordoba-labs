@@ -1,0 +1,483 @@
+---
+// «المعالج يعمل أمامك» (الجلسة 2): محاكاة حيّة بساعة شغّالة.
+// كل مهمة بتبعت نسخة كل T، النسخ بتوقف بالطابور، والمعالج بيشتغل على وحدة وحدة.
+// القاعدة بسيطة قبل ما نتعلّم الجدولة: يلي بيوصل أول بيشتغل أول وبدون مقاطعة (fifoSim بـ rts.ts).
+// كل الحالة بتنحسب سلفاً من المحرك، والرسم بس بيقرأ «وين النسخة عند اللحظة τ».
+const EX = {
+	robot: [
+		['الحسّاسات', 1, 4, 4],
+		['المحرّكات', 2, 6, 6],
+		['الخريطة', 3, 12, 12],
+	],
+	heavy: [
+		['الحسّاسات', 1, 4, 4],
+		['المحرّكات', 2, 6, 6],
+		['الخريطة', 3, 12, 12],
+		['الكاميرا', 2, 6, 6],
+	],
+	order: [
+		['الحسّاسات', 1, 3, 3],
+		['الصورة', 4, 8, 8],
+	],
+};
+---
+
+<div class="not-content wl-box rts-live" data-rts-live data-ex={JSON.stringify(EX)}>
+	<h4>المعالج يعمل أمامك</h4>
+	<p class="os-hint">
+		كل مهمة ترسل <b>نسخة</b> جديدة كل T، فتقف النسخة في طابور الانتظار، ثم يعمل عليها المعالج. القاعدة هنا بسيطة: <b>من وصل أولاً يعمل أولاً</b>، ولا يقاطعه أحد حتى ينتهي. وإذا وصلت مهلة نسخة قبل أن تنتهي، نوقفها ونعدّها «فاتتها المهلة». أما اختيار الترتيب الأفضل فهو موضوع الجلسات 3 و 4 و 5.
+	</p>
+	<div style="overflow-x:auto">
+		<table class="rts-tasks">
+			<thead>
+				<tr><th>المهمة</th><th>C</th><th>T</th><th>D</th></tr>
+			</thead>
+			<tbody>
+				{
+					[0, 1, 2, 3].map((i) => (
+						<tr data-row={i}>
+							<td><span class={`rts-sw k${i}`} /><input class="wl-input" style="direction:rtl;width:5.6rem" data-f="name" aria-label="اسم المهمة" /></td>
+							<td><input class="wl-input" type="number" min="1" max="12" data-f="C" aria-label="C" /></td>
+							<td><input class="wl-input" type="number" min="2" max="40" data-f="T" aria-label="T" /></td>
+							<td><input class="wl-input" type="number" min="1" max="40" data-f="D" aria-label="D" /></td>
+						</tr>
+					))
+				}
+			</tbody>
+		</table>
+	</div>
+	<p class="os-hint">اترك D فارغاً لتكون المهلة = الدور. واترك الاسم فارغاً لتلغي المهمة.</p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-ex-btn="robot">المكنسة الذكية</button>
+		<button type="button" class="wl-btn" data-ex-btn="heavy">حمل زائد: أضف الكاميرا</button>
+		<button type="button" class="wl-btn" data-ex-btn="order">الوقت يكفي، لكن…</button>
+	</div>
+
+	<div class="lv-u">
+		<div class="lv-urow"><span>نسبة الاستخدام</span><strong data-out="U">–</strong></div>
+		<div class="lv-gauge" aria-hidden="true">
+			<div class="lv-gfill" data-out="gfill"></div>
+			<div class="lv-g100"><span>100%</span></div>
+		</div>
+	</div>
+
+	<div class="wl-row lv-ctl">
+		<button type="button" class="wl-btn primary" data-act="play">▶ شغّل</button>
+		<button type="button" class="wl-btn" data-act="step">خطوة +1</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من البداية</button>
+		<span class="lv-speeds">
+			<button type="button" class="wl-btn" dir="ltr" data-speed="1" aria-pressed="true">×1</button>
+			<button type="button" class="wl-btn" dir="ltr" data-speed="2">×2</button>
+			<button type="button" class="wl-btn" dir="ltr" data-speed="4">×4</button>
+		</span>
+	</div>
+
+	<div class="lv-stage" data-stage>
+		<div class="lv-clock">⏱ <bdi dir="ltr" data-out="clock">t = 0.0</bdi></div>
+		<div class="lv-src" data-src></div>
+		<div class="lv-qlbl">طابور الانتظار ← من وصل أولاً</div>
+		<div class="lv-qlane" data-qlane><span class="lv-more" data-out="more"></span></div>
+		<div class="lv-cpu" data-cpu>
+			<div class="lv-cpu-t">🖥️ المعالج</div>
+			<div class="lv-cpu-now" data-out="cpunow">فارغ</div>
+			<div class="lv-cpu-bar"><div data-out="cpufill"></div></div>
+		</div>
+		<div class="lv-bins">
+			<div class="lv-bin ok" data-bin="ok">✓ أُنجزت <b data-out="ok">0</b></div>
+			<div class="lv-bin bad" data-bin="bad">✕ فاتتها المهلة <b data-out="bad">0</b></div>
+		</div>
+	</div>
+
+	<div class="wl-grid ai-metrics">
+		<div class="wl-out"><span>نسخ أُنجزت</span><strong data-out="ok2">0</strong></div>
+		<div class="wl-out"><span>فاتتها المهلة</span><strong data-out="bad2">0</strong></div>
+		<div class="wl-out"><span>انشغال المعالج حتى الآن</span><strong data-out="busy">–</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.rts-live .rts-tasks input[type='number'] { min-width: 3rem; padding-inline: 0.25rem; }
+	.rts-live .lv-u { display: flex; flex-direction: column; gap: 0.3rem; }
+	.rts-live .lv-urow { display: flex; justify-content: space-between; align-items: baseline; }
+	.rts-live .lv-urow strong { direction: ltr; unicode-bidi: isolate; font-size: var(--sl-text-lg); color: var(--sl-color-white); }
+	.rts-live .lv-gauge { position: relative; height: 1rem; border-radius: 0.5rem; background: var(--sl-color-black); border: 1px solid var(--sl-color-gray-5); overflow: hidden; direction: ltr; }
+	.rts-live .lv-gfill { height: 100%; width: 0; background: #2fb36b; transition: width 0.6s cubic-bezier(.3, 1.4, .5, 1), background 0.3s; }
+	.rts-live .lv-gfill.over { background: #e5534b; animation: lv-throb 0.9s ease-in-out infinite alternate; }
+	.rts-live .lv-g100 { position: absolute; top: 0; bottom: 0; left: 66.667%; border-left: 2px dashed var(--sl-color-white); }
+	.rts-live .lv-g100 span { position: absolute; left: 3px; top: -1px; font-size: 10px; color: var(--sl-color-white); font-weight: 700; }
+	.rts-live .lv-ctl .wl-btn { padding-inline: 0.55rem; }
+	.rts-live .lv-speeds { display: inline-flex; gap: 0.25rem; }
+	.rts-live .lv-stage {
+		position: relative; height: 352px; direction: ltr; overflow: hidden;
+		border: 1px solid var(--sl-color-gray-5); border-radius: 0.6rem; background: var(--sl-color-black);
+		--dur: 420ms;
+	}
+	.rts-live .lv-clock { position: absolute; top: 64px; left: 8px; font-size: 12px; font-weight: 700; color: var(--sl-color-white); }
+	.rts-live .lv-src { position: absolute; top: 6px; left: 6px; right: 6px; display: flex; gap: 6px; direction: rtl; }
+	.rts-live .lv-chip {
+		flex: 1 1 0; min-width: 0; height: 50px; border-radius: 0.45rem; padding: 3px 5px;
+		border: 1px solid var(--sl-color-gray-5); background: var(--sl-color-gray-6);
+		display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+	}
+	.rts-live .lv-chip b { display: block; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--sl-color-white); }
+	.rts-live .lv-num { display: inline-block; min-width: 15px; height: 15px; line-height: 15px; border-radius: 50%; text-align: center; color: #111; font-size: 10px; font-family: sans-serif; }
+	.rts-live .lv-chip small { font-size: 10px; color: var(--sl-color-gray-2); direction: ltr; unicode-bidi: isolate; text-align: right; }
+	.rts-live .lv-chip .lv-next { height: 5px; border-radius: 3px; background: var(--sl-color-gray-5); overflow: hidden; direction: ltr; }
+	.rts-live .lv-chip .lv-next i { display: block; height: 100%; width: 0; }
+	.rts-live .lv-chip.lv-pulse { animation: lv-pulse 0.5s ease-out; }
+	.rts-live .lv-qlbl { position: absolute; top: 64px; right: 10px; font-size: 11px; color: var(--sl-color-gray-3); direction: rtl; }
+	.rts-live .lv-qlane { position: absolute; top: 84px; left: 6px; right: 6px; height: 60px; border: 1.5px dashed var(--sl-color-gray-4); border-radius: 0.5rem; }
+	.rts-live .lv-more { position: absolute; left: 4px; bottom: 2px; font-size: 11px; font-weight: 700; color: #e5534b; }
+	.rts-live .lv-cpu {
+		position: absolute; top: 158px; left: 0; right: 0; margin-inline: auto; width: min(250px, calc(100% - 16px)); height: 80px;
+		border: 2px solid var(--sl-color-accent); border-radius: 0.6rem; background: var(--sl-color-gray-6);
+		padding: 6px 60px 6px 8px; box-sizing: border-box; direction: rtl; display: flex; flex-direction: column; gap: 3px;
+	}
+	.rts-live .lv-cpu.busy { box-shadow: 0 0 0 3px var(--sl-color-accent-low), 0 0 14px var(--sl-color-accent); }
+	.rts-live .lv-cpu-t { font-weight: 700; color: var(--sl-color-white); font-size: 13px; }
+	.rts-live .lv-cpu-now { font-size: 11px; color: var(--sl-color-gray-2); min-height: 1.3em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.rts-live .lv-cpu-bar { height: 9px; border-radius: 5px; background: var(--sl-color-black); overflow: hidden; }
+	.rts-live .lv-cpu-bar div { height: 100%; width: 0; background: var(--sl-color-accent); }
+	.rts-live .lv-bins { position: absolute; bottom: 6px; left: 6px; right: 6px; height: 78px; display: flex; gap: 6px; direction: rtl; }
+	.rts-live .lv-bin {
+		flex: 1 1 0; min-width: 0; border-radius: 0.5rem; display: flex; align-items: flex-start; justify-content: center; gap: 0.3rem;
+		padding-top: 4px; font-size: 12px; font-weight: 700; border: 1.5px solid;
+	}
+	.rts-live .lv-bin b { direction: ltr; unicode-bidi: isolate; }
+	.rts-live .lv-bin.ok { border-color: #2fb36b; color: #2fb36b; background: rgba(47, 179, 107, 0.1); }
+	.rts-live .lv-bin.bad { border-color: #e5534b; color: #e5534b; background: rgba(229, 83, 75, 0.1); }
+	.rts-live .lv-bin.flash { animation: lv-flash 0.6s ease-out; }
+	.rts-live .lv-card {
+		position: absolute; left: 0; top: 0; width: 40px; height: 46px; z-index: 3; box-sizing: border-box;
+		border-radius: 8px; color: #111; font-weight: 800; font-family: sans-serif; font-size: 17px;
+		display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1; padding-bottom: 6px;
+		border: 2px solid rgba(0, 0, 0, 0.35); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+		transition: transform var(--dur) cubic-bezier(.3, .9, .4, 1.15), opacity 0.3s;
+		will-change: transform;
+	}
+	.rts-live .lv-card small { font-size: 9px; font-weight: 700; opacity: 0.75; line-height: 1; }
+	.rts-live .lv-card .lv-dl { position: absolute; left: 3px; right: 3px; bottom: 3px; height: 4px; border-radius: 2px; background: rgba(0, 0, 0, 0.25); overflow: hidden; direction: ltr; }
+	.rts-live .lv-card .lv-dl i { display: block; height: 100%; background: #116633; }
+	.rts-live .lv-card .lv-dl i.warn { background: #b06d00; }
+	.rts-live .lv-card .lv-dl i.hot { background: #b3261e; }
+	.rts-live .lv-card.run { border-color: var(--sl-color-white); }
+	.rts-live .lv-card.hidden { opacity: 0; }
+	.rts-live .lv-card.fin-ok { animation: lv-ok 0.95s ease-in forwards; }
+	.rts-live .lv-card.fin-bad { animation: lv-bad 0.95s ease-in forwards; }
+	@keyframes lv-pulse { 0% { box-shadow: 0 0 0 0 var(--sl-color-accent); } 100% { box-shadow: 0 0 0 9px transparent; } }
+	@keyframes lv-flash { 0% { transform: scale(1.06); filter: brightness(1.6); } 100% { transform: none; } }
+	@keyframes lv-throb { from { opacity: 1; } to { opacity: 0.65; } }
+	@keyframes lv-ok { 0%, 40% { opacity: 1; } 100% { opacity: 0; } }
+	@keyframes lv-bad {
+		0%, 35% { opacity: 1; background: #e5534b; }
+		10%, 25% { margin-left: -4px; }
+		18%, 32% { margin-left: 4px; }
+		100% { opacity: 0; background: #e5534b; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.rts-live .lv-card { transition-duration: 0.01ms; }
+	}
+</style>
+
+<script>
+	import { fifoSim, utilization, type Task, type FifoJob } from '../../scripts/rts';
+
+	const COLORS = ['#6cc3e0', '#f0c070', '#7ed6a0', '#c3a6f5'];
+	const UNIT_MS = 700; // وحدة زمن وحدة = 0.7 ثانية حقيقية بالسرعة ×1
+	const HORIZON = 600;
+	const CW = 40;
+	const CH = 46;
+	const LINGER = 950; // كم بتضل النسخة بالصندوق قبل ما تختفي (ms حقيقية)
+	const DUR: Record<number, string> = { 1: '420ms', 2: '300ms', 4: '200ms' };
+	const fmtU = (u: number) => `${(u * 100).toFixed(1).replace(/\.0$/, '')}%`;
+
+	interface Card {
+		el: HTMLElement;
+		bar: HTMLElement;
+		fin: number;
+	}
+
+	document.querySelectorAll<HTMLElement>('[data-rts-live]').forEach((root) => {
+		const EX = JSON.parse(root.dataset.ex!) as Record<string, [string, number, number, number][]>;
+		const rows = [...root.querySelectorAll<HTMLTableRowElement>('[data-row]')];
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const f = (r: HTMLElement, k: string) => r.querySelector<HTMLInputElement>(`[data-f="${k}"]`)!;
+		const stage = root.querySelector<HTMLElement>('[data-stage]')!;
+		const srcRow = root.querySelector<HTMLElement>('[data-src]')!;
+		const qlane = root.querySelector<HTMLElement>('[data-qlane]')!;
+		const cpuBox = root.querySelector<HTMLElement>('[data-cpu]')!;
+		const binOk = root.querySelector<HTMLElement>('[data-bin="ok"]')!;
+		const binBad = root.querySelector<HTMLElement>('[data-bin="bad"]')!;
+		const playBtn = root.querySelector<HTMLButtonElement>('[data-act="play"]')!;
+
+		let ts: (Task & { k: number })[] = [];
+		let jobs: FifoJob[] = [];
+		let U = 0;
+		let tau = 0;
+		let playing = false;
+		let speed = 1;
+		let lastWall = 0;
+		let next = 0;
+		let nOk = 0;
+		let nBad = 0;
+		let busyDone = 0;
+		let dirty = true;
+		let chips: HTMLElement[] = [];
+		const live = new Map<number, Card>();
+
+		// مواقع كل شي نسبةً للمسرح
+		const qPos = (slot: number) => ({ x: qlane.offsetLeft + qlane.offsetWidth - 8 - CW - slot * (CW + 6), y: qlane.offsetTop + 6 });
+		const qCap = () => Math.max(1, Math.floor((qlane.offsetWidth - 12 + 6) / (CW + 6)));
+		const cpuPos = () => ({ x: cpuBox.offsetLeft + cpuBox.offsetWidth - 10 - CW, y: cpuBox.offsetTop + (cpuBox.offsetHeight - CH) / 2 });
+		// مكان العنصر نسبةً للمسرح (منجمع الإزاحات لفوق)
+		const rel = (el: HTMLElement) => {
+			let x = 0;
+			let y = 0;
+			for (let e: HTMLElement | null = el; e && e !== stage; e = e.offsetParent as HTMLElement | null) {
+				x += e.offsetLeft;
+				y += e.offsetTop;
+			}
+			return { x, y };
+		};
+		const binPos = (b: HTMLElement, i: number) => {
+			const p = rel(b);
+			return { x: p.x + b.offsetWidth / 2 - CW / 2 + ((i * 7) % 21) - 10, y: p.y + 27 };
+		};
+		const srcPos = (task: number) => {
+			const c = chips[task];
+			const p = rel(c);
+			return { x: p.x + c.offsetWidth / 2 - CW / 2, y: p.y + 2 };
+		};
+		const move = (el: HTMLElement, p: { x: number; y: number }) => {
+			const v = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px)`;
+			if (el.style.transform !== v) el.style.transform = v;
+		};
+
+		function buildChips() {
+			srcRow.innerHTML = '';
+			chips = ts.map((t) => {
+				const c = document.createElement('div');
+				c.className = 'lv-chip';
+				c.innerHTML = `<b><span class="lv-num" style="background:${COLORS[t.k]}">${t.k + 1}</span> </b><small>C=${t.C} T=${t.T}${t.D !== undefined && t.D !== t.T ? ` D=${t.D}` : ''}</small><div class="lv-next"><i style="background:${COLORS[t.k]}"></i></div>`;
+				c.querySelector('b')!.append(t.name);
+				srcRow.append(c);
+				return c;
+			});
+		}
+
+		function spawn(i: number) {
+			const j = jobs[i];
+			const t = ts[j.task];
+			const el = document.createElement('div');
+			el.className = 'lv-card';
+			el.style.background = COLORS[t.k];
+			el.innerHTML = `${t.k + 1}<small>#${j.k + 1}</small><span class="lv-dl"><i></i></span>`;
+			el.style.transition = 'none';
+			move(el, srcPos(j.task));
+			stage.append(el);
+			void el.offsetWidth; // لحتى يبلّش الطيران من مكان المهمة
+			el.style.transition = '';
+			live.set(i, { el, bar: el.querySelector('i')!, fin: 0 });
+			const chip = chips[j.task];
+			chip.classList.remove('lv-pulse');
+			void chip.offsetWidth;
+			chip.classList.add('lv-pulse');
+		}
+
+		function dlBar(c: Card, j: FifoJob) {
+			const r = Math.max(0, Math.min(1, (j.deadline - tau) / (j.deadline - j.release)));
+			c.bar.style.width = `${(r * 100).toFixed(1)}%`;
+			c.bar.className = r > 0.5 ? '' : r > 0.25 ? 'warn' : 'hot';
+		}
+
+		function flash(b: HTMLElement) {
+			b.classList.remove('flash');
+			void b.offsetWidth;
+			b.classList.add('flash');
+		}
+
+		function render(now: number) {
+			while (next < jobs.length && jobs[next].release <= tau + 1e-9) spawn(next++);
+			const waiting: number[] = [];
+			let running = -1;
+			for (const [i, c] of live) {
+				const j = jobs[i];
+				if (j.end >= 0 && tau >= j.end - 1e-9) {
+					if (!c.fin) {
+						c.fin = now;
+						c.el.classList.remove('run', 'hidden');
+						if (j.done) {
+							nOk++;
+							move(c.el, binPos(binOk, i));
+							c.el.classList.add('fin-ok');
+							flash(binOk);
+						} else {
+							nBad++;
+							move(c.el, binPos(binBad, i));
+							c.el.classList.add('fin-bad');
+							flash(binBad);
+						}
+						if (j.start >= 0) busyDone += j.end - j.start;
+					} else if (now - c.fin > LINGER) {
+						c.el.remove();
+						live.delete(i);
+					}
+					continue;
+				}
+				if (j.start >= 0 && tau >= j.start - 1e-9) running = i;
+				else waiting.push(i);
+			}
+			waiting.sort((a, b) => a - b);
+			const cap = qCap();
+			waiting.forEach((i, n) => {
+				const c = live.get(i)!;
+				move(c.el, qPos(Math.min(n, cap - 1)));
+				c.el.classList.toggle('hidden', n >= cap);
+				c.el.classList.remove('run');
+				dlBar(c, jobs[i]);
+			});
+			out('more').textContent = waiting.length > cap ? `+${waiting.length - cap + 1} في الطابور` : '';
+			let busy = busyDone;
+			if (running >= 0) {
+				const j = jobs[running];
+				const c = live.get(running)!;
+				move(c.el, cpuPos());
+				c.el.classList.add('run');
+				c.el.classList.remove('hidden');
+				dlBar(c, j);
+				const done = Math.min(j.C, tau - j.start);
+				busy += done;
+				out('cpufill').style.width = `${((done / j.C) * 100).toFixed(1)}%`;
+				out('cpufill').style.background = COLORS[ts[j.task].k];
+				out('cpunow').textContent = `يعمل على: ${ts[j.task].name} (${done.toFixed(1)} من ${j.C})`;
+				cpuBox.classList.add('busy');
+			} else {
+				out('cpufill').style.width = '0';
+				out('cpunow').textContent = 'فارغ: لا توجد نسخة جاهزة';
+				cpuBox.classList.remove('busy');
+			}
+			chips.forEach((ch, i) => {
+				const T = ts[i].T;
+				(ch.querySelector('.lv-next i') as HTMLElement).style.width = `${(((tau % T) / T) * 100).toFixed(1)}%`;
+			});
+			out('clock').textContent = `t = ${tau.toFixed(1)}`;
+			out('ok').textContent = out('ok2').textContent = String(nOk);
+			out('bad').textContent = out('bad2').textContent = String(nBad);
+			out('busy').textContent = tau > 0 ? fmtU(busy / tau) : '–';
+			message();
+		}
+
+		let lastMsg = '';
+		function message() {
+			let cls = 'wl-msg';
+			let html = '';
+			if (!ts.length) html = 'أضف مهمة واحدة على الأقل.';
+			else if (nBad && U > 1) {
+				cls += ' wl-bad';
+				html = `فاتت مهلة! U = <bdi dir="ltr">${fmtU(U)}</bdi> أكبر من 100%: العمل المطلوب أكثر من وقت المعالج، فلا بد أن تفوت مهل <b>مهما كان الترتيب</b>.`;
+			} else if (nBad) {
+				cls += ' wl-bad';
+				html = `فاتت مهلة، مع أن U = <bdi dir="ltr">${fmtU(U)}</bdi> لا تتجاوز 100%! الوقت يكفي من حيث الكمية، لكن نسخة قصيرة انتظرت خلف نسخة طويلة. المشكلة في <b>الترتيب</b>، وهذا موضوع الجلسات القادمة.`;
+			} else if (U > 1) {
+				cls += ' wl-bad';
+				html = `U = <bdi dir="ltr">${fmtU(U)}</bdi> أكبر من 100%. شغّل وراقب صندوق «فاتتها المهلة».`;
+			} else if (tau > 0) {
+				cls += ' wl-good';
+				html = 'حتى الآن لم تفت أي مهلة. راقب «انشغال المعالج حتى الآن»: إلى أي رقم يقترب؟';
+			} else html = 'اضغط «شغّل» وراقب النسخ وهي تتحرك.';
+			const key = cls + html;
+			if (key === lastMsg) return;
+			lastMsg = key;
+			const m = out('msg');
+			m.className = cls;
+			m.innerHTML = html;
+		}
+
+		function setPlaying(p: boolean) {
+			playing = p && ts.length > 0 && tau < HORIZON;
+			playBtn.textContent = playing ? '⏸ أوقف' : '▶ شغّل';
+			playBtn.setAttribute('aria-pressed', String(playing));
+		}
+
+		function reset() {
+			live.forEach((c) => c.el.remove());
+			live.clear();
+			tau = 0;
+			next = 0;
+			nOk = nBad = busyDone = 0;
+			jobs = ts.length ? fifoSim(ts, HORIZON).jobs : [];
+			setPlaying(false);
+			buildChips();
+			out('cpufill').style.width = '0';
+			dirty = true;
+		}
+
+		function read() {
+			ts = [];
+			rows.forEach((r, i) => {
+				const name = f(r, 'name').value.trim();
+				const C = Math.round(+f(r, 'C').value);
+				const T = Math.round(+f(r, 'T').value);
+				const dv = f(r, 'D').value.trim();
+				const D = dv === '' ? T : Math.round(+dv);
+				const ok = name && C >= 1 && C <= 12 && T >= 2 && T <= 40 && D >= 1 && D <= 40;
+				r.style.opacity = name && !ok ? '0.55' : '';
+				if (ok) ts.push({ name, C, T, D, k: i });
+			});
+			U = utilization(ts);
+			out('U').textContent = ts.length ? fmtU(U) : '–';
+			const g = out('gfill');
+			g.style.width = `${(Math.min(U, 1.5) / 1.5) * 100}%`;
+			g.classList.toggle('over', U > 1 + 1e-12);
+			reset();
+		}
+
+		function load(ex: [string, number, number, number][]) {
+			rows.forEach((r, i) => {
+				f(r, 'name').value = ex[i]?.[0] ?? '';
+				f(r, 'C').value = ex[i] ? String(ex[i][1]) : '';
+				f(r, 'T').value = ex[i] ? String(ex[i][2]) : '';
+				f(r, 'D').value = ex[i] ? String(ex[i][3]) : '';
+			});
+			read();
+		}
+
+		function frame(now: number) {
+			if (playing) {
+				tau = Math.min(HORIZON, tau + ((now - lastWall) / UNIT_MS) * speed);
+				if (tau >= HORIZON) setPlaying(false);
+			}
+			lastWall = now;
+			if (playing || dirty || [...live.values()].some((c) => c.fin)) {
+				dirty = false;
+				render(now);
+			}
+			requestAnimationFrame(frame);
+		}
+
+		playBtn.addEventListener('click', () => setPlaying(!playing));
+		root.querySelector('[data-act="step"]')!.addEventListener('click', () => {
+			setPlaying(false);
+			if (!ts.length) return;
+			tau = Math.min(HORIZON, Math.floor(tau + 1e-6) + 1);
+			dirty = true;
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', reset);
+		root.querySelectorAll<HTMLButtonElement>('[data-speed]').forEach((b) =>
+			b.addEventListener('click', () => {
+				speed = +b.dataset.speed!;
+				stage.style.setProperty('--dur', DUR[speed]);
+				root.querySelectorAll('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+			}),
+		);
+		rows.forEach((r) => r.querySelectorAll('input').forEach((i) => i.addEventListener('change', read)));
+		root.querySelectorAll<HTMLButtonElement>('[data-ex-btn]').forEach((b) => b.addEventListener('click', () => load(EX[b.dataset.exBtn!])));
+		window.addEventListener('resize', () => (dirty = true));
+		load(EX.robot);
+		requestAnimationFrame((n) => {
+			lastWall = n;
+			frame(n);
+		});
+	});
+</script>

@@ -1,0 +1,288 @@
+---
+// «هجوم فيروس الفدية» (الجلسة 3): الملفات بتتشفّر وحدة وحدة، وبعدين الطالب بيختار أي نسخة يرجّع.
+// المقارنة: بلا نسخ، مزامنة (بتنسخ المشفّر كمان)، نسخ بالإصدارات كل ليلة، وقرص مفصول من الجمعة الماضية.
+// المنطق بـ os1.ts (RW_FILES، rwSnapshots، rwRestore، rwBest، rwContent، rwChanged، miniHash).
+---
+
+<div class="not-content wl-box rw-lab" data-rw-lab>
+	<h4>☠️ هجوم فيروس الفدية</h4>
+	<p class="se-hint">اليوم الخميس، والساعة 11 صباحاً. اختر أولاً <strong>كيف تحمي ملفاتك</strong>، ثم شغّل الهجوم.</p>
+	<div class="wl-row" role="group" aria-label="طريقة الحماية">
+		<button type="button" class="wl-btn" data-p="none" aria-pressed="true">بلا نسخ</button>
+		<button type="button" class="wl-btn" data-p="sync" aria-pressed="false">☁️ مزامنة سحابية</button>
+		<button type="button" class="wl-btn" data-p="versions" aria-pressed="false">🗂️ نسخ بالإصدارات كل ليلة</button>
+		<button type="button" class="wl-btn" data-p="offline" aria-pressed="false">🗄️ قرص مفصول (الجمعة الماضية)</button>
+	</div>
+
+	<div class="rw-sides">
+		<div class="rw-side">
+			<b>💻 حاسوبك</b>
+			<div class="rw-files" data-out="pc"></div>
+		</div>
+		<div class="rw-side">
+			<b data-out="bk-title"></b>
+			<div data-out="bk"></div>
+		</div>
+		<div class="rw-note" data-out="note" aria-hidden="true">💀 <strong>ملفاتك مشفّرة!</strong><br />ادفع 500 دولار خلال 48 ساعة لتحصل على المفتاح.</div>
+	</div>
+
+	<div class="wl-row">
+		<button type="button" class="wl-btn rw-go" data-act="attack">☠️ شغّل الهجوم</button>
+		<button type="button" class="wl-btn" data-act="hash">🔍 قارن البصمات بنسخة أمس</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من جديد</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+
+	<div class="rw-restore" data-out="restore" hidden>
+		<b>🕘 اختر النسخة التي تستعيدها:</b>
+		<div class="wl-scroll"><div class="rw-time" data-out="time"></div></div>
+		<p class="wl-msg" data-out="rmsg"></p>
+	</div>
+
+	<div class="rw-compare" data-out="compare" hidden>
+		<b>📊 مقارنة: أفضل ما تستطيع كل طريقة</b>
+		<div class="wl-scroll"><table class="wl-table" data-out="table"></table></div>
+	</div>
+</div>
+
+<style is:global>
+	.rw-lab .rw-sides { position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.6rem; }
+	.rw-lab .rw-side { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.55rem; border-radius: 0.6rem; background: var(--sl-color-gray-6); min-width: 0; }
+	.rw-lab .rw-files { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.35rem; direction: ltr; }
+	.rw-lab .rw-f { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.05rem; padding: 0.35rem 0.15rem; border-radius: 0.45rem; border: 2px solid var(--sl-color-gray-5); background: var(--sl-color-black); min-width: 0; transition: border-color 0.3s, background 0.3s; }
+	.rw-lab .rw-f .e { font-size: 1.45rem; line-height: 1.15; }
+	.rw-lab .rw-f .nm { font-size: 0.6rem; line-height: 1.2; word-break: break-all; text-align: center; color: var(--sl-color-white); }
+	.rw-lab .rw-f .h { font: 0.58rem var(--sl-font-system-mono); color: var(--sl-color-gray-3); }
+	.rw-lab .rw-f.lock { border-color: #e5534b; background: #e5534b26; animation: rw-flip 0.5s; }
+	.rw-lab .rw-f.lock .nm, .rw-lab .rw-f.lock .h { color: #e5534b; }
+	.rw-lab .rw-f.back { border-color: #2fb36b; background: #2fb36b22; animation: rw-flip 0.5s; }
+	.rw-lab .rw-f .lost { position: absolute; top: -0.45rem; right: -0.3rem; padding: 0 0.3rem; border-radius: 99px; font-size: 0.6rem; font-weight: 700; background: #e0a030; color: #111; }
+	.rw-lab .rw-f.hdiff .h { color: #e5534b; font-weight: 700; }
+	.rw-lab .rw-f.hsame .h { color: #2fb36b; }
+	@keyframes rw-flip { 0% { transform: rotateY(0); } 50% { transform: rotateY(90deg); } 100% { transform: rotateY(0); } }
+	.rw-lab .rw-empty { display: grid; place-items: center; min-height: 7rem; text-align: center; color: var(--sl-color-gray-3); border: 2px dashed var(--sl-color-gray-5); border-radius: 0.5rem; padding: 0.5rem; }
+	.rw-lab .rw-stack { display: flex; flex-direction: column; gap: 0.25rem; }
+	.rw-lab .rw-stack > span { display: flex; justify-content: space-between; gap: 0.4rem; padding: 0.2rem 0.5rem; border-radius: 0.35rem; font-size: var(--sl-text-xs); background: var(--sl-color-black); border: 1px solid var(--sl-color-gray-5); transition: all 0.3s; }
+	.rw-lab .rw-stack > span.lock { border-color: #e5534b; background: #e5534b26; color: #e5534b; animation: rw-flip 0.5s; }
+	.rw-lab .rw-disk { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; min-height: 7rem; justify-content: center; text-align: center; border-radius: 0.5rem; border: 2px solid #2fb36b; background: #2fb36b18; }
+	.rw-lab .rw-disk .e { font-size: 2.4rem; line-height: 1; }
+	.rw-lab .rw-note { position: absolute; inset-inline: 10%; top: 30%; padding: 0.7rem; border-radius: 0.6rem; text-align: center; background: #1a0000ee; color: #ff8a80; border: 2px solid #e5534b; box-shadow: 0 0.5rem 1.5rem #0008; opacity: 0; transform: scale(0.3) rotate(-6deg); pointer-events: none; transition: opacity 0.35s, transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1); z-index: 2; }
+	.rw-lab .rw-note.show { opacity: 1; transform: scale(1) rotate(-2deg); pointer-events: auto; cursor: pointer; }
+	.rw-lab .rw-go { border-color: #e5534b; background: #e5534b; color: #111; font-weight: 700; }
+	.rw-lab .rw-go:hover { background: #f06a62; }
+	.rw-lab .rw-restore, .rw-lab .rw-compare { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.6rem; border-radius: 0.6rem; border: 2px solid var(--sl-color-accent); }
+	.rw-lab .rw-time { display: flex; gap: 0.2rem; padding: 0.5rem 0.2rem 0.2rem; position: relative; }
+	.rw-lab .rw-time::before { content: ''; position: absolute; inset-inline: 0.5rem; top: 1.45rem; height: 3px; background: var(--sl-color-gray-5); }
+	.rw-lab .rw-time button { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0; border: 0; background: none; color: var(--sl-color-white); font: inherit; font-size: 0.68rem; line-height: 1.25; text-align: center; cursor: pointer; min-width: 0; }
+	.rw-lab .rw-time button i { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%; font-style: normal; font-size: 0.9rem; border: 3px solid var(--sl-color-accent); background: var(--sl-color-black); transition: transform 0.2s, background 0.2s; }
+	.rw-lab .rw-time button:hover:not(:disabled) i { transform: scale(1.15); }
+	.rw-lab .rw-time button.bad i { border-color: #e5534b; }
+	.rw-lab .rw-time button[aria-pressed='true'] i { background: var(--sl-color-accent); }
+	.rw-lab .rw-time button:disabled { cursor: default; opacity: 0.35; }
+	.rw-lab .rw-time button:disabled i { border-style: dashed; border-color: var(--sl-color-gray-4); }
+	.rw-lab .wl-table td:first-child { text-align: start; }
+	@media (prefers-reduced-motion: reduce) {
+		.rw-lab *, .rw-lab *::before, .rw-lab *::after { animation-duration: 0.01ms !important; transition: none !important; }
+	}
+</style>
+
+<script>
+	import { RW_FILES, RW_ATTACK, rwSnapshots, rwRestore, rwBest, rwContent, miniHash, type RwProtect } from '../../scripts/os1';
+
+	const ICON: Record<string, string> = { docx: '📄', txt: '📝', xlsx: '📊', c: '🧾', pptx: '📽️', jpg: '🖼️', pdf: '📕', mp3: '🎵' };
+	const icon = (name: string) => ICON[name.split('.').pop()!] ?? '📄';
+	const NIGHT = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء'];
+	const snapName = (s: number) => (s === -1 ? 'الجمعة الماضية' : s >= RW_ATTACK ? 'الآن (بعد الهجوم)' : `ليلة ${NIGHT[s]}`);
+	const P_NAME: Record<RwProtect, string> = { none: 'بلا نسخ', sync: 'مزامنة سحابية', versions: 'نسخ بالإصدارات', offline: 'قرص مفصول' };
+	const n = (x: number) => `<bdi dir="ltr">${x}</bdi>`;
+	const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+	document.querySelectorAll<HTMLElement>('[data-rw-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const btn = (k: string) => root.querySelector<HTMLButtonElement>(`[data-act="${k}"]`)!;
+		let prot: RwProtect = 'none';
+		let attacked = false;
+		let curSnap: number | null = null; // النسخة المستعادة (null = ما في استعادة)
+		let busy = false;
+		let run = 0; // بيلغي الحركات القديمة بعد «من جديد»
+		const triedP = new Set<RwProtect>();
+
+		const tile = (i: number, locked: boolean, extra = '', t = RW_ATTACK) => {
+			const f = RW_FILES[i];
+			const nm = locked ? `${f.name}.locked` : f.name;
+			return `<div class="rw-f ${locked ? 'lock' : ''} ${extra}" data-f="${i}"><span class="e">${locked ? '🔒' : icon(f.name)}</span><span class="nm">${nm}</span><span class="h">${miniHash(rwContent(i, t, locked)).slice(0, 6)}</span></div>`;
+		};
+		const setTile = (box: HTMLElement, i: number, locked: boolean, extra = '', t = RW_ATTACK) => {
+			const old = box.querySelector(`[data-f="${i}"]`)!;
+			old.outerHTML = tile(i, locked, extra, t);
+		};
+
+		function drawBackup() {
+			const t = out('bk-title');
+			const b = out('bk');
+			if (prot === 'none') {
+				t.textContent = '🚫 النسخة الاحتياطية';
+				b.innerHTML = '<div class="rw-empty">لا توجد أي نسخة احتياطية.</div>';
+			} else if (prot === 'sync') {
+				t.textContent = '☁️ السحابة (نسخة طبق الأصل)';
+				b.innerHTML = `<div class="rw-files" data-out="mirror">${RW_FILES.map((_, i) => tile(i, false)).join('')}</div>`;
+			} else if (prot === 'versions') {
+				t.textContent = '🗂️ النسخ المحفوظة (نسخة كل ليلة)';
+				b.innerHTML = `<div class="rw-stack">${rwSnapshots('versions').map((s) => `<span data-s="${s}"><span>${snapName(s)}</span><span>${s >= RW_ATTACK ? '⏳ تُحدَّث الليلة' : '✔'}</span></span>`).join('')}</div>`;
+			} else {
+				t.textContent = '🗄️ القرص الخارجي';
+				b.innerHTML = '<div class="rw-disk"><span class="e">🗄️⛓️‍💥</span><strong>مفصول عن الحاسوب</strong><small>آخر نسخة: الجمعة الماضية</small></div>';
+			}
+		}
+
+		function reset() {
+			run++;
+			busy = false;
+			attacked = false;
+			curSnap = null;
+			out('pc').innerHTML = RW_FILES.map((_, i) => tile(i, false)).join('');
+			out('note').classList.remove('show');
+			out('restore').hidden = true;
+			out('msg').className = 'wl-msg';
+			out('msg').textContent = 'اختر طريقة الحماية، ثم اضغط «☠️ شغّل الهجوم».';
+			drawBackup();
+			syncButtons();
+		}
+		function syncButtons() {
+			btn('attack').disabled = attacked || busy;
+			root.querySelectorAll<HTMLButtonElement>('[data-p]').forEach((b) => (b.disabled = busy));
+		}
+
+		async function attack() {
+			const my = ++run;
+			busy = true;
+			attacked = true;
+			syncButtons();
+			out('msg').className = 'wl-msg wl-bad';
+			out('msg').textContent = '☠️ الفيروس يشفّر ملفاتك واحداً بعد الآخر…';
+			for (let i = 0; i < RW_FILES.length; i++) {
+				await sleep(380);
+				if (my !== run) return;
+				setTile(out('pc'), i, true);
+				if (prot === 'sync') {
+					const m = root.querySelector<HTMLElement>('[data-out="mirror"]');
+					setTimeout(() => my === run && m && setTile(m, i, true), 300);
+				}
+			}
+			await sleep(400);
+			if (my !== run) return;
+			if (prot === 'versions') root.querySelector(`[data-s="${RW_ATTACK}"]`)?.classList.add('lock');
+			out('note').classList.add('show');
+			setTimeout(() => my === run && out('note').classList.remove('show'), 3500);
+			busy = false;
+			syncButtons();
+			const why: Record<RwProtect, string> = {
+				none: 'لا توجد نسخة. لا يبقى إلا أن تدفع، ولا يوجد ضمان أنك ستحصل على المفتاح!',
+				sync: 'المزامنة نسخت الملفات المشفّرة إلى السحابة أيضاً، لأنها تنسخ كل تغيير فوراً.',
+				versions: 'الملفات الحالية مشفّرة، لكن النسخ القديمة لم يلمسها الفيروس.',
+				offline: 'القرص كان مفصولاً، فلم يصل إليه الفيروس.',
+			};
+			out('msg').textContent = `✘ تشفّرت ملفاتك كلها. ${why[prot]}`;
+			drawTimeline();
+			out('restore').hidden = false;
+		}
+
+		function drawTimeline() {
+			const avail = new Set(rwSnapshots(prot));
+			const all = [-1, 0, 1, 2, 3, 4, RW_ATTACK];
+			out('time').innerHTML = all.map((s) =>
+				`<button type="button" data-snap="${s}" class="${s >= RW_ATTACK ? 'bad' : ''}" aria-pressed="false" ${avail.has(s) ? '' : 'disabled'}><i>${s >= RW_ATTACK ? '🔒' : '💾'}</i><span>${snapName(s)}</span></button>`,
+			).join('');
+			out('time').querySelectorAll<HTMLButtonElement>('[data-snap]').forEach((b) => b.addEventListener('click', () => restore(+b.dataset.snap!, b)));
+			const r = out('rmsg');
+			r.className = 'wl-msg';
+			r.textContent = avail.size ? 'النسخ الرمادية غير موجودة عندك. اضغط على نسخة لتستعيدها.' : 'لا توجد أي نسخة تستعيدها. ضاعت الملفات كلها ✘';
+			if (!avail.size) markTried();
+		}
+
+		async function restore(snap: number, b: HTMLButtonElement) {
+			if (busy) return;
+			const my = ++run;
+			busy = true;
+			out('time').querySelectorAll('[data-snap]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+			out('note').classList.remove('show');
+			const res = rwRestore(snap);
+			const r = out('rmsg');
+			r.className = 'wl-msg';
+			r.textContent = `⏳ تجري استعادة نسخة «${snapName(snap)}»…`;
+			for (let i = 0; i < res.files.length; i++) {
+				await sleep(220);
+				if (my !== run) return;
+				setTile(out('pc'), i, true);
+			}
+			for (let i = 0; i < res.files.length; i++) {
+				await sleep(260);
+				if (my !== run) return;
+				const f = res.files[i];
+				setTile(out('pc'), i, f.locked, f.locked ? '' : 'back', snap);
+				if (!f.locked && f.lost) out('pc').querySelector(`[data-f="${i}"]`)!.insertAdjacentHTML('beforeend', `<span class="lost" title="تعديلات ضاعت">−${f.lost}</span>`);
+			}
+			busy = false;
+			curSnap = snap;
+			if (res.saved === 0) {
+				r.className = 'wl-msg wl-bad';
+				r.textContent = '✘ هذه النسخة أُخذت بعد الهجوم، فهي مشفّرة أيضاً! لم تستعد أي ملف.';
+			} else {
+				r.className = res.lostEdits <= 2 ? 'wl-msg wl-good' : 'wl-msg';
+				r.innerHTML = `✔ استعدت ${n(res.saved)} من ${n(RW_FILES.length)} ملفات. وضاع ${n(res.lostEdits)} من تعديلات هذا الأسبوع، في ${n(res.filesWithLoss)} ملفات (الرقم البرتقالي على كل ملف).` +
+					(res.lostEdits > 2 && prot === 'versions' ? ' هل توجد نسخة أحدث قبل الهجوم؟' : '');
+			}
+			markTried();
+		}
+
+		function markTried() {
+			triedP.add(prot);
+			const rows = (['none', 'sync', 'versions', 'offline'] as RwProtect[]).map((p) => {
+				const b = rwBest(p);
+				const seen = triedP.has(p);
+				return `<tr class="${p === prot ? 'hl' : ''}"><td>${P_NAME[p]}</td><td>${seen ? (b.snap === null ? '—' : snapName(b.snap)) : '؟'}</td><td>${seen ? `${n(b.saved)} من ${n(RW_FILES.length)}` : '؟'}</td><td>${seen ? (b.snap === null ? '—' : n(b.lostEdits)) : '؟'}</td></tr>`;
+			}).join('');
+			out('table').innerHTML = `<thead><tr><th>الطريقة</th><th>أحدث نسخة سليمة</th><th>ملفات تعود</th><th>تعديلات تضيع</th></tr></thead><tbody>${rows}</tbody>`;
+			out('compare').hidden = false;
+		}
+
+		function hashCheck() {
+			if (busy) return;
+			// المحتوى الحالي لكل ملف: مشفّر، أو النسخة المستعادة، أو نسخة اليوم
+			const locked = attacked && (curSnap === null || curSnap >= RW_ATTACK);
+			const t = curSnap === null ? RW_ATTACK : curSnap;
+			let changed = 0;
+			RW_FILES.forEach((_, i) => {
+				const same = miniHash(rwContent(i, t, locked)) === miniHash(rwContent(i, RW_ATTACK - 1));
+				if (!same) changed++;
+				const el = out('pc').querySelector<HTMLElement>(`[data-f="${i}"]`)!;
+				el.classList.remove('hdiff', 'hsame');
+				el.classList.add(same ? 'hsame' : 'hdiff');
+			});
+			const m = out('msg');
+			if (locked) {
+				m.className = 'wl-msg wl-bad';
+				m.innerHTML = `🔍 تغيّرت بصمة ${n(changed)} من ${n(RW_FILES.length)} ملفات خلال ثوانٍ! الإنسان لا يعدّل كل ملفاته بهذه السرعة: هذا هجوم. وبهذه الطريقة تكشفه برامج الحماية.`;
+			} else if (curSnap !== null) {
+				m.className = 'wl-msg';
+				m.innerHTML = `🔍 بعد الاستعادة: ${n(RW_FILES.length - changed)} ملفات تطابق بصمتها نسخة ليلة الأربعاء، و${n(changed)} تختلف (الأخضر يطابق، والأحمر يختلف).`;
+			} else {
+				m.className = 'wl-msg wl-good';
+				m.innerHTML = `🔍 تغيّرت بصمة ${n(changed)} ملفات فقط منذ ليلة أمس، لأنك عدّلتها صباح اليوم. أما الباقي فبصمته كما هي. هذا عمل طبيعي.`;
+			}
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-p]').forEach((b) =>
+			b.addEventListener('click', () => {
+				prot = b.dataset.p as RwProtect;
+				root.querySelectorAll('[data-p]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				reset();
+			}),
+		);
+		btn('attack').addEventListener('click', attack);
+		btn('hash').addEventListener('click', hashCheck);
+		btn('reset').addEventListener('click', reset);
+		out('note').addEventListener('click', () => out('note').classList.remove('show'));
+		reset();
+	});
+</script>

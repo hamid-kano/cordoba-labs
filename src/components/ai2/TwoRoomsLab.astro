@@ -1,0 +1,361 @@
+---
+// الجلسة 3: غرفتين بنفس الحرارة خلال يوم مسرّع. وحدة فيها مفتاح عادي (حادّ) بيقفز،
+// والتانية فيها مروحة الجلسة الضبابية (evalfis) بتتغيّر بنعومة. المراوح بتلف فعلاً بسرعة الخرج.
+const fanSvg = (id: string) => `
+<svg viewBox="0 0 160 150" class="tr-svg" role="img" aria-label="مروحة وميزان حرارة">
+	<rect class="tr-wall" x="2" y="2" width="156" height="146" rx="10"/>
+	<rect class="tr-heat" data-heat x="2" y="2" width="156" height="146" rx="10"/>
+	<g class="tr-wind" data-wind>
+		<path d="M18 40 q10 -6 20 0 t20 0"/><path d="M12 62 q10 -6 20 0 t20 0"/><path d="M18 84 q10 -6 20 0 t20 0"/>
+	</g>
+	<line class="tr-stand" x1="75" y1="60" x2="75" y2="132"/>
+	<rect class="tr-stand-base" x="55" y="128" width="40" height="8" rx="4"/>
+	<circle class="tr-cage" cx="75" cy="60" r="40"/>
+	<circle class="tr-blur" data-blur cx="75" cy="60" r="36"/>
+	<g data-blades id="${id}">
+		<path class="tr-blade" d="M75 60 C 66 44, 68 26, 75 24 C 82 26, 84 44, 75 60 Z"/>
+		<path class="tr-blade" d="M75 60 C 66 44, 68 26, 75 24 C 82 26, 84 44, 75 60 Z" transform="rotate(120 75 60)"/>
+		<path class="tr-blade" d="M75 60 C 66 44, 68 26, 75 24 C 82 26, 84 44, 75 60 Z" transform="rotate(240 75 60)"/>
+	</g>
+	<circle class="tr-hub" cx="75" cy="60" r="6"/>
+	<rect class="tr-tube" x="134" y="16" width="12" height="100" rx="6"/>
+	<rect class="tr-merc" data-merc x="137" y="60" width="6" height="56" rx="3"/>
+	<circle class="tr-bulb" data-bulb cx="140" cy="124" r="10"/>
+	<line class="tr-mark" x1="128" x2="134" y1="53.5" y2="53.5"/>
+	<text class="tr-mark-t" x="131" y="50" text-anchor="end" direction="ltr">25°</text>
+</svg>`;
+---
+
+<div class="not-content wl-box tr-lab" data-two-rooms>
+	<h4>غرفتان: مفتاح عادي ضد مروحة ضبابية</h4>
+	<p class="tr-intro">للغرفتين الحرارة نفسها خلال يوم كامل. اضغط <strong>▶ شغّل اليوم</strong> وراقب المروحتين.</p>
+
+	<div class="tr-sky" dir="ltr" aria-hidden="true">
+		<span class="tr-sun" data-sun>☀️</span>
+	</div>
+	<div class="tr-now">
+		<span>🕘 الساعة <bdi dir="ltr" data-o="clock"></bdi></span>
+		<span>🌡️ الحرارة <bdi dir="ltr" data-o="temp"></bdi></span>
+	</div>
+
+	<div class="tr-rooms">
+		<div class="tr-room" data-room="crisp">
+			<div class="tr-title">🔌 مفتاح عادي</div>
+			<div class="tr-art" set:html={fanSvg('tr-b1')} />
+			<span class="tr-click" data-click>طق!</span>
+			<div class="tr-speed"><span>السرعة</span><b><i data-bar></i></b><bdi dir="ltr" data-o="sp"></bdi></div>
+			<div class="tr-count">عدد القفزات: <bdi dir="ltr" data-o="jumps">0</bdi></div>
+		</div>
+		<div class="tr-room" data-room="fuzzy">
+			<div class="tr-title">🌀 مروحة ضبابية</div>
+			<div class="tr-art" set:html={fanSvg('tr-b2')} />
+			<div class="tr-speed"><span>السرعة</span><b><i data-bar></i></b><bdi dir="ltr" data-o="sp"></bdi></div>
+			<div class="tr-count">تتغيّر بنعومة</div>
+		</div>
+	</div>
+
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-play>▶ شغّل اليوم</button>
+		<span class="tr-rate">السرعة:
+			<button type="button" class="wl-btn" data-rate="1" aria-pressed="true">×1</button>
+			<button type="button" class="wl-btn" data-rate="2" aria-pressed="false">×2</button>
+			<button type="button" class="wl-btn" data-rate="4" aria-pressed="false">×4</button>
+		</span>
+	</div>
+	<label class="ai-slider"><span>اسحب لتغيير الوقت<output data-o="scrub"></output></span><input type="range" min="6" max="22" step="0.02" value="6" data-k="hour" /></label>
+
+	<div class="wl-row">
+		<span>المفتاح العادي:</span>
+		<button type="button" class="wl-btn" data-mode="onoff" aria-pressed="true">يعمل أو يتوقف</button>
+		<button type="button" class="wl-btn" data-mode="steps" aria-pressed="false">ثلاث درجات</button>
+	</div>
+	<p class="tr-rule" data-o="rule"></p>
+	<label class="ai-check"><input type="checkbox" data-k="noise" /> أضف اهتزازاً صغيراً في قراءة الحرارة (مثل حسّاس حقيقي)</label>
+
+	<figure class="ai-chart">
+		<svg role="img" aria-label="الحرارة خلال اليوم" data-chart="temp"></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-c4"><i></i>الحرارة</span><span class="ai-ref"><i class="dash"></i>حد المفتاح <bdi dir="ltr">25°</bdi></span>
+		</figcaption>
+	</figure>
+	<figure class="ai-chart">
+		<svg role="img" aria-label="سرعة المروحتين خلال اليوم" data-chart="speed"></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-c2"><i></i>المفتاح العادي</span><span class="ai-c3"><i></i>المروحة الضبابية</span>
+		</figcaption>
+	</figure>
+</div>
+
+<style is:global>
+	.tr-lab .tr-intro { margin: 0.5rem 0 0; }
+	.tr-lab .tr-sky {
+		position: relative; height: 2.4rem; border-radius: 0.5rem; overflow: hidden;
+		background: linear-gradient(to bottom, var(--tr-sky, #8ec9ef), transparent);
+		border: 1px solid var(--sl-color-gray-5); transition: background 0.4s;
+	}
+	.tr-lab .tr-sun { position: absolute; top: 0; left: 0; font-size: 1.3rem; line-height: 1; transform: translateX(-50%); }
+	.tr-lab .tr-now { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.25rem 1rem; font-weight: 600; }
+	.tr-lab .tr-now bdi { font-family: var(--sl-font-system-mono); color: var(--sl-color-white); }
+	.tr-lab .tr-rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+	.tr-lab .tr-room {
+		position: relative; min-width: 0; padding: 0.5rem; border-radius: 0.6rem;
+		border: 1px solid var(--sl-color-gray-5); background: var(--sl-color-black);
+		display: flex; flex-direction: column; gap: 0.35rem;
+	}
+	.tr-lab .tr-title { font-weight: 700; color: var(--sl-color-white); text-align: center; }
+	.tr-lab .tr-art svg { display: block; width: 100%; max-width: 15rem; height: auto; margin-inline: auto; }
+	.tr-lab .tr-wall { fill: var(--sl-color-gray-6); }
+	.tr-lab .tr-heat { fill: #e5534b; opacity: 0; transition: opacity 0.3s; }
+	.tr-lab .tr-stand { stroke: var(--sl-color-gray-3); stroke-width: 5; stroke-linecap: round; }
+	.tr-lab .tr-stand-base { fill: var(--sl-color-gray-3); }
+	.tr-lab .tr-cage { fill: none; stroke: var(--sl-color-gray-3); stroke-width: 2; stroke-dasharray: 3 3; }
+	.tr-lab .tr-blur { fill: var(--sl-color-accent); opacity: 0; }
+	.tr-lab .tr-blade { fill: var(--sl-color-accent); stroke: var(--sl-color-black); stroke-width: 1; }
+	.tr-lab .tr-hub { fill: var(--sl-color-gray-2); }
+	.tr-lab .tr-wind path { fill: none; stroke: #3a9ec2; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 8 6; }
+	.tr-lab .tr-tube { fill: var(--sl-color-black); stroke: var(--sl-color-gray-4); }
+	.tr-lab .tr-merc, .tr-lab .tr-bulb { fill: #e5534b; }
+	.tr-lab .tr-mark { stroke: var(--sl-color-gray-3); stroke-width: 1.5; }
+	.tr-lab .tr-mark-t { fill: var(--sl-color-gray-2); font-size: 9px; font-weight: 700; }
+	.tr-lab .tr-speed { display: grid; grid-template-columns: auto minmax(0, 1fr) 3.2rem; gap: 0.35rem; align-items: center; font-size: var(--sl-text-xs); }
+	.tr-lab .tr-speed b { display: block; height: 0.6rem; border-radius: 99px; background: var(--sl-color-gray-5); overflow: hidden; }
+	.tr-lab .tr-speed b i { display: block; height: 100%; width: 0; background: var(--sl-color-accent); }
+	.tr-lab .tr-speed bdi { font-family: var(--sl-font-system-mono); font-weight: 700; color: var(--sl-color-white); text-align: end; }
+	.tr-lab .tr-count { font-size: var(--sl-text-xs); color: var(--sl-color-gray-2); text-align: center; }
+	.tr-lab .tr-count bdi { font-weight: 700; color: var(--sl-color-white); font-family: var(--sl-font-system-mono); }
+	.tr-lab .tr-click {
+		position: absolute; top: 2.2rem; inset-inline-start: 0.6rem; padding: 0.1rem 0.5rem; border-radius: 99px;
+		background: #e5534b; color: #fff; font-weight: 800; opacity: 0; pointer-events: none; transform: scale(0.5);
+	}
+	.tr-lab .tr-click.pop { animation: tr-pop 0.7s ease-out; }
+	@keyframes tr-pop {
+		0% { opacity: 1; transform: scale(0.6) rotate(-8deg); }
+		25% { opacity: 1; transform: scale(1.25) rotate(6deg); }
+		100% { opacity: 0; transform: scale(1) translateY(-0.8rem); }
+	}
+	.tr-lab .tr-room.shake { animation: tr-shake 0.35s linear; }
+	@keyframes tr-shake {
+		0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); }
+		60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
+	}
+	.tr-lab .tr-rate { display: inline-flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+	.tr-lab .tr-rule { margin: 0.4rem 0 0; color: var(--sl-color-gray-2); font-size: var(--sl-text-xs); }
+	@media (prefers-reduced-motion: reduce) {
+		.tr-lab .tr-room.shake { animation: none; }
+	}
+</style>
+
+<script>
+	import { evalfis } from '../../scripts/control';
+	import { drawChart } from '../../scripts/chart';
+	import { FAN_FIS, DAY_START, DAY_END, dayTemp, crispSpeed } from '../../scripts/fan';
+
+	type Mode = 'onoff' | 'steps';
+	const N = 800; // نقاط اليوم (نفس عدّ القفزات بالصفحة)
+	const RULES: Record<Mode, string> = {
+		onoff: 'أقل من <bdi dir="ltr">25°</bdi>: متوقفة <bdi dir="ltr">(0%)</bdi>. ومن <bdi dir="ltr">25°</bdi> فأكثر: كاملة <bdi dir="ltr">(100%)</bdi>.',
+		steps: 'أقل من <bdi dir="ltr">18°</bdi>: <bdi dir="ltr">20%</bdi>. ومن <bdi dir="ltr">18°</bdi> إلى أقل من <bdi dir="ltr">25°</bdi>: <bdi dir="ltr">50%</bdi>. ومن <bdi dir="ltr">25°</bdi> فأكثر: <bdi dir="ltr">100%</bdi>.',
+	};
+	const hh = (h: number) => {
+		const m = Math.floor((h % 1) * 60 + 1e-6);
+		return `${String(Math.floor(h)).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+	};
+
+	document.querySelectorAll<HTMLElement>('[data-two-rooms]').forEach((root) => {
+		const q = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+		const rooms = (['crisp', 'fuzzy'] as const).map((k) => {
+			const el = q(`[data-room="${k}"]`);
+			return {
+				el,
+				blades: el.querySelector<SVGGElement>('[data-blades]')!,
+				blur: el.querySelector<SVGElement>('[data-blur]')!,
+				wind: el.querySelector<SVGGElement>('[data-wind]')!,
+				heat: el.querySelector<SVGElement>('[data-heat]')!,
+				merc: el.querySelector<SVGRectElement>('[data-merc]')!,
+				bulb: el.querySelector<SVGElement>('[data-bulb]')!,
+				bar: el.querySelector<HTMLElement>('[data-bar]')!,
+				sp: el.querySelector<HTMLElement>('[data-o="sp"]')!,
+				angle: 0,
+				windOff: 0,
+			};
+		});
+		const slider = q<HTMLInputElement>('[data-k="hour"]');
+		const noiseBox = q<HTMLInputElement>('[data-k="noise"]');
+		const playBtn = q<HTMLButtonElement>('[data-play]');
+		const click = q('[data-click]');
+		const svgT = q<SVGSVGElement>('[data-chart="temp"]');
+		const svgS = q<SVGSVGElement>('[data-chart="speed"]');
+
+		let mode: Mode = 'onoff';
+		let rate = 1;
+		let h = DAY_START;
+		let playing = false;
+		let H: number[] = [], T: number[] = [], C: number[] = [], F: number[] = [], jumpsUpTo: number[] = [];
+
+		// حساب اليوم كله مرة وحدة (بيتعاد لما يتغيّر النوع أو الاهتزاز)
+		function precompute() {
+			const noise = noiseBox.checked;
+			H = []; T = []; C = []; F = []; jumpsUpTo = [];
+			let n = 0;
+			for (let i = 0; i <= N; i++) {
+				const hr = DAY_START + ((DAY_END - DAY_START) * i) / N;
+				const t = dayTemp(hr, noise);
+				const c = crispSpeed(t, mode);
+				if (i > 0 && c !== C[i - 1]) n++;
+				H.push(hr); T.push(t); C.push(c); F.push(evalfis(FAN_FIS, [t])); jumpsUpTo.push(n);
+			}
+			lastIdx = -1;
+			lastChart = 0;
+		}
+		const idxOf = (hr: number) => Math.max(0, Math.min(N, Math.round(((hr - DAY_START) / (DAY_END - DAY_START)) * N)));
+
+		let lastIdx = -1;
+		let lastChart = 0;
+		function drawCharts(i: number) {
+			const cut = <X,>(a: X[]) => a.slice(0, i + 1);
+			drawChart(svgT, {
+				series: [{ x: H, y: T, cls: 'ai-ghost' }, { x: cut(H), y: cut(T), cls: 'ai-c4' }],
+				xMin: DAY_START, xMax: DAY_END, yMin: 10, yMax: 35, height: 170, xLabel: 'hour', yLabel: 'T (°C)',
+				hlines: [{ y: 25, cls: 'ai-ref' }],
+				vlines: [{ x: H[i], cls: 'ai-ref' }],
+			});
+			drawChart(svgS, {
+				series: [{ x: cut(H), y: cut(C), cls: 'ai-c2' }, { x: cut(H), y: cut(F), cls: 'ai-c3' }],
+				xMin: DAY_START, xMax: DAY_END, yMin: 0, yMax: 105, height: 170, xLabel: 'hour', yLabel: 'speed (%)',
+				vlines: [{ x: H[i], cls: 'ai-ref' }],
+			});
+		}
+
+		function retrigger(el: Element, cls: string) {
+			el.classList.remove(cls);
+			void (el as HTMLElement).offsetWidth;
+			el.classList.add(cls);
+		}
+
+		// تحديث كل شي إلا دوران الشفرات
+		function update(force = false) {
+			const i = idxOf(h);
+			const t = T[i];
+			const speeds = [C[i], F[i]];
+			if (lastIdx >= 0 && i > lastIdx && jumpsUpTo[i] > jumpsUpTo[lastIdx]) {
+				retrigger(click, 'pop');
+				retrigger(rooms[0].el, 'shake');
+			}
+			q('[data-o="clock"]').textContent = hh(H[i]);
+			q('[data-o="temp"]').textContent = `${t.toFixed(1)}°`;
+			q('[data-o="scrub"]').textContent = hh(H[i]);
+			q('[data-o="jumps"]').textContent = String(jumpsUpTo[i]);
+			// الشمس بتطلع وبتنزل، والسما بتتغيّر
+			const f = (H[i] - DAY_START) / (DAY_END - DAY_START);
+			const sun = q('[data-sun]');
+			sun.style.left = `${5 + f * 90}%`;
+			sun.style.top = `${(1 - Math.sin(Math.PI * f)) * 1.1}rem`;
+			const warm = Math.max(0, Math.min(1, (t - 15) / 17));
+			// السما من أزرق (برد) لبرتقالي (حر)
+			const mix = (c1: number, c2: number) => Math.round(c1 + (c2 - c1) * warm);
+			q('.tr-sky').style.setProperty('--tr-sky', `rgb(${mix(142, 242)} ${mix(201, 150)} ${mix(239, 80)})`);
+			rooms.forEach((r, k) => {
+				r.heat.style.opacity = String(warm * 0.28);
+				const hgt = (Math.max(0, Math.min(40, t)) / 40) * 100;
+				r.merc.setAttribute('y', String(116 - hgt));
+				r.merc.setAttribute('height', String(hgt + 4));
+				r.bar.style.width = `${speeds[k]}%`;
+				r.sp.textContent = `${speeds[k].toFixed(k ? 1 : 0)}%`;
+			});
+			slider.value = String(H[i]);
+			const now = performance.now();
+			if (force || (i !== lastIdx && now - lastChart > 90)) {
+				drawCharts(i);
+				lastChart = now;
+			}
+			lastIdx = i;
+		}
+
+		// حلقة الحركة: بتشتغل بس لما الأداة ظاهرة على الشاشة
+		let visible = false;
+		let raf = 0;
+		let prevT = 0;
+		function frame(now: number) {
+			const dt = Math.min(0.05, (now - prevT) / 1000 || 0);
+			prevT = now;
+			if (playing) {
+				h += dt * 0.5 * rate; // ×1: نص ساعة بالثانية، يعني اليوم كله 32 ثانية
+				if (h >= DAY_END) {
+					h = DAY_END;
+					setPlaying(false);
+				}
+				update();
+			}
+			const i = idxOf(h);
+			const speeds = [C[i], F[i]];
+			rooms.forEach((r, k) => {
+				r.angle = (r.angle + speeds[k] * 9 * dt) % 360; // 100% = 900 درجة بالثانية
+				r.blades.setAttribute('transform', `rotate(${r.angle.toFixed(1)} 75 60)`);
+				r.blur.style.opacity = String(Math.max(0, (speeds[k] - 40) / 60) * 0.3);
+				r.windOff -= speeds[k] * 0.4 * dt;
+				r.wind.style.strokeDashoffset = r.windOff.toFixed(1);
+				r.wind.style.opacity = String(speeds[k] / 100);
+			});
+			raf = visible ? requestAnimationFrame(frame) : 0;
+		}
+		function start() {
+			if (!raf) {
+				prevT = performance.now();
+				raf = requestAnimationFrame(frame);
+			}
+		}
+		new IntersectionObserver((es) => {
+			visible = es[0].isIntersecting;
+			if (visible) start();
+		}).observe(root);
+
+		function setPlaying(p: boolean) {
+			playing = p;
+			playBtn.textContent = p ? '⏸ إيقاف مؤقت' : '▶ شغّل اليوم';
+			if (p) start();
+		}
+		playBtn.addEventListener('click', () => {
+			if (!playing && h >= DAY_END - 1e-6) {
+				h = DAY_START;
+				lastIdx = -1;
+			}
+			setPlaying(!playing);
+		});
+		root.querySelectorAll<HTMLButtonElement>('[data-rate]').forEach((b) =>
+			b.addEventListener('click', () => {
+				rate = +b.dataset.rate!;
+				root.querySelectorAll('[data-rate]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+			b.addEventListener('click', () => {
+				mode = b.dataset.mode as Mode;
+				root.querySelectorAll('[data-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				q('[data-o="rule"]').innerHTML = RULES[mode];
+				precompute();
+				update(true);
+			}),
+		);
+		slider.addEventListener('input', () => {
+			setPlaying(false);
+			h = +slider.value;
+			lastIdx = -1; // السحب ما بيعمل «طق»
+			update(true);
+		});
+		noiseBox.addEventListener('change', () => {
+			precompute();
+			update(true);
+		});
+		let lastW = innerWidth;
+		addEventListener('resize', () => {
+			if (innerWidth !== lastW) {
+				lastW = innerWidth;
+				update(true);
+			}
+		});
+
+		q('[data-o="rule"]').innerHTML = RULES[mode];
+		precompute();
+		update(true);
+	});
+</script>

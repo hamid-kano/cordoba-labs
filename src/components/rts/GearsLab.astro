@@ -1,0 +1,272 @@
+---
+// «تروس الدورة الكبرى» (الجلسة 2): ساعة لكل مهمة، عقربها بيلف لفة كاملة كل T.
+// الطالب بيتوقّع أولاً متى بترجع كل العقارب لفوق مع بعض، وبعدين منشغّل ومنعلّم كل لحظة
+// بيلتقي فيها عقربين أو أكتر، ومنوقف عند الدورة الكبرى (alignMoments بـ rts.ts).
+const EX = {
+	a: [4, 6, 10],
+	robot: [4, 6, 12],
+	prime: [7, 11, 13],
+	four: [2, 3, 4, 5],
+};
+---
+
+<div class="not-content wl-box rts-gears" data-rts-gears data-ex={JSON.stringify(EX)}>
+	<h4>تروس الدورة الكبرى</h4>
+	<p class="os-hint">لكل مهمة ساعة، وعقربها يدور <b>دورة كاملة كل T</b>. وعندما يمرّ العقرب بالعلامة الحمراء في الأعلى، تصل نسخة جديدة من المهمة. وكل العقارب تبدأ معاً من الأعلى عند t = 0.</p>
+	<div class="wl-row gr-ins">
+		<span>الأدوار T:</span>
+		{[0, 1, 2, 3].map((i) => <input class="wl-input" type="number" min="2" max="30" data-t={i} aria-label={`دور المهمة ${i + 1}`} />)}
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-ex-btn="a">4، 6، 10</button>
+		<button type="button" class="wl-btn" data-ex-btn="robot">المكنسة: 4، 6، 12</button>
+		<button type="button" class="wl-btn" data-ex-btn="prime">7، 11، 13</button>
+		<button type="button" class="wl-btn" data-ex-btn="four">2، 3، 4، 5</button>
+	</div>
+	<div class="se-predict">
+		<p><b>توقّع أولاً:</b> متى تعود <b>كل</b> العلامات إلى الأعلى معاً لأول مرة؟</p>
+		<div class="wl-row">
+			<input class="wl-input" type="number" min="1" style="width:6rem" data-guess aria-label="توقّعك" />
+			<button type="button" class="wl-btn" data-act="guess">سجّل توقّعي</button>
+			<span class="os-hint" data-out="guessed"></span>
+		</div>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="play">▶ شغّل</button>
+		<button type="button" class="wl-btn" data-act="jump">⏭ اللقاء التالي</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من البداية</button>
+		<span class="gr-speeds">
+			<button type="button" class="wl-btn" dir="ltr" data-speed="1" aria-pressed="true">×1</button>
+			<button type="button" class="wl-btn" dir="ltr" data-speed="4">×4</button>
+			<button type="button" class="wl-btn" dir="ltr" data-speed="20">×20</button>
+		</span>
+	</div>
+	<div class="gr-stage">
+		<div class="gr-clock"><bdi dir="ltr" data-out="clock">t = 0</bdi></div>
+		<div class="gr-dials" data-dials></div>
+	</div>
+	<div>
+		<b>لحظات اللقاء</b> <span class="os-hint">(عقربان أو أكثر في الأعلى معاً)</span>
+		<div class="gr-log" data-out="log"></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.rts-gears .gr-ins input { width: 3.8rem; padding-inline: 0.3rem; text-align: center; }
+	.rts-gears .gr-speeds { display: inline-flex; gap: 0.25rem; }
+	.rts-gears .gr-stage { border: 1px solid var(--sl-color-gray-5); border-radius: 0.6rem; background: var(--sl-color-black); padding: 0.5rem; }
+	.rts-gears .gr-clock { text-align: center; font-size: var(--sl-text-xl); font-weight: 800; color: var(--sl-color-white); font-variant-numeric: tabular-nums; }
+	.rts-gears .gr-dials { display: flex; gap: 0.4rem; justify-content: center; direction: rtl; }
+	.rts-gears .gr-dial { flex: 1 1 0; min-width: 0; max-width: 130px; text-align: center; }
+	.rts-gears .gr-dial svg { width: 100%; height: auto; display: block; overflow: visible; }
+	.rts-gears .gr-face { fill: var(--sl-color-gray-6); stroke: var(--sl-color-gray-4); stroke-width: 2; transition: fill 0.25s, stroke 0.25s; }
+	.rts-gears .gr-tick { stroke: var(--sl-color-gray-3); stroke-width: 1.5; }
+	.rts-gears .gr-top { fill: #e5534b; }
+	.rts-gears .gr-hand { stroke-width: 4.5; stroke-linecap: round; }
+	.rts-gears .gr-hub { fill: var(--sl-color-white); }
+	.rts-gears .gr-teeth { fill: none; stroke-width: 7; stroke-dasharray: 4 5; opacity: 0.55; }
+	.rts-gears .gr-dial.hit .gr-face { fill: var(--sl-color-accent-low); stroke: var(--sl-color-accent); stroke-width: 4; }
+	.rts-gears .gr-dial.hit svg { animation: gr-pop 0.5s ease-out; }
+	.rts-gears .gr-dial.all .gr-face { fill: rgba(47, 179, 107, 0.35); stroke: #2fb36b; stroke-width: 5; }
+	.rts-gears .gr-cap { font-size: 12px; line-height: 1.35; color: var(--sl-color-gray-2); }
+	.rts-gears .gr-cap b { color: var(--sl-color-white); }
+	.rts-gears .gr-log { display: flex; flex-wrap: wrap; gap: 0.3rem; max-height: 7.5rem; overflow-y: auto; margin-top: 0.3rem; min-height: 1.8rem; }
+	.rts-gears .gr-log span {
+		padding: 0.1rem 0.45rem; border-radius: 1rem; font-size: 12px; background: var(--sl-color-accent-low);
+		border: 1px solid var(--sl-color-gray-5); animation: gr-in 0.35s ease-out;
+	}
+	.rts-gears .gr-log span.all { background: #2fb36b; color: #111; font-weight: 700; border-color: #2fb36b; }
+	.rts-gears .gr-log i { font-style: normal; display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%; vertical-align: -1px; margin-inline: 1px; }
+	@keyframes gr-pop { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
+	@keyframes gr-in { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+</style>
+
+<script>
+	import { alignMoments } from '../../scripts/rts';
+
+	const COLORS = ['#6cc3e0', '#f0c070', '#7ed6a0', '#c3a6f5'];
+	const UNITS_PER_S = 4; // بالسرعة ×1: 4 وحدات زمن بالثانية
+	const SVGNS = 'http://www.w3.org/2000/svg';
+
+	document.querySelectorAll<HTMLElement>('[data-rts-gears]').forEach((root) => {
+		const EX = JSON.parse(root.dataset.ex!) as Record<string, number[]>;
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const ins = [...root.querySelectorAll<HTMLInputElement>('[data-t]')];
+		const dialsBox = root.querySelector<HTMLElement>('[data-dials]')!;
+		const playBtn = root.querySelector<HTMLButtonElement>('[data-act="play"]')!;
+		const guessIn = root.querySelector<HTMLInputElement>('[data-guess]')!;
+
+		let ps: { T: number; k: number }[] = [];
+		let H = 1;
+		let moments: { t: number; members: number[]; all: boolean }[] = [];
+		let mi = 0; // أول لحظة لسا ما وصلناها
+		let t = 0;
+		let playing = false;
+		let speed = 1;
+		let last = 0;
+		let guess = 0;
+		let dials: { root: HTMLElement; hand: SVGLineElement; teeth: SVGCircleElement; cap: HTMLElement }[] = [];
+
+		const dot = (k: number) => `<i style="background:${COLORS[k]}"></i>`;
+
+		function build() {
+			dialsBox.innerHTML = '';
+			dials = ps.map((p) => {
+				const d = document.createElement('div');
+				d.className = 'gr-dial';
+				const svg = document.createElementNS(SVGNS, 'svg');
+				svg.setAttribute('viewBox', '-6 -6 112 112');
+				svg.setAttribute('role', 'img');
+				svg.setAttribute('aria-label', `ساعة دورها ${p.T}`);
+				let g = `<circle class="gr-teeth" cx="50" cy="50" r="47" style="stroke:${COLORS[p.k]}"/>`;
+				g += `<circle class="gr-face" cx="50" cy="50" r="42"/>`;
+				for (let i = 0; i < p.T; i++) {
+					const a = (i / p.T) * 2 * Math.PI;
+					const r1 = i ? 35 : 31;
+					g += `<line class="gr-tick" x1="${50 + 39 * Math.sin(a)}" y1="${50 - 39 * Math.cos(a)}" x2="${50 + r1 * Math.sin(a)}" y2="${50 - r1 * Math.cos(a)}"/>`;
+				}
+				g += `<path class="gr-top" d="M50,10 l-6,-11 h12 z"/>`;
+				g += `<line class="gr-hand" x1="50" y1="50" x2="50" y2="15" style="stroke:${COLORS[p.k]}"/>`;
+				g += `<circle class="gr-hub" cx="50" cy="50" r="5"/>`;
+				svg.innerHTML = g;
+				const cap = document.createElement('div');
+				cap.className = 'gr-cap';
+				d.append(svg, cap);
+				dialsBox.append(d);
+				return { root: d, hand: svg.querySelector('.gr-hand') as SVGLineElement, teeth: svg.querySelector('.gr-teeth') as SVGCircleElement, cap };
+			});
+		}
+
+		function render() {
+			ps.forEach((p, i) => {
+				const ang = ((t % p.T) / p.T) * 360;
+				dials[i].hand.setAttribute('transform', `rotate(${ang.toFixed(2)} 50 50)`);
+				// الترس بيلف بعكس العقرب، بس للزينة
+				dials[i].teeth.setAttribute('transform', `rotate(${(-ang / 3).toFixed(2)} 50 50)`);
+				dials[i].cap.innerHTML = `${dot(p.k)} <b><bdi dir="ltr">T = ${p.T}</bdi></b><br>الدورة <bdi dir="ltr">${Math.floor(t / p.T + 1e-9)}</bdi>`;
+			});
+			out('clock').textContent = `t = ${Math.floor(t + 1e-9)}`;
+		}
+
+		function hit(m: { t: number; members: number[]; all: boolean }) {
+			m.members.forEach((i) => {
+				const r = dials[i].root;
+				r.classList.remove('hit');
+				void r.offsetWidth;
+				r.classList.add('hit');
+				if (m.all) r.classList.add('all');
+			});
+			const s = document.createElement('span');
+			if (m.all) s.className = 'all';
+			s.innerHTML = `عند <bdi dir="ltr">${m.t}</bdi>: ${m.all ? 'الكل معاً 🎉' : m.members.map((i) => dot(ps[i].k)).join(' ')}`;
+			const log = out('log');
+			log.append(s);
+			log.scrollTop = log.scrollHeight;
+			setTimeout(() => !m.all && m.members.forEach((i) => dials[i]?.root.classList.remove('hit')), 700);
+		}
+
+		function finish() {
+			setPlaying(false);
+			const list = ps.map((p) => p.T).join('، ');
+			const turns = ps.map((p) => `${dot(p.k)} <bdi dir="ltr">${H / p.T}</bdi>`).join('، ');
+			const m = out('msg');
+			let g = '';
+			if (guess) g = guess === H ? `توقّعك <bdi dir="ltr">${guess}</bdi> صحيح! ` : `توقّعت <bdi dir="ltr">${guess}</bdi>، والصحيح <bdi dir="ltr">${H}</bdi>. `;
+			m.className = 'wl-msg wl-good';
+			m.innerHTML =
+				`${g}عادت كل العلامات معاً عند <bdi dir="ltr">t = ${H}</bdi>، وهو المضاعف المشترك الأصغر للأدوار (${list}): هذه هي <b>الدورة الكبرى</b>. ` +
+				`وعدد دورات كل ساعة فيها: ${turns}. ومن هنا يتكرر كل شيء من جديد.` +
+				(H > 300 ? ` لاحظ كم هي طويلة! لأن هذه الأدوار لا تشترك في أي قاسم، فالدورة الكبرى هي حاصل ضربها.` : '');
+		}
+
+		function setPlaying(p: boolean) {
+			playing = p && ps.length >= 2 && t < H;
+			playBtn.textContent = playing ? '⏸ أوقف' : '▶ شغّل';
+			playBtn.setAttribute('aria-pressed', String(playing));
+		}
+
+		// بنقدّم الزمن لـ nt ومنعلّم كل اللقاءات يلي مرقنا عليها
+		function advance(nt: number) {
+			nt = Math.min(nt, H);
+			while (mi < moments.length && moments[mi].t <= nt + 1e-9) {
+				hit(moments[mi]);
+				mi++;
+			}
+			t = nt;
+			render();
+			if (t >= H - 1e-9) finish();
+		}
+
+		function reset() {
+			t = 0;
+			mi = 0;
+			setPlaying(false);
+			out('log').innerHTML = '';
+			dials.forEach((d) => d.root.classList.remove('hit', 'all'));
+			const m = out('msg');
+			m.className = 'wl-msg';
+			m.textContent = ps.length < 2 ? 'اكتب دورين على الأقل (من 2 إلى 30).' : guess ? 'اضغط «شغّل» وراقب العقارب.' : 'سجّل توقّعك أولاً، ثم اضغط «شغّل».';
+			render();
+		}
+
+		function read() {
+			ps = [];
+			ins.forEach((inp, k) => {
+				const v = Math.round(+inp.value);
+				if (inp.value.trim() && v >= 2 && v <= 30) ps.push({ T: v, k });
+			});
+			const a = alignMoments(ps.map((p) => p.T));
+			H = a.H;
+			moments = a.moments;
+			guess = 0;
+			guessIn.value = '';
+			out('guessed').textContent = '';
+			build();
+			reset();
+		}
+
+		function load(ex: number[]) {
+			ins.forEach((inp, i) => (inp.value = ex[i] ? String(ex[i]) : ''));
+			read();
+		}
+
+		function frame(now: number) {
+			if (playing) advance(t + ((now - last) / 1000) * UNITS_PER_S * speed);
+			last = now;
+			requestAnimationFrame(frame);
+		}
+
+		root.querySelector('[data-act="guess"]')!.addEventListener('click', () => {
+			const g = Math.round(+guessIn.value);
+			if (!(g >= 1)) return void (out('guessed').textContent = 'اكتب رقماً أولاً.');
+			guess = g;
+			out('guessed').innerHTML = `توقّعك: <bdi dir="ltr">${g}</bdi>. شغّل لترى.`;
+			if (t === 0) reset();
+		});
+		playBtn.addEventListener('click', () => {
+			if (t >= H - 1e-9) reset();
+			setPlaying(!playing);
+		});
+		root.querySelector('[data-act="jump"]')!.addEventListener('click', () => {
+			if (ps.length < 2) return;
+			if (t >= H - 1e-9) reset();
+			setPlaying(false);
+			advance(moments[mi]?.t ?? H);
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', reset);
+		root.querySelectorAll<HTMLButtonElement>('[data-speed]').forEach((b) =>
+			b.addEventListener('click', () => {
+				speed = +b.dataset.speed!;
+				root.querySelectorAll('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+			}),
+		);
+		ins.forEach((i) => i.addEventListener('change', read));
+		root.querySelectorAll<HTMLButtonElement>('[data-ex-btn]').forEach((b) => b.addEventListener('click', () => load(EX[b.dataset.exBtn!])));
+		load(EX.a);
+		requestAnimationFrame((n) => {
+			last = n;
+			frame(n);
+		});
+	});
+</script>

@@ -1,0 +1,266 @@
+---
+// الجلسة 3: الطالب بيرسم دالة الانتماء تبعه («دافئ» عندك) بنقاط 0، 5، ...، 40،
+// وبعدين بيقارنها بشكل الجلسة (نفس TEMP_MFS بـ fan.ts)، وبياخد اقتراح trimf/trapmf تقريبي.
+---
+
+<div class="not-content wl-box mm-lab" data-my-mf>
+	<h4>ماذا تعني «دافئ» عندك؟</h4>
+	<p class="mm-p">اختر كلمة، ثم اضغط داخل كل عمود (أو اسحب إصبعك فوق الأعمدة) لتقول: إلى أي حد تصف هذه الكلمة هذه الحرارة؟ <strong>الأسفل = 0</strong> (لا تصفها أبداً)، و<strong>الأعلى = 1</strong> (تصفها تماماً).</p>
+
+	<div class="wl-row">
+		<span>الكلمة:</span>
+		<button type="button" class="wl-btn" data-w="0" aria-pressed="false">بارد</button>
+		<button type="button" class="wl-btn" data-w="1" aria-pressed="true">دافئ</button>
+		<button type="button" class="wl-btn" data-w="2" aria-pressed="false">حار</button>
+	</div>
+
+	<figure class="ai-chart">
+		<svg class="mm-svg" tabindex="0" role="img" aria-label="ارسم دالة الانتماء: اضغط داخل الأعمدة، أو استخدم الأسهم" data-svg></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-c5"><i></i>شكلك أنت</span><span class="ai-c3" data-leg hidden><i></i><span data-o="sname"></span></span>
+		</figcaption>
+	</figure>
+
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-cmp>👀 قارن بشكل الجلسة</button>
+		<button type="button" class="wl-btn" data-reset>↺ امسح</button>
+	</div>
+
+	<div data-res hidden>
+		<div class="wl-out"><span data-o="cmpLabel"></span><strong data-o="diff"></strong></div>
+		<p class="mm-msg" data-o="msg"></p>
+	</div>
+
+	<details class="mm-code">
+		<summary>انسخ قيمك إلى MATLAB</summary>
+		<pre dir="ltr" data-o="code"></pre>
+		<button type="button" class="wl-btn" data-copy>📋 انسخ</button>
+		<span class="mm-copied" data-o="copied"></span>
+	</details>
+</div>
+
+<style is:global>
+	.mm-lab .mm-p { margin: 0.5rem 0 0; }
+	.mm-lab .mm-svg { touch-action: none; cursor: pointer; border-radius: 0.4rem; }
+	.mm-lab .mm-svg:focus-visible { outline: 2px solid var(--sl-color-accent); }
+	.mm-lab .mm-col { fill: transparent; }
+	.mm-lab .mm-col.sel { fill: var(--sl-color-accent-low); }
+	.mm-lab .mm-track { stroke: var(--sl-color-gray-5); stroke-width: 4; stroke-linecap: round; }
+	.mm-lab .mm-knob { fill: #a371f7; stroke: var(--sl-color-black); stroke-width: 2; transition: cy 0.12s; }
+	.mm-lab .mm-val { fill: var(--sl-color-white); font-size: 11px; font-weight: 700; }
+	.mm-lab .mm-gap { stroke: #e5534b; stroke-width: 2.5; stroke-dasharray: 3 2; }
+	.mm-lab .mm-sline { stroke-width: 3; }
+	.mm-lab .mm-sess { animation: mm-draw 0.9s ease-out; stroke-dasharray: 2400; }
+	@keyframes mm-draw { from { stroke-dashoffset: 2400; } to { stroke-dashoffset: 0; } }
+	.mm-lab .mm-msg { margin: 0.5rem 0 0; }
+	.mm-lab .mm-code pre {
+		margin: 0.5rem 0; padding: 0.6rem; border-radius: 0.4rem; overflow-x: auto; max-width: 100%;
+		background: var(--sl-color-black); color: var(--sl-color-white); font-size: 0.78rem; text-align: left;
+	}
+	.mm-lab .mm-code summary { cursor: pointer; font-weight: 600; }
+	.mm-lab .mm-copied { margin-inline-start: 0.5rem; color: #2fb36b; font-weight: 600; }
+</style>
+
+<script>
+	import { mf } from '../../scripts/control';
+	import { TEMP_MFS } from '../../scripts/fan';
+
+	const XS = [0, 5, 10, 15, 20, 25, 30, 35, 40];
+	const WORDS = ['بارد', 'دافئ', 'حار'];
+	const KEY = 'ai2-my-mf';
+	const PAD = { l: 34, r: 12, t: 22, b: 30 };
+	const r2 = (v: number) => Math.round(v * 10) / 10;
+	const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
+
+	/** اقتراح تقريبي: القمة = النقاط القريبة من الأعلى، والأطراف = آخر نقطة شبه صفر */
+	function fitMf(v: number[]) {
+		const max = Math.max(...v);
+		if (max < 0.05) return null;
+		const top = v.map((y, i) => (y >= 0.9 * max ? i : -1)).filter((i) => i >= 0);
+		const f = top[0];
+		const l = top[top.length - 1];
+		let a = 0;
+		for (let j = f - 1; j >= 0; j--) if (v[j] <= 0.1 * max) { a = XS[j]; break; }
+		if (f === 0) a = 0;
+		let d = 40;
+		for (let j = l + 1; j < XS.length; j++) if (v[j] <= 0.1 * max) { d = XS[j]; break; }
+		if (l === XS.length - 1) d = 40;
+		const b = XS[f];
+		const c = XS[l];
+		if (b === c && a < b && b < d) return { type: 'trimf', p: [a, b, d] };
+		return { type: 'trapmf', p: [a, b, c, d] };
+	}
+
+	document.querySelectorAll<HTMLElement>('[data-my-mf]').forEach((root) => {
+		const q = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+		const svg = q<SVGSVGElement>('[data-svg]');
+		let store: number[][] = [XS.map(() => 0), XS.map(() => 0), XS.map(() => 0)];
+		try {
+			const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+			if (Array.isArray(s) && s.length === 3 && s.every((a) => Array.isArray(a) && a.length === XS.length)) store = s;
+		} catch {}
+		const save = () => {
+			try { localStorage.setItem(KEY, JSON.stringify(store)); } catch {}
+		};
+		let w = 1;
+		let sel = 4;
+		let showCmp = false;
+		let W = 600, H = 230;
+		const X = (t: number) => PAD.l + (t / 40) * (W - PAD.l - PAD.r);
+		const Y = (m: number) => H - PAD.b - m * (H - PAD.t - PAD.b);
+		const colW = () => (W - PAD.l - PAD.r) / 8;
+
+		function draw(animateSess = false) {
+			W = Math.max(300, Math.min(900, Math.round(svg.getBoundingClientRect().width) || 600));
+			H = W < 500 ? 210 : 240;
+			svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+			const v = store[w];
+			let g = '';
+			XS.forEach((t, i) => {
+				g += `<rect class="mm-col${i === sel ? ' sel' : ''}" x="${X(t) - colW() / 2}" y="${PAD.t - 16}" width="${colW()}" height="${H - PAD.b - PAD.t + 16}"/>`;
+			});
+			for (const m of [0, 0.5, 1]) {
+				g += `<line class="ai-grid" x1="${PAD.l}" x2="${W - PAD.r}" y1="${Y(m)}" y2="${Y(m)}"/>`;
+				g += `<text class="ai-tick" x="${PAD.l - 6}" y="${Y(m) + 4}" text-anchor="end">${m}</text>`;
+			}
+			XS.forEach((t) => {
+				g += `<line class="mm-track" x1="${X(t)}" x2="${X(t)}" y1="${Y(0)}" y2="${Y(1)}"/>`;
+				g += `<text class="ai-tick" x="${X(t)}" y="${H - PAD.b + 16}" text-anchor="middle">${t}°</text>`;
+			});
+			// شكل الجلسة والفرق
+			if (showCmp) {
+				const ts = Array.from({ length: 161 }, (_, i) => i / 4);
+				const d = ts.map((t, i) => `${i ? 'L' : 'M'}${X(t).toFixed(1)},${Y(mf(t, TEMP_MFS[w])).toFixed(1)}`).join('');
+				XS.forEach((t, i) => {
+					const s = mf(t, TEMP_MFS[w]);
+					if (Math.abs(s - v[i]) > 0.04) g += `<line class="mm-gap" x1="${X(t)}" x2="${X(t)}" y1="${Y(s)}" y2="${Y(v[i])}"/>`;
+				});
+				g += `<path class="ai-c3 ai-line mm-sline${animateSess ? ' mm-sess' : ''}" d="${d}"/>`;
+			}
+			const d = XS.map((t, i) => `${i ? 'L' : 'M'}${X(t).toFixed(1)},${Y(v[i]).toFixed(1)}`).join('');
+			g += `<path class="ai-c5 ai-area" d="${d}L${X(40)},${Y(0)}L${X(0)},${Y(0)}Z"/>`;
+			g += `<path class="ai-c5 ai-line" d="${d}"/>`;
+			XS.forEach((t, i) => {
+				g += `<circle class="mm-knob" cx="${X(t)}" cy="${Y(v[i])}" r="${i === sel ? 9 : 7}"/>`;
+				if (v[i] > 0 || i === sel) g += `<text class="mm-val" x="${X(t)}" y="${Y(v[i]) - 12}" text-anchor="middle">${fmt(v[i])}</text>`;
+			});
+			g += `<text class="ai-axis" x="${W - PAD.r}" y="${H - 2}" text-anchor="end">T (°C)</text>`;
+			g += `<text class="ai-axis" x="4" y="12">μ</text>`;
+			svg.innerHTML = g;
+			output();
+		}
+
+		function output() {
+			const v = store[w];
+			const sname = w === 1 ? 'معتدل (Warm) في الجلسة' : `${TEMP_MFS[w].name} في الجلسة`;
+			q('[data-o="sname"]').textContent = sname;
+			q('[data-leg]').hidden = !showCmp;
+			q('[data-res]').hidden = !showCmp;
+			if (showCmp) {
+				const diff = v.reduce((s, y, i) => s + Math.abs(y - mf(XS[i], TEMP_MFS[w])), 0) / XS.length;
+				q('[data-o="cmpLabel"]').textContent = `متوسط الفرق بين شكلك وشكل «${w === 1 ? 'معتدل' : TEMP_MFS[w].name}» (الخطوط الحمراء)`;
+				q('[data-o="diff"]').textContent = diff.toFixed(2);
+				const verdict =
+					v.every((y) => y === 0)
+						? 'لم ترسم شيئاً بعد. اضغط داخل الأعمدة أولاً.'
+						: diff < 0.1
+							? '🎯 شكلك قريب جداً من شكل الجلسة.'
+							: diff < 0.25
+								? '👍 شكلك قريب من شكل الجلسة، مع اختلاف بسيط.'
+								: '🤔 شكلك مختلف عن شكل الجلسة، وهذا طبيعي.';
+				q('[data-o="msg"]').innerHTML =
+					`${verdict} دالة الانتماء هي <strong>رأي إنسان</strong> تحوّل إلى شكل. اسأل زميلك: سيرسم شكلاً آخر. لذلك يتفق مصمّمو النظام على شكل واحد، ثم يكتبونه في MATLAB.` +
+					(w === 1 ? ' (كلمة «دافئ» تقابل المجموعة <strong>«معتدل»</strong> في مثال المروحة، واسمها في الكود <code dir="ltr">Warm</code>.)' : '');
+			}
+			const fit = fitMf(v);
+			const tag = ['cold', 'warm', 'hot'][w];
+			let code = `T  = 0:5:40;\nmu = [${v.map(fmt).join(' ')}];   % my "${tag}" values\nplot(T, mu, '-o'); hold on; grid on;\n`;
+			if (fit) {
+				code += `t = 0:0.1:40;   % approximate fit (rough guess)\nplot(t, ${fit.type}(t, [${fit.p.join(' ')}]), '--');`;
+				if (Math.max(...v) < 0.95) code += `\n% note: your peak is below 1, but trimf/trapmf peak at 1`;
+			} else code += `% draw something first`;
+			q('[data-o="code"]').textContent = code;
+		}
+
+		// الضغط والسحب: العمود الأقرب بياخد القيمة من ارتفاع الإصبع
+		function setFromEvent(e: PointerEvent) {
+			const b = svg.getBoundingClientRect();
+			const sx = ((e.clientX - b.left) / b.width) * W;
+			const sy = ((e.clientY - b.top) / b.height) * H;
+			const i = Math.max(0, Math.min(8, Math.round(((sx - PAD.l) / (W - PAD.l - PAD.r)) * 8)));
+			const m = Math.max(0, Math.min(1, (H - PAD.b - sy) / (H - PAD.t - PAD.b)));
+			sel = i;
+			store[w][i] = r2(m);
+			draw();
+		}
+		let dragging = false;
+		svg.addEventListener('pointerdown', (e) => {
+			dragging = true;
+			try { svg.setPointerCapture(e.pointerId); } catch {}
+			setFromEvent(e);
+		});
+		svg.addEventListener('pointermove', (e) => dragging && setFromEvent(e));
+		const end = () => {
+			if (dragging) save();
+			dragging = false;
+		};
+		svg.addEventListener('pointerup', end);
+		svg.addEventListener('pointercancel', end);
+		svg.addEventListener('keydown', (e) => {
+			const k = e.key;
+			// المحور LTR، فالسهم اليمين = حرارة أعلى
+			if (k === 'ArrowRight') sel = Math.min(8, sel + 1);
+			else if (k === 'ArrowLeft') sel = Math.max(0, sel - 1);
+			else if (k === 'ArrowUp') store[w][sel] = r2(Math.min(1, store[w][sel] + 0.1));
+			else if (k === 'ArrowDown') store[w][sel] = r2(Math.max(0, store[w][sel] - 0.1));
+			else return;
+			e.preventDefault();
+			save();
+			draw();
+		});
+
+		root.querySelectorAll<HTMLButtonElement>('[data-w]').forEach((b) =>
+			b.addEventListener('click', () => {
+				w = +b.dataset.w!;
+				root.querySelectorAll('[data-w]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				q('h4').textContent = `ماذا تعني «${WORDS[w]}» عندك؟`;
+				showCmp = false;
+				q('[data-cmp]').textContent = '👀 قارن بشكل الجلسة';
+				draw();
+			}),
+		);
+		q('[data-cmp]').addEventListener('click', () => {
+			showCmp = !showCmp;
+			q('[data-cmp]').textContent = showCmp ? '🙈 أخفِ شكل الجلسة' : '👀 قارن بشكل الجلسة';
+			draw(showCmp);
+		});
+		q('[data-reset]').addEventListener('click', () => {
+			store[w] = XS.map(() => 0);
+			save();
+			draw();
+		});
+		q('[data-copy]').addEventListener('click', async () => {
+			const txt = q('[data-o="code"]').textContent || '';
+			let ok = false;
+			try {
+				await navigator.clipboard.writeText(txt);
+				ok = true;
+			} catch {
+				const r = document.createRange();
+				r.selectNodeContents(q('[data-o="code"]'));
+				const s = getSelection();
+				s?.removeAllRanges();
+				s?.addRange(r);
+			}
+			q('[data-o="copied"]').textContent = ok ? '✓ نُسخ' : 'حدّدنا النص، انسخه يدوياً';
+		});
+		let lastW = innerWidth;
+		addEventListener('resize', () => {
+			if (innerWidth !== lastW) {
+				lastW = innerWidth;
+				draw();
+			}
+		});
+		draw();
+	});
+</script>

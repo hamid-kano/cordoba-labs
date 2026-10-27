@@ -1,0 +1,342 @@
+---
+// «اقطع الكهرباء!» (الجلسة 3): حفظ نسخة جديدة من ملف خطوة خطوة، والطالب بيقطع الكهرباء بأي لحظة.
+// بدون سجل: بعض اللحظات بتخلّي القرص متناقض (كتلة ضايعة، أو ملف بيأشّر على كتلة «فاضية»).
+// مع السجل: الخطة المؤكدة بتتعاد، وغير المؤكدة بتنلغى، فالقرص دايماً سليم. المنطق بـ os1.ts (pcRecover).
+---
+
+<div class="not-content wl-box pc-lab" data-pc-lab>
+	<h4>⚡ اقطع الكهرباء!</h4>
+	<p class="se-hint">نحفظ نسخة جديدة من الملف <bdi dir="ltr">report.txt</bdi>. يكتب النظام الخطوات واحدة بعد الأخرى، ويمكنك أن تقطع الكهرباء في أي لحظة.</p>
+	<div class="wl-row" role="group" aria-label="نظام الملفات">
+		<button type="button" class="wl-btn" data-mode="0" aria-pressed="true">بدون سجل</button>
+		<button type="button" class="wl-btn" data-mode="1" aria-pressed="false">📓 مع السجل</button>
+	</div>
+
+	<div class="se-predict" data-predict>
+		<p><strong>توقّع أولاً:</strong> بدون سجل، إذا انقطعت الكهرباء <strong>أثناء الخطوة 3</strong>، كيف يصبح القرص بعد إعادة التشغيل؟</p>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-guess="old">سليم، بالنسخة القديمة</button>
+			<button type="button" class="wl-btn" data-guess="new">سليم، بالنسخة الجديدة</button>
+			<button type="button" class="wl-btn" data-guess="broken">فيه تناقض وأخطاء</button>
+		</div>
+		<p class="se-note" data-out="guess"></p>
+	</div>
+
+	<div class="pc-stage" data-out="stage">
+		<div class="pc-panels">
+			<div class="pc-panel" data-el="table">
+				<b>📋 جدول الملفات</b>
+				<div class="pc-row"><bdi dir="ltr">report.txt</bdi> ← الكتلة <strong class="pc-num" data-out="file">3</strong></div>
+			</div>
+			<div class="pc-panel" data-el="map">
+				<b>🗺️ خريطة المساحة الحرة</b>
+				<div class="pc-map" data-out="map"></div>
+				<small class="se-note">■ مستخدمة &nbsp; □ فارغة</small>
+			</div>
+			<div class="pc-panel pc-jpanel" data-el="journal" hidden>
+				<b>📓 السجل</b>
+				<div class="pc-journal" data-out="journal"></div>
+			</div>
+		</div>
+		<div>
+			<b class="pc-cap">💾 كتل القرص</b>
+			<div class="pc-blocks" data-out="blocks"></div>
+		</div>
+		<div class="pc-off" data-out="off" aria-hidden="true"><span>⚡</span>انقطعت الكهرباء!</div>
+	</div>
+
+	<ol class="pc-steps" data-out="steps"></ol>
+
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="play">▶ احفظ الملف</button>
+		<button type="button" class="wl-btn pc-cut" data-act="cut" disabled>⚡ اقطع الكهرباء</button>
+		<button type="button" class="wl-btn" data-act="boot" disabled>🔄 أعد التشغيل</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من جديد</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<ul class="pc-check" data-out="check"></ul>
+
+	<div class="pc-tally">
+		<span>لحظات الانقطاع التي جرّبتها:</span>
+		<div class="pc-chips" data-out="chips"></div>
+		<p class="se-note" data-out="tally"></p>
+	</div>
+</div>
+
+<style is:global>
+	.pc-lab .pc-stage { position: relative; display: grid; gap: 0.6rem; padding: 0.6rem; border-radius: 0.6rem; background: var(--sl-color-gray-6); overflow: hidden; }
+	.pc-lab .pc-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.5rem; }
+	.pc-lab .pc-panel { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--sl-color-gray-5); background: var(--sl-color-black); transition: box-shadow 0.3s, border-color 0.3s; min-width: 0; }
+	.pc-lab .pc-panel.flash, .pc-lab .pc-blk.flash { animation: pc-flash 0.7s ease-out; }
+	@keyframes pc-flash { 0% { box-shadow: 0 0 0 4px #e0a030; } 100% { box-shadow: 0 0 0 0 transparent; } }
+	.pc-lab .pc-num { display: inline-block; min-width: 1.6em; text-align: center; border-radius: 0.3rem; background: var(--sl-color-accent-low); color: var(--sl-color-white); }
+	.pc-lab .pc-map { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; direction: ltr; }
+	.pc-lab .pc-map span { display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; line-height: 1.1; color: var(--sl-color-gray-3); }
+	.pc-lab .pc-map i { display: block; width: 100%; max-width: 1.1rem; aspect-ratio: 1; border-radius: 0.2rem; border: 2px solid var(--sl-color-gray-3); transition: background 0.3s; }
+	.pc-lab .pc-map i.u { background: var(--sl-color-gray-3); }
+	.pc-lab .pc-map span.bad i { border-color: #e5534b; box-shadow: 0 0 0 2px #e5534b; }
+	.pc-lab .pc-journal { display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--sl-text-xs); min-height: 2.6em; }
+	.pc-lab .pc-journal .j-plan { padding: 0.15rem 0.4rem; border-radius: 0.3rem; background: #e0a03033; border: 1px dashed #e0a030; }
+	.pc-lab .pc-journal .j-commit { padding: 0.15rem 0.4rem; border-radius: 0.3rem; background: #2fb36b33; border: 1px solid #2fb36b; }
+	.pc-lab .pc-cap { display: block; margin-bottom: 0.3rem; }
+	.pc-lab .pc-blocks { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; direction: ltr; }
+	.pc-lab .pc-blk { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; padding: 0.3rem 0.1rem; border-radius: 0.4rem; border: 2px solid var(--sl-color-gray-5); background: var(--sl-color-black); font-size: 0.7rem; text-align: center; transition: background 0.3s, border-color 0.3s, opacity 0.3s; }
+	.pc-lab .pc-blk .e { font-size: 1.25rem; line-height: 1.2; }
+	.pc-lab .pc-blk .n { position: absolute; top: 1px; left: 3px; font-size: 0.6rem; color: var(--sl-color-gray-3); }
+	.pc-lab .pc-blk .l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+	.pc-lab .pc-blk.own { border-color: var(--sl-color-accent); background: var(--sl-color-accent-low); }
+	.pc-lab .pc-blk.orphan { opacity: 0.55; }
+	.pc-lab .pc-blk.bad { border-color: #e5534b; background: #e5534b2e; opacity: 1; animation: pc-shake 0.5s 2; }
+	@keyframes pc-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+	.pc-lab .pc-off { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; background: rgba(5, 5, 10, 0.88); color: #ffd84d; font-size: 1.2rem; font-weight: 700; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+	.pc-lab .pc-off span { font-size: 3rem; line-height: 1; }
+	.pc-lab .pc-stage.dark .pc-off { opacity: 1; animation: pc-blink 0.6s 1; }
+	@keyframes pc-blink { 0%, 40% { background: rgba(255, 240, 180, 0.9); } 100% { background: rgba(5, 5, 10, 0.88); } }
+	.pc-lab .pc-stage.boot::after { content: '🔍 فحص القرص…'; position: absolute; inset: auto 0 0 0; padding: 0.3rem; text-align: center; font-weight: 700; background: var(--sl-color-accent-low); color: var(--sl-color-white); animation: pc-pulse 0.6s infinite alternate; }
+	@keyframes pc-pulse { from { opacity: 0.5; } to { opacity: 1; } }
+	.pc-lab .pc-steps { list-style: none; padding: 0; margin: 0.75rem 0 0; display: flex; flex-direction: column; gap: 0.3rem; counter-reset: pc; }
+	.pc-lab .pc-steps li { position: relative; overflow: hidden; counter-increment: pc; padding: 0.35rem 0.5rem; padding-inline-start: 2.2rem; border-radius: 0.4rem; border: 1px solid var(--sl-color-gray-5); background: var(--sl-color-black); }
+	.pc-lab .pc-steps li::before { content: counter(pc); position: absolute; inset-inline-start: 0.45rem; top: 50%; transform: translateY(-50%); width: 1.3rem; height: 1.3rem; border-radius: 50%; display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; background: var(--sl-color-gray-5); color: var(--sl-color-white); z-index: 1; }
+	.pc-lab .pc-steps li .bar { position: absolute; inset-block: 0; inset-inline-start: 0; width: 0; background: #e0a03040; }
+	.pc-lab .pc-steps li span { position: relative; }
+	.pc-lab .pc-steps li.run { border-color: #e0a030; }
+	.pc-lab .pc-steps li.run .bar { animation: pc-fill var(--pc-dur, 1.6s) linear forwards; }
+	@keyframes pc-fill { to { width: 100%; } }
+	.pc-lab .pc-steps li.done { border-color: #2fb36b; }
+	.pc-lab .pc-steps li.done::before { content: '✓'; background: #2fb36b; color: #111; }
+	.pc-lab .pc-steps li.cut { border-color: #e5534b; background: #e5534b22; }
+	.pc-lab .pc-steps li.cut::before { content: '✂'; background: #e5534b; color: #111; }
+	.pc-lab .pc-steps li.j { border-style: dashed; }
+	.pc-lab .pc-cut { font-size: 1.05rem; font-weight: 700; border-color: #e0a030; background: #e0a030; color: #111; }
+	.pc-lab .pc-cut:not(:disabled) { animation: pc-glow 0.9s infinite alternate; }
+	.pc-lab .pc-cut:hover { background: #f0b848; }
+	@keyframes pc-glow { from { box-shadow: 0 0 0 0 #e0a03080; } to { box-shadow: 0 0 0 6px #e0a03000; } }
+	.pc-lab .pc-check { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-direction: column; gap: 0.3rem; }
+	.pc-lab .pc-check li { padding: 0.35rem 0.6rem; border-radius: 0.4rem; border-inline-start: 4px solid #e5534b; background: #e5534b1f; }
+	.pc-lab .pc-check li.ok { border-color: #2fb36b; background: #2fb36b1f; }
+	.pc-lab .pc-tally { display: flex; flex-direction: column; gap: 0.35rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); }
+	.pc-lab .pc-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+	.pc-lab .pc-chips span { padding: 0.1rem 0.5rem; border-radius: 99px; font-size: var(--sl-text-xs); border: 1px solid var(--sl-color-gray-4); color: var(--sl-color-gray-3); }
+	.pc-lab .pc-chips span.ok { background: #2fb36b; border-color: #2fb36b; color: #111; }
+	.pc-lab .pc-chips span.bad { background: #e5534b; border-color: #e5534b; color: #111; }
+	@media (max-width: 30rem) {
+		.pc-lab .pc-blocks { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.pc-lab *, .pc-lab *::before, .pc-lab *::after { animation-duration: 0.01ms !important; transition: none !important; }
+	}
+</style>
+
+<script>
+	import { pcSteps, pcState, pcRecover, PC_OLD, PC_NEW, type PcState, type PcStep } from '../../scripts/os1';
+
+	const STEP_TEXT: Record<PcStep, string> = {
+		plan: '📓 اكتب الخطة كاملة في السجل (الخطوات الأربع والبيانات الجديدة)',
+		commit: '✅ اكتب في آخر الخطة: «الخطة كاملة» (تأكيد)',
+		data: `اكتب النسخة الجديدة في الكتلة ${PC_NEW}`,
+		table: `حدّث جدول الملفات: الملف في الكتلة ${PC_NEW}`,
+		alloc: `علّم الكتلة ${PC_NEW} «مستخدمة» في الخريطة`,
+		free: `علّم الكتلة ${PC_OLD} «فارغة» في الخريطة`,
+		clear: '🧹 امسح الخطة من السجل (انتهت العملية)',
+	};
+	// الكتل الثابتة لملفات تانية بالقرص
+	const OTHERS: Record<number, [string, string]> = { 0: ['🖼️', 'photo'], 1: ['🖼️', 'photo'], 2: ['📝', 'notes'], 5: ['🎵', 'song'] };
+	const DUR = 1600;
+
+	document.querySelectorAll<HTMLElement>('[data-pc-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const el = (k: string) => root.querySelector<HTMLElement>(`[data-el="${k}"]`)!;
+		const btn = (k: string) => root.querySelector<HTMLButtonElement>(`[data-act="${k}"]`)!;
+		let journal = false;
+		let done = 0; // عدد الخطوات المكتملة
+		let phase: 'idle' | 'run' | 'off' | 'boot' | 'end' = 'idle';
+		let timer = 0;
+		let guess = '';
+		const tried: Record<string, Map<number, boolean>> = { '0': new Map(), '1': new Map() };
+
+		const steps = () => pcSteps(journal);
+
+		function drawDisk(s: PcState, bad: Map<number, string> = new Map()) {
+			out('file').textContent = String(s.file);
+			const used = new Set([...Object.keys(OTHERS).map(Number), ...s.used]);
+			out('map').innerHTML = Array.from({ length: 8 }, (_, b) =>
+				`<span class="${bad.has(b) ? 'bad' : ''}"><i class="${used.has(b) ? 'u' : ''}"></i>${b}</span>`,
+			).join('');
+			out('blocks').innerHTML = Array.from({ length: 8 }, (_, b) => {
+				let e = '·', l = 'فارغة', cls = '';
+				if (OTHERS[b]) [e, l] = OTHERS[b];
+				else if (b === PC_OLD) { e = '📄'; l = 'v1'; cls = s.file === PC_OLD ? 'own' : 'orphan'; }
+				else if (b === PC_NEW && s.newData) { e = '📄'; l = 'v2'; cls = s.file === PC_NEW ? 'own' : 'orphan'; }
+				if (bad.has(b)) cls = 'bad';
+				return `<div class="pc-blk ${cls}" data-b="${b}"><span class="n">${b}</span><span class="e">${e}</span><span class="l">${l}</span></div>`;
+			}).join('');
+			out('journal').innerHTML =
+				s.journal === 'empty' ? '<span class="se-note">(فارغ)</span>'
+				: s.journal === 'plan' ? '<span class="j-plan">خطة من 4 خطوات ⏳ لم تُؤكَّد بعد</span>'
+				: '<span class="j-commit">خطة من 4 خطوات ✅ مؤكَّدة</span>';
+		}
+
+		function drawSteps(cutAt = -1) {
+			out('steps').innerHTML = steps().map((st, i) => {
+				const cls = i < done ? 'done' : i === cutAt ? 'cut' : phase === 'run' && i === done ? 'run' : '';
+				const j = st === 'plan' || st === 'commit' || st === 'clear' ? ' j' : '';
+				return `<li class="${cls}${j}" style="--pc-dur:${DUR}ms"><span class="bar"></span><span>${STEP_TEXT[st]}</span></li>`;
+			}).join('');
+		}
+
+		function flashFor(st: PcStep) {
+			const target = st === 'table' ? el('table') : st === 'alloc' || st === 'free' ? el('map') : st === 'data' ? root.querySelector<HTMLElement>(`[data-b="${PC_NEW}"]`) : el('journal');
+			target?.classList.remove('flash');
+			void target?.offsetWidth;
+			target?.classList.add('flash');
+		}
+
+		function drawTally() {
+			const n = steps().length;
+			const map = tried[journal ? '1' : '0'];
+			out('chips').innerHTML = Array.from({ length: n + 1 }, (_, k) => {
+				const r = map.get(k);
+				const cls = r === undefined ? '' : r ? 'ok' : 'bad';
+				return `<span class="${cls}">${k < n ? `أثناء ${k + 1}` : 'بعد الانتهاء'}</span>`;
+			}).join('');
+			const bad = [...map.values()].filter((v) => !v).length;
+			out('tally').innerHTML = map.size
+				? `جرّبت <bdi dir="ltr">${map.size}</bdi> من <bdi dir="ltr">${n + 1}</bdi> لحظات، والمؤذية منها: <bdi dir="ltr">${bad}</bdi>.`
+				: 'الأخضر: القرص سليم بعد إعادة التشغيل. الأحمر: القرص فيه تناقض.';
+		}
+
+		function setButtons() {
+			btn('play').disabled = phase !== 'idle';
+			btn('cut').disabled = phase !== 'run';
+			btn('boot').disabled = phase !== 'off';
+			root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => (b.disabled = phase === 'run' || phase === 'boot'));
+		}
+
+		function reset() {
+			clearTimeout(timer);
+			phase = 'idle';
+			done = 0;
+			out('stage').classList.remove('dark', 'boot');
+			el('journal').hidden = !journal;
+			drawDisk(pcState(journal, 0));
+			drawSteps();
+			out('msg').className = 'wl-msg';
+			out('msg').textContent = 'اضغط «▶ احفظ الملف»، ثم اقطع الكهرباء في اللحظة التي تريدها.';
+			out('check').innerHTML = '';
+			drawTally();
+			setButtons();
+		}
+
+		function tick() {
+			const st = steps()[done];
+			done++;
+			drawDisk(pcState(journal, done));
+			flashFor(st);
+			if (done >= steps().length) {
+				phase = 'end';
+				drawSteps();
+				tried[journal ? '1' : '0'].set(done, true);
+				drawTally();
+				out('msg').className = 'wl-msg wl-good';
+				out('msg').textContent = '✔ اكتمل الحفظ. اضغط «↺ من جديد» واقطع الكهرباء في لحظة أخرى.';
+				setButtons();
+				return;
+			}
+			drawSteps();
+			timer = window.setTimeout(tick, DUR);
+		}
+
+		function play() {
+			phase = 'run';
+			out('check').innerHTML = '';
+			out('msg').className = 'wl-msg';
+			out('msg').textContent = 'جارٍ الحفظ… اضغط «⚡ اقطع الكهرباء» متى شئت.';
+			drawSteps();
+			setButtons();
+			timer = window.setTimeout(tick, DUR);
+		}
+
+		function cut() {
+			clearTimeout(timer);
+			phase = 'off';
+			drawSteps(done);
+			out('stage').classList.add('dark');
+			out('msg').className = 'wl-msg wl-bad';
+			out('msg').textContent = `⚡ انقطعت الكهرباء أثناء الخطوة ${done + 1}. الخطوة التي لم تكتمل لم تُكتب.`;
+			setButtons();
+		}
+
+		const PROBLEM = (p: string, b: number) =>
+			p === 'leak'
+				? `الكتلة <bdi dir="ltr">${b}</bdi> «مستخدمة» في الخريطة، لكن لا يملكها أي ملف: مساحة ضائعة إلى الأبد.`
+				: `الملف يشير إلى الكتلة <bdi dir="ltr">${b}</bdi>، لكنها «فارغة» في الخريطة: قد يكتب ملف آخر فوقها ويُتلف الملف!`;
+
+		function finish(r: ReturnType<typeof pcRecover>, cutAt: number) {
+			const bad = new Map(r.problems.map((p) => [p.block, p.problem] as [number, string]));
+			drawDisk(r.after, bad);
+			out('stage').classList.remove('boot');
+			phase = 'end';
+			setButtons();
+			const items: string[] = [];
+			if (r.action === 'discard') items.push('<li class="ok">📓 وجد النظام في السجل خطة <strong>غير مؤكَّدة</strong>، فألغاها. كأن الحفظ لم يبدأ.</li>');
+			if (r.action === 'replay') items.push('<li class="ok">📓 وجد النظام في السجل خطة <strong>مؤكَّدة</strong>، فأعاد تنفيذ خطواتها كلها حتى النهاية.</li>');
+			if (!journal && r.ok) items.push('<li class="ok">لا يوجد سجل، لكن الانقطاع جاء في لحظة غير مؤذية.</li>');
+			r.problems.forEach((p) => items.push(`<li>⚠ ${PROBLEM(p.problem, p.block)}</li>`));
+			out('check').innerHTML = items.join('');
+			const ver = r.version === 'new' ? 'بالنسخة الجديدة v2' : 'بالنسخة القديمة v1 (ضاع التعديل الجديد فقط)';
+			out('msg').className = r.ok ? 'wl-msg wl-good' : 'wl-msg wl-bad';
+			let txt = r.ok ? `✔ القرص سليم ${ver}.` : '✘ القرص في حالة متناقضة! يحتاج فحصاً طويلاً للقرص كله، وقد لا يُصلَح دون خسارة.';
+			if (guess && !journal && cutAt === 2) {
+				txt += guess === 'broken' ? ' وتوقّعك كان صحيحاً 👏' : ' وتوقّعك لم يكن صحيحاً.';
+			}
+			out('msg').textContent = txt;
+			tried[journal ? '1' : '0'].set(cutAt, r.ok);
+			drawTally();
+		}
+
+		function boot() {
+			phase = 'boot';
+			setButtons();
+			out('stage').classList.remove('dark');
+			out('stage').classList.add('boot');
+			out('msg').className = 'wl-msg';
+			out('msg').textContent = '🔄 يعمل الحاسوب من جديد، ويفحص نظام الملفات…';
+			const r = pcRecover(journal, done);
+			const cutAt = done;
+			timer = window.setTimeout(() => {
+				if (r.action !== 'replay') return finish(r, cutAt);
+				// إعادة تنفيذ الخطوات الباقية بسرعة لحتى يشوفها الطالب
+				const replay = () => {
+					if (done >= steps().length) return finish(r, cutAt);
+					const st = steps()[done];
+					done++;
+					drawDisk(pcState(journal, done));
+					drawSteps();
+					flashFor(st);
+					timer = window.setTimeout(replay, 450);
+				};
+				replay();
+			}, 1100);
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+			b.addEventListener('click', () => {
+				journal = b.dataset.mode === '1';
+				root.querySelectorAll('[data-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				reset();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-guess]').forEach((b) =>
+			b.addEventListener('click', () => {
+				guess = b.dataset.guess!;
+				root.querySelectorAll('[data-guess]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				out('guess').textContent = 'سجّلنا توقّعك. الآن جرّبه: «بدون سجل»، ثم اقطع الكهرباء والخطوة 3 تعمل، ثم أعد التشغيل.';
+			}),
+		);
+		btn('play').addEventListener('click', play);
+		btn('cut').addEventListener('click', cut);
+		btn('boot').addEventListener('click', boot);
+		btn('reset').addEventListener('click', reset);
+		reset();
+	});
+</script>

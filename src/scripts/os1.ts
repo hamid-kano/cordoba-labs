@@ -105,6 +105,158 @@ export function backupSize(kind: BackupKind, d: number, full: number, change: nu
 	return kind === 'incr' ? change : change * d;
 }
 
+// ===== اقطع الكهرباء (الجلسة 3): حفظ نسخة جديدة من ملف، بسجل أو بدونه =====
+// القرص 8 كتل. الملف report.txt بالكتلة 3، والنسخة الجديدة بتنكتب بالكتلة 6 (نسخ عند الكتابة).
+export const PC_OLD = 3;
+export const PC_NEW = 6;
+export type PcStep = 'plan' | 'commit' | 'data' | 'table' | 'alloc' | 'free' | 'clear';
+/** الخطوات بالترتيب. بدون سجل 4، ومع السجل 7 */
+export const pcSteps = (journal: boolean): PcStep[] =>
+	journal ? ['plan', 'commit', 'data', 'table', 'alloc', 'free', 'clear'] : ['data', 'table', 'alloc', 'free'];
+export interface PcState {
+	file: number; // الكتلة يلي بيأشّر عليها جدول الملفات
+	used: number[]; // الكتل المعلّمة «مستخدمة» بخريطة المساحة الحرة (من 3 و 6 بس)
+	newData: boolean; // هل النسخة الجديدة مكتوبة بالكتلة 6؟
+	journal: 'empty' | 'plan' | 'commit';
+}
+/** حالة القرص بعد ما تخلص أول `done` خطوة (الخطوة يلي انقطعت بنصها ما بتنحسب) */
+export function pcState(journal: boolean, done: number): PcState {
+	const s: PcState = { file: PC_OLD, used: [PC_OLD], newData: false, journal: 'empty' };
+	for (const st of pcSteps(journal).slice(0, done)) {
+		if (st === 'plan') s.journal = 'plan';
+		else if (st === 'commit') s.journal = 'commit';
+		else if (st === 'data') s.newData = true;
+		else if (st === 'table') s.file = PC_NEW;
+		else if (st === 'alloc') s.used = [...s.used, PC_NEW];
+		else if (st === 'free') s.used = s.used.filter((b) => b !== PC_OLD);
+		else if (st === 'clear') s.journal = 'empty';
+	}
+	return s;
+}
+export type PcProblem = 'owned-free' | 'leak';
+/** فحص التناسق: كتلة الملف لازم تكون مستخدمة، وكل كتلة مستخدمة لازم يملكها ملف */
+export function pcCheck(s: PcState): { problem: PcProblem; block: number }[] {
+	const out: { problem: PcProblem; block: number }[] = [];
+	if (!s.used.includes(s.file)) out.push({ problem: 'owned-free', block: s.file });
+	for (const b of s.used) if (b !== s.file) out.push({ problem: 'leak', block: b });
+	return out;
+}
+/** إعادة التشغيل: مع السجل، الخطة المؤكدة بتتعاد كلها، وغير المؤكدة بتنلغى. بدون سجل ما في شي نعمله */
+export function pcRecover(journal: boolean, done: number) {
+	const before = pcState(journal, done);
+	let action: 'none' | 'discard' | 'replay' = 'none';
+	let after = before;
+	if (journal && before.journal === 'plan') {
+		action = 'discard';
+		after = { ...before, journal: 'empty' };
+	} else if (journal && before.journal === 'commit') {
+		action = 'replay';
+		after = pcState(true, pcSteps(true).length);
+	}
+	const problems = pcCheck(after);
+	const version = problems.length ? 'broken' : after.file === PC_NEW ? 'new' : 'old';
+	return { before, after, action, problems, ok: problems.length === 0, version } as const;
+}
+/** كل لحظات الانقطاع الممكنة (بعد 0 لـ n خطوة) وأي وحدة منها مؤذية */
+export const pcTally = (journal: boolean) =>
+	Array.from({ length: pcSteps(journal).length + 1 }, (_, done) => ({ done, ok: pcRecover(journal, done).ok }));
+
+// ===== قاعدة 3-2-1 (الجلسة 3) =====
+export type CopyLoc = 'laptop' | 'usb' | 'dock' | 'drawer' | 'cloud';
+export const COPY_LOCS: { id: CopyLoc; media: string; place: 'bag' | 'home' | 'away'; online: boolean; mirror: boolean }[] = [
+	{ id: 'laptop', media: 'ssd', place: 'bag', online: true, mirror: false }, // الأصل، دايماً موجود
+	{ id: 'usb', media: 'flash', place: 'bag', online: false, mirror: false }, // فلاشة بحقيبة اللابتوب
+	{ id: 'dock', media: 'hdd', place: 'home', online: true, mirror: true }, // قرص خارجي موصول دايماً، نسخة طبق الأصل كل ساعة
+	{ id: 'drawer', media: 'hdd', place: 'home', online: false, mirror: false }, // قرص خارجي بالدرج، بينوصل مرة بالأسبوع
+	{ id: 'cloud', media: 'cloud', place: 'away', online: true, mirror: true }, // مجلد مزامنة سحابي
+];
+export type Disaster = 'disk' | 'theft' | 'fire' | 'ransom' | 'delete' | 'surge';
+export const DISASTERS: Disaster[] = ['disk', 'theft', 'fire', 'ransom', 'delete', 'surge'];
+/** هل الكارثة d بتضيّع النسخة يلي بالمكان loc؟ */
+export function disasterHits(d: Disaster, loc: CopyLoc): boolean {
+	const L = COPY_LOCS.find((l) => l.id === loc)!;
+	switch (d) {
+		case 'disk': return loc === 'laptop'; // تعطّل قرص اللابتوب
+		case 'theft': return L.place === 'bag'; // سرقة الحقيبة باللابتوب والفلاشة
+		case 'fire': return L.place !== 'away'; // حريق بالبيت (الحقيبة كمان بالبيت بالليل)
+		case 'ransom': return L.online; // الفدية بتشفّر كل شي موصول أو متزامن
+		case 'delete': return loc === 'laptop' || L.mirror; // الحذف بالغلط بينتقل لكل نسخة طبق الأصل
+		case 'surge': return loc === 'laptop' || loc === 'dock'; // صاعقة على الكهرباء: كل شي موصول بالشاحن
+	}
+}
+/** النسخ يلي بتضل بعد الكارثة (اللابتوب دايماً من ضمنها) */
+export const survivors = (locs: CopyLoc[], d: Disaster) => withLaptop(locs).filter((l) => !disasterHits(d, l));
+const withLaptop = (locs: CopyLoc[]): CopyLoc[] => ['laptop', ...locs.filter((l) => l !== 'laptop')];
+/** فحص القاعدة: 3 نسخ، ونوعين وسائط، وواحدة برّا البيت. و offline = في نسخة مفصولة؟ */
+export function rule321(locs: CopyLoc[]) {
+	const all = withLaptop(locs).map((id) => COPY_LOCS.find((l) => l.id === id)!);
+	const copies = all.length;
+	const media = new Set(all.map((l) => l.media)).size;
+	const offsite = all.filter((l) => l.place === 'away').length;
+	const offline = all.filter((l) => !l.online).length;
+	return { copies, media, offsite, offline, ok: copies >= 3 && media >= 2 && offsite >= 1 };
+}
+/** كم كارثة (من 6) بتنجو منها الملفات إذا صارت لحالها */
+export const disasterScore = (locs: CopyLoc[]) => DISASTERS.filter((d) => survivors(locs, d).length > 0).length;
+
+// ===== فيروس الفدية (الجلسة 3) =====
+// اليوم -1 = الجمعة الماضية، 0..4 = السبت..الأربعاء، والهجوم الخميس (5) الساعة 11 الصبح.
+export const RW_ATTACK = 5;
+export const RW_FILES: { name: string; edits: number[] }[] = [
+	{ name: 'report.docx', edits: [1, 3, 5] },
+	{ name: 'notes.txt', edits: [0, 2, 4] },
+	{ name: 'grades.xlsx', edits: [4] },
+	{ name: 'code.c', edits: [0, 1, 2, 3, 4, 5] },
+	{ name: 'slides.pptx', edits: [2] },
+	{ name: 'photo.jpg', edits: [] },
+	{ name: 'thesis.pdf', edits: [3] },
+	{ name: 'song.mp3', edits: [] },
+];
+export type RwProtect = 'none' | 'sync' | 'versions' | 'offline';
+/** النسخ المتاحة للاستعادة: رقم الليلة، و RW_ATTACK = «الآن» (بعد الهجوم، مشفّرة) */
+export function rwSnapshots(p: RwProtect): number[] {
+	if (p === 'none') return [];
+	if (p === 'sync') return [RW_ATTACK];
+	if (p === 'offline') return [-1];
+	return [-1, 0, 1, 2, 3, 4, RW_ATTACK];
+}
+/** استعادة النسخة snap: كل ملف إما مقفل، أو رجع مع عدد التعديلات يلي ضاعت */
+export function rwRestore(snap: number) {
+	const files = RW_FILES.map((f) =>
+		snap >= RW_ATTACK
+			? { name: f.name, locked: true, lost: 0 }
+			: { name: f.name, locked: false, lost: f.edits.filter((d) => d > snap).length },
+	);
+	return {
+		files,
+		saved: files.filter((f) => !f.locked).length,
+		lostEdits: files.reduce((a, f) => a + f.lost, 0),
+		filesWithLoss: files.filter((f) => !f.locked && f.lost > 0).length,
+	};
+}
+/** أحسن نتيجة لكل حماية (أحدث نسخة قبل الهجوم) */
+export function rwBest(p: RwProtect) {
+	const snaps = rwSnapshots(p).filter((s) => s < RW_ATTACK);
+	if (!snaps.length) return { snap: null, saved: 0, lostEdits: 0, filesWithLoss: 0 };
+	const snap = Math.max(...snaps);
+	return { snap, ...rwRestore(snap) };
+}
+/** محتوى الملف i بلحظة t (بعد تعديلات الأيام <= t)، أو مشفّر. منه منحسب البصمة */
+export const rwContent = (i: number, t: number, locked = false) =>
+	locked ? `${RW_FILES[i].name}.locked#x9$${i}` : `${RW_FILES[i].name}@v${RW_FILES[i].edits.filter((d) => d <= t).length}`;
+/** كم ملف تغيّرت بصمته الآن (الخميس) عن نسخة ليلة الأربعاء، قبل الهجوم وبعده */
+export const rwChanged = (attacked: boolean) =>
+	RW_FILES.filter((_, i) => miniHash(rwContent(i, RW_ATTACK, attacked)) !== miniHash(rwContent(i, RW_ATTACK - 1))).length;
+/** بصمة صغيرة (FNV-1a، 8 خانات) بس للعرض: نفس فكرة SHA-256 بالأداة التانية */
+export function miniHash(s: string): string {
+	let h = 0x811c9dc5;
+	for (let i = 0; i < s.length; i++) {
+		h ^= s.charCodeAt(i);
+		h = Math.imul(h, 0x01000193) >>> 0;
+	}
+	return h.toString(16).padStart(8, '0');
+}
+
 // ===== أداء المعالج (الجلسة 6) =====
 /** زمن التنفيذ بالثواني = عدد التعليمات × CPI ÷ التردد بالهرتز */
 export const cpuTime = (ic: number, cpi: number, hz: number) => (ic * cpi) / hz;

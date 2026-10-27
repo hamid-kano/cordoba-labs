@@ -33,35 +33,10 @@
 </div>
 
 <script>
-	import { evalfisDetail, mf, type Fis } from '../../scripts/control';
+	import { evalfisDetail, mf } from '../../scripts/control';
 	import { drawChart, num, type Series } from '../../scripts/chart';
+	import { FAN_FIS as fis1, FAN_FIS_HUM as fis2, TEMP_MFS as tempMfs, HUM_MFS as humMfs } from '../../scripts/fan';
 
-	const tempMfs = [
-		{ name: 'بارد', type: 'trapmf', p: [0, 0, 10, 20] },
-		{ name: 'معتدل', type: 'trimf', p: [10, 20, 30] },
-		{ name: 'حار', type: 'trapmf', p: [20, 30, 40, 40] },
-	] as const;
-	const speedMfs = [
-		{ name: 'بطيئة', type: 'trimf', p: [0, 0, 50] },
-		{ name: 'متوسطة', type: 'trimf', p: [25, 50, 75] },
-		{ name: 'سريعة', type: 'trimf', p: [50, 100, 100] },
-	] as const;
-	const humMfs = [
-		{ name: 'قليلة', type: 'trapmf', p: [0, 0, 30, 60] },
-		{ name: 'عالية', type: 'trapmf', p: [40, 70, 100, 100] },
-	] as const;
-
-	const fis1: Fis = {
-		type: 'mamdani',
-		inputs: [{ name: 'temp', range: [0, 40], mfs: tempMfs.map((m) => ({ ...m, p: [...m.p] })) }],
-		output: { name: 'speed', range: [0, 100], mfs: speedMfs.map((m) => ({ ...m, p: [...m.p] })) },
-		rules: [[1, 1], [2, 2], [3, 3]],
-	};
-	const fis2: Fis = {
-		...fis1,
-		inputs: [fis1.inputs[0], { name: 'hum', range: [0, 100], mfs: humMfs.map((m) => ({ ...m, p: [...m.p] })) }],
-		rules: [[1, 0, 1], [2, 1, 2], [2, 2, 3], [3, 0, 3]],
-	};
 	const ruleText1 = ['إذا بارد ← بطيئة', 'إذا معتدل ← متوسطة', 'إذا حار ← سريعة'];
 	const ruleText2 = ['إذا بارد ← بطيئة', 'إذا معتدل والرطوبة قليلة ← متوسطة', 'إذا معتدل والرطوبة عالية ← سريعة', 'إذا حار ← سريعة'];
 	const cls = ['ai-c1', 'ai-c3', 'ai-c4'];

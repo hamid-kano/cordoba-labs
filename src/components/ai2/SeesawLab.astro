@@ -1,0 +1,235 @@
+---
+// الجلسة 3: الشكل الناتج بعد القص والجمع (evalfisDetail) كأنه كرتونة على أرجوحة.
+// الطالب بيسحب المثلث (نقطة الارتكاز)، والأرجوحة بتميل حسب فرق العزم، وبتتوازن عند مركز الثقل.
+---
+
+<div class="not-content wl-box ss-lab" data-seesaw>
+	<h4>الأرجوحة: أين يتوازن الشكل؟</h4>
+	<p class="ss-p">هذا هو الشكل الناتج بعد القص والجمع، مقصوصاً من الكرتون وموضوعاً على لوح. <strong>اسحب المثلث ▲</strong> تحت اللوح حتى يتوازن.</p>
+	<label class="ai-slider"><span>الحرارة<output data-o="temp"></output></span><input type="range" min="0" max="40" step="0.5" value="24" data-k="temp" /></label>
+
+	<figure class="ai-chart ss-fig">
+		<svg class="ss-svg" tabindex="0" role="img" aria-label="أرجوحة: اسحب المثلث، أو استخدم الأسهم" data-svg></svg>
+	</figure>
+
+	<div class="ss-sides" dir="ltr">
+		<div class="ss-side"><span>ثقل يسار المثلث</span><b><i data-bar="L"></i></b></div>
+		<div class="ss-side"><span>ثقل يمين المثلث</span><b><i data-bar="R"></i></b></div>
+	</div>
+	<p class="wl-msg" data-o="hint" aria-live="polite"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-show>🎯 أرني</button>
+		<button type="button" class="wl-btn" data-again>↺ حاول مرة أخرى</button>
+	</div>
+</div>
+
+<style is:global>
+	.ss-lab .ss-p { margin: 0.5rem 0 0; }
+	.ss-lab .ss-svg { touch-action: none; cursor: ew-resize; user-select: none; -webkit-user-select: none; border-radius: 0.4rem; }
+	.ss-lab .ss-svg:focus-visible { outline: 2px solid var(--sl-color-accent); }
+	.ss-lab .ss-ground { stroke: var(--sl-color-gray-4); stroke-width: 2; }
+	.ss-lab .ss-plank { fill: var(--sl-color-gray-3); }
+	.ss-lab .ss-shape { fill: #e0a030; fill-opacity: 0.8; stroke: #b07818; stroke-width: 1.5; stroke-linejoin: round; }
+	.ss-lab .ss-tick { fill: var(--sl-color-gray-2); font-size: 11px; }
+	.ss-lab .ss-tickl { stroke: var(--sl-color-black); stroke-width: 1; }
+	.ss-lab .ss-fulcrum { fill: var(--sl-color-accent); stroke: var(--sl-color-black); stroke-width: 1.5; }
+	.ss-lab .ss-flabel { fill: var(--sl-color-white); font-size: 13px; font-weight: 700; }
+	.ss-lab .ss-ok .ss-fulcrum { fill: #2fb36b; }
+	.ss-lab .ss-cg { fill: #e5534b; stroke: var(--sl-color-black); stroke-width: 1.5; }
+	.ss-lab .ss-cgl { fill: #e5534b; font-size: 13px; font-weight: 800; }
+	.ss-lab .ss-sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+	.ss-lab .ss-side { display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--sl-text-xs); min-width: 0; }
+	.ss-lab .ss-side b { display: block; height: 0.7rem; border-radius: 99px; background: var(--sl-color-gray-5); overflow: hidden; }
+	.ss-lab .ss-side b i { display: block; height: 100%; width: 0; background: #e0a030; transition: width 0.15s; }
+	.ss-lab .ss-win { animation: ss-win 0.6s ease-out; }
+	@keyframes ss-win { 0% { transform: scale(0.9); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
+</style>
+
+<script>
+	import { evalfisDetail } from '../../scripts/control';
+	import { FAN_FIS } from '../../scripts/fan';
+
+	const TOL = 1; // إذا المثلث أبعد من 1% عن المركز، الأرجوحة بتميل
+	const MAX_ANG = 14;
+	const bdi = (s: string) => `<bdi dir="ltr">${s}</bdi>`;
+
+	document.querySelectorAll<HTMLElement>('[data-seesaw]').forEach((root) => {
+		const q = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+		const svg = q<SVGSVGElement>('[data-svg]');
+		const tempIn = q<HTMLInputElement>('[data-k="temp"]');
+		const hint = q('[data-o="hint"]');
+
+		let W = 600;
+		const H = 250;
+		const YP = 168; // سطح اللوح
+		const SH = 105; // ارتفاع الشكل لما μ = 1
+		let p = 50; // مكان المثلث (0..100)
+		let ang = 0;
+		let vel = 0;
+		let centroid = 0;
+		let zs: number[] = [];
+		let mus: number[] = [];
+		let revealed = false;
+		let won = false;
+		let anim: { from: number; to: number; t0: number } | null = null;
+		const X = (z: number) => 22 + (z / 100) * (W - 44);
+		const Z = (sx: number) => Math.max(0, Math.min(100, ((sx - 22) / (W - 44)) * 100));
+
+		function compute() {
+			const det = evalfisDetail(FAN_FIS, [+tempIn.value]);
+			zs = det.samples!.x;
+			mus = det.samples!.agg;
+			centroid = det.value;
+			q('[data-o="temp"]').textContent = `${tempIn.value}°`;
+		}
+		const torque = () => {
+			let L = 0, R = 0;
+			zs.forEach((z, i) => {
+				if (z < p) L += (p - z) * mus[i];
+				else R += (z - p) * mus[i];
+			});
+			return { L, R };
+		};
+		// أقصى ميلان: لحتى طرف اللوح يوصل للأرض بالضبط متل الأرجوحة الحقيقية
+		const maxAng = (dir: number) => {
+			const half = (dir > 0 ? X(100) - X(p) : X(p) - X(0)) + 8;
+			return Math.min(MAX_ANG, (Math.asin(Math.min(1, 44 / Math.max(half, 1))) * 180) / Math.PI);
+		};
+		const target = () => {
+			const d = centroid - p;
+			if (Math.abs(d) <= TOL) return 0;
+			const m = maxAng(d);
+			return Math.max(-m, Math.min(m, d * 0.8));
+		};
+
+		// الرسم الثابت (الشكل واللوح) بيتعاد بس لما تتغيّر الحرارة أو العرض أو المثلث
+		function draw() {
+			W = Math.max(300, Math.min(900, Math.round(svg.getBoundingClientRect().width) || 600));
+			svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+			const px = X(p);
+			let shape = `M${X(0)},${YP}`;
+			zs.forEach((z, i) => (shape += `L${X(z).toFixed(1)},${(YP - mus[i] * SH).toFixed(1)}`));
+			shape += `L${X(100)},${YP}Z`;
+			let ticks = '';
+			for (const z of [0, 25, 50, 75, 100]) {
+				ticks += `<line class="ss-tickl" x1="${X(z)}" x2="${X(z)}" y1="${YP}" y2="${YP + 8}"/>`;
+				ticks += `<text class="ss-tick" x="${X(z)}" y="${YP - 4}" text-anchor="middle">${z}</text>`;
+			}
+			let cg = '';
+			if (revealed || won) {
+				const cx = X(centroid);
+				cg = `<circle class="ss-cg" cx="${cx}" cy="${YP - 22}" r="6"/><text class="ss-cgl" x="${cx}" y="${YP - 34}" text-anchor="middle">${centroid.toFixed(1)}</text>`;
+			}
+			svg.innerHTML =
+				`<line class="ss-ground" x1="8" x2="${W - 8}" y1="${YP + 52}" y2="${YP + 52}"/>` +
+				`<g data-beam transform="rotate(${ang.toFixed(2)} ${px} ${YP + 8})">` +
+				`<path class="ss-shape" d="${shape}"/>${cg}` +
+				`<rect class="ss-plank" x="${X(0) - 8}" y="${YP}" width="${X(100) - X(0) + 16}" height="8" rx="3"/>${ticks}</g>` +
+				`<g class="${won ? 'ss-ok' : ''}"><path class="ss-fulcrum" d="M${px},${YP + 8}L${px - 18},${YP + 52}L${px + 18},${YP + 52}Z"/>` +
+				`<text class="ss-flabel" x="${px}" y="${YP + 72}" text-anchor="middle">${p.toFixed(1)}</text></g>`;
+			const { L, R } = torque();
+			const m = Math.max(L, R, 1e-9);
+			q('[data-bar="L"]').style.width = `${(L / m) * 100}%`;
+			q('[data-bar="R"]').style.width = `${(R / m) * 100}%`;
+			text();
+		}
+
+		function text() {
+			const d = centroid - p;
+			const msg = `✓ توازنت! مركز الثقل عند ${bdi(centroid.toFixed(1) + '%')}، وهو نفسه سرعة المروحة التي يعطيها ${bdi('evalfis')}.`;
+			if (Math.abs(d) <= TOL) {
+				hint.className = 'wl-msg wl-good';
+				if (!won) {
+					won = true;
+					hint.classList.add('ss-win');
+				}
+				hint.innerHTML = msg;
+			} else {
+				won = false;
+				hint.className = 'wl-msg';
+				hint.innerHTML = d > 0 ? 'اليمين أثقل، فيميل اللوح نحو اليمين. 👉 حرّك المثلث نحو اليمين.' : 'اليسار أثقل، فيميل اللوح نحو اليسار. 👈 حرّك المثلث نحو اليسار.';
+			}
+		}
+
+		// الحركة: نابض مع تخميد خفيف، فالأرجوحة بتهتز شوي قبل ما توقف
+		let raf = 0;
+		let prev = 0;
+		function frame(now: number) {
+			const dt = Math.min(0.04, (now - prev) / 1000 || 0.016);
+			prev = now;
+			if (anim) {
+				const k = Math.min(1, (now - anim.t0) / 1000);
+				const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+				p = anim.from + (anim.to - anim.from) * e;
+				if (k >= 1) anim = null;
+			}
+			vel += ((target() - ang) * 70 - vel * 9) * dt;
+			ang += vel * dt;
+			draw();
+			if (anim || Math.abs(vel) > 0.01 || Math.abs(target() - ang) > 0.01) raf = requestAnimationFrame(frame);
+			else {
+				ang = target();
+				vel = 0;
+				raf = 0;
+				draw();
+			}
+		}
+		function kick() {
+			if (!raf) {
+				prev = performance.now();
+				raf = requestAnimationFrame(frame);
+			}
+		}
+
+		let dragging = false;
+		const fromEvent = (e: PointerEvent) => {
+			const b = svg.getBoundingClientRect();
+			p = Math.round(Z(((e.clientX - b.left) / b.width) * W) * 10) / 10;
+			anim = null;
+			kick();
+		};
+		svg.addEventListener('pointerdown', (e) => {
+			dragging = true;
+			try { svg.setPointerCapture(e.pointerId); } catch {}
+			fromEvent(e);
+		});
+		svg.addEventListener('pointermove', (e) => dragging && fromEvent(e));
+		svg.addEventListener('pointerup', () => (dragging = false));
+		svg.addEventListener('pointercancel', () => (dragging = false));
+		svg.addEventListener('keydown', (e) => {
+			const step = e.shiftKey ? 5 : 0.5;
+			// المحور LTR: السهم اليمين = سرعة أكبر
+			if (e.key === 'ArrowRight') p = Math.min(100, p + step);
+			else if (e.key === 'ArrowLeft') p = Math.max(0, p - step);
+			else return;
+			e.preventDefault();
+			anim = null;
+			kick();
+		});
+		tempIn.addEventListener('input', () => {
+			revealed = false;
+			compute();
+			kick();
+		});
+		q('[data-show]').addEventListener('click', () => {
+			revealed = true;
+			anim = { from: p, to: centroid, t0: performance.now() };
+			kick();
+		});
+		q('[data-again]').addEventListener('click', () => {
+			revealed = false;
+			anim = { from: p, to: centroid > 50 ? 8 + Math.random() * 20 : 72 + Math.random() * 20, t0: performance.now() };
+			kick();
+		});
+		let lastW = innerWidth;
+		addEventListener('resize', () => {
+			if (innerWidth !== lastW) {
+				lastW = innerWidth;
+				draw();
+			}
+		});
+		compute();
+		ang = target();
+		draw();
+	});
+</script>

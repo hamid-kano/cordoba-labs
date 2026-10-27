@@ -313,3 +313,80 @@ export function delayStarts(C: number, P: number, n: number) {
 	}
 	return { delay, until };
 }
+
+// ===== الجلسة 2: محاكاة حيّة «المعالج يعمل أمامك» =====
+// قاعدة بسيطة قبل ما نتعلّم الجدولة: يلي بيوصل أول بيشتغل أول (FIFO)، وبدون مقاطعة.
+// إذا وصلت مهلة نسخة وهي لسا ما خلصت (عم تستنى أو عم تشتغل) منوقفها ومنعدّها فائتة، والمعالج بيتحرر.
+export interface FifoJob {
+	task: number;
+	k: number;
+	release: number;
+	deadline: number;
+	C: number;
+	start: number; // -1 إذا ما بلّشت أبداً
+	end: number; // لحظة الإنجاز أو لحظة الإيقاف، -1 إذا لسا ما انتهت عند آخر المحاكاة
+	done: boolean;
+	missed: boolean;
+}
+
+export function fifoSim(ts: Task[], horizon: number) {
+	const jobs: FifoJob[] = [];
+	ts.forEach((t, i) => {
+		for (let k = 0; k * t.T < horizon; k++)
+			jobs.push({ task: i, k, release: k * t.T, deadline: k * t.T + deadlineOf(t), C: t.C, start: -1, end: -1, done: false, missed: false });
+	});
+	// بنفس لحظة الوصول: حسب ترتيب الجدول
+	jobs.sort((a, b) => a.release - b.release || a.task - b.task);
+	const left = jobs.map((j) => j.C);
+	const queue: number[] = [];
+	let cpu = -1;
+	let next = 0;
+	let busy = 0;
+	for (let t = 0; t < horizon; t++) {
+		// 1) المهل يلي وصلت ولسا الشغل ما خلص
+		const drop = (i: number) => {
+			jobs[i].missed = true;
+			jobs[i].end = t;
+		};
+		if (cpu >= 0 && jobs[cpu].deadline <= t) {
+			drop(cpu);
+			cpu = -1;
+		}
+		for (let q = queue.length - 1; q >= 0; q--) if (jobs[queue[q]].deadline <= t) drop(queue.splice(q, 1)[0]);
+		// 2) الواصلين هلق بيوقفوا بآخر الطابور
+		while (next < jobs.length && jobs[next].release === t) queue.push(next++);
+		// 3) المعالج فاضي؟ ياخد أول الطابور
+		if (cpu < 0 && queue.length) {
+			cpu = queue.shift()!;
+			jobs[cpu].start = t;
+		}
+		if (cpu < 0) continue;
+		busy++;
+		if (--left[cpu] === 0) {
+			jobs[cpu].done = true;
+			jobs[cpu].end = t + 1;
+			cpu = -1;
+		}
+	}
+	return { jobs, busy, done: jobs.filter((j) => j.done).length, misses: jobs.filter((j) => j.missed).length };
+}
+
+// ===== الجلسة 2: قياس زمن التنفيذ (مدرّج تكراري) =====
+// بيرجع عدد القياسات بكل خانة من [0، top) مقسوم لـ bins خانة متساوية
+export function histogram(xs: number[], bins: number, top: number) {
+	const h = new Array(bins).fill(0);
+	for (const x of xs) h[Math.min(bins - 1, Math.max(0, Math.floor((x / top) * bins)))]++;
+	return h as number[];
+}
+
+// ===== الجلسة 2: تروس الدورة الكبرى =====
+// اللحظات (0 < t ≤ H) يلي فيها علامتين أو أكتر بالأعلى مع بعض. all = كلهن
+export function alignMoments(periods: number[]) {
+	const H = periods.reduce((h, p) => lcm(h, p), 1);
+	const out: { t: number; members: number[]; all: boolean }[] = [];
+	for (let t = 1; t <= H; t++) {
+		const members = periods.map((p, i) => (t % p === 0 ? i : -1)).filter((i) => i >= 0);
+		if (members.length >= 2) out.push({ t, members, all: members.length === periods.length });
+	}
+	return { H, moments: out };
+}

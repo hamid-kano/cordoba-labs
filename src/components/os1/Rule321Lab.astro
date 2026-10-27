@@ -1,0 +1,254 @@
+---
+// «قاعدة 3-2-1 ضد الكوارث» (الجلسة 3): الطالب بيوزّع نسخ مجلده على أماكن، وبعدين بتضرب الكوارث.
+// شو بتضيّع كل كارثة محسوب بـ os1.ts (disasterHits، survivors، rule321، disasterScore).
+---
+
+<div class="not-content wl-box r3-lab" data-r3-lab>
+	<h4>🛡️ قاعدة 3-2-1 ضد الكوارث</h4>
+	<p class="se-hint">ملفاتك: مجلد مشروع التخرج 📁. الأصل على اللابتوب. اضغط على الأماكن التي تريد أن تضع فيها <strong>نسخاً إضافية</strong>:</p>
+	<div class="r3-locs" data-out="locs"></div>
+	<div class="r3-rule" data-out="rule"></div>
+
+	<p class="se-hint"><strong>والآن اضرب بكارثة:</strong></p>
+	<div class="r3-dis" data-out="dis"></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="week">🎲 أسبوع عشوائي من الكوارث</button>
+		<button type="button" class="wl-btn" data-act="clear">↺ أعد النسخ كما كانت</button>
+	</div>
+	<div class="r3-banner" data-out="banner" aria-live="polite"></div>
+	<p class="wl-msg" data-out="msg"></p>
+	<ol class="r3-log" data-out="log" hidden></ol>
+	<div class="r3-score">
+		<span>إذا ضربت كل كارثة وحدها، تنجو ملفاتك من:</span>
+		<strong data-out="score"></strong>
+		<div class="r3-mini" data-out="mini"></div>
+	</div>
+	<p class="wl-msg" data-out="advice"></p>
+</div>
+
+<style is:global>
+	.r3-lab .r3-locs { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: 0.5rem; }
+	.r3-lab .r3-loc { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0.55rem 0.4rem; border-radius: 0.6rem; border: 2px dashed var(--sl-color-gray-4); background: var(--sl-color-black); color: var(--sl-color-gray-3); font: inherit; text-align: center; cursor: pointer; transition: border-color 0.25s, background 0.25s, transform 0.2s, opacity 0.3s; min-width: 0; }
+	.r3-lab .r3-loc:hover { transform: translateY(-2px); }
+	.r3-lab .r3-loc .e { font-size: 1.9rem; line-height: 1.1; filter: grayscale(1); opacity: 0.6; transition: filter 0.25s, opacity 0.25s; }
+	.r3-lab .r3-loc b { color: var(--sl-color-white); font-size: var(--sl-text-sm); }
+	.r3-lab .r3-loc small { font-size: 0.72rem; line-height: 1.35; }
+	.r3-lab .r3-loc .tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.2rem; }
+	.r3-lab .r3-loc .tags span { padding: 0 0.35rem; border-radius: 99px; font-size: 0.68rem; background: var(--sl-color-gray-6); color: var(--sl-color-gray-2); }
+	.r3-lab .r3-loc .tags .on { background: #e0a03040; }
+	.r3-lab .r3-loc .tags .off { background: #2fb36b40; }
+	.r3-lab .r3-loc .tags .far { background: #3a9ec240; }
+	.r3-lab .r3-loc[aria-pressed='true'] { border-style: solid; border-color: var(--sl-color-accent); background: var(--sl-color-accent-low); color: var(--sl-color-gray-2); }
+	.r3-lab .r3-loc[aria-pressed='true'] .e { filter: none; opacity: 1; }
+	.r3-lab .r3-loc.fixed { cursor: default; }
+	.r3-lab .r3-loc .x { position: absolute; inset: 0; display: grid; place-items: center; font-size: 2.6rem; border-radius: 0.5rem; background: #e5534b8c; opacity: 0; transform: scale(0.4); transition: opacity 0.3s, transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1); pointer-events: none; }
+	.r3-lab .r3-loc.hit { border-color: #e5534b; animation: r3-shake 0.45s 2; }
+	.r3-lab .r3-loc.hit .x { opacity: 1; transform: scale(1); }
+	.r3-lab .r3-loc.safe { border-color: #2fb36b; box-shadow: 0 0 0 4px #2fb36b55; animation: r3-pop 0.5s; }
+	@keyframes r3-shake { 0%, 100% { transform: translateX(0) rotate(0); } 25% { transform: translateX(-4px) rotate(-2deg); } 75% { transform: translateX(4px) rotate(2deg); } }
+	@keyframes r3-pop { 50% { transform: scale(1.06); } }
+	.r3-lab .r3-rule { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+	.r3-lab .r3-rule div { display: flex; flex-direction: column; align-items: center; padding: 0.35rem 0.2rem; border-radius: 0.5rem; text-align: center; border: 2px solid var(--sl-color-gray-5); background: var(--sl-color-black); transition: border-color 0.3s, background 0.3s; min-width: 0; }
+	.r3-lab .r3-rule div b { font-size: 1.5rem; line-height: 1.1; direction: ltr; }
+	.r3-lab .r3-rule div small { font-size: 0.72rem; line-height: 1.3; }
+	.r3-lab .r3-rule div.ok { border-color: #2fb36b; background: #2fb36b22; }
+	.r3-lab .r3-rule div.no { border-color: #e5534b; background: #e5534b18; }
+	.r3-lab .r3-dis { display: grid; grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); gap: 0.4rem; }
+	.r3-lab .r3-dis button { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; padding: 0.4rem 0.3rem; border-radius: 0.5rem; border: 1px solid #e5534b88; background: var(--sl-color-black); color: var(--sl-color-white); font: inherit; font-size: var(--sl-text-xs); cursor: pointer; transition: background 0.2s, transform 0.15s; min-width: 0; }
+	.r3-lab .r3-dis button span { font-size: 1.5rem; line-height: 1.2; }
+	.r3-lab .r3-dis button:hover:not(:disabled) { background: #e5534b22; transform: translateY(-2px); }
+	.r3-lab .r3-dis button:disabled { opacity: 0.45; cursor: default; }
+	.r3-lab .r3-banner { display: flex; align-items: center; gap: 0.6rem; min-height: 0; padding: 0 0.6rem; border-radius: 0.6rem; background: #e5534b22; border: 1px solid transparent; overflow: hidden; max-height: 0; opacity: 0; transition: max-height 0.35s, opacity 0.35s, padding 0.35s; }
+	.r3-lab .r3-banner.show { max-height: 9rem; opacity: 1; padding: 0.5rem 0.6rem; border-color: #e5534b; }
+	.r3-lab .r3-banner .big { font-size: 2.4rem; line-height: 1; animation: r3-boom 0.6s ease-out; }
+	@keyframes r3-boom { 0% { transform: scale(0.2) rotate(-30deg); } 70% { transform: scale(1.3) rotate(8deg); } 100% { transform: scale(1); } }
+	.r3-lab .r3-log { margin: 0; padding-inline-start: 1.3rem; display: flex; flex-direction: column; gap: 0.2rem; }
+	.r3-lab .r3-log li.ok::marker { color: #2fb36b; }
+	.r3-lab .r3-log li.bad { color: #e5534b; }
+	.r3-lab .r3-score { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: var(--sl-color-accent-low); }
+	.r3-lab .r3-score strong { font-size: var(--sl-text-lg); color: var(--sl-color-white); }
+	.r3-lab .r3-mini { display: flex; gap: 0.25rem; }
+	.r3-lab .r3-mini span { display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: 0.4rem; font-size: 1rem; border: 2px solid #e5534b; background: #e5534b22; transition: all 0.3s; }
+	.r3-lab .r3-mini span.ok { border-color: #2fb36b; background: #2fb36b33; }
+	@media (prefers-reduced-motion: reduce) {
+		.r3-lab *, .r3-lab *::before, .r3-lab *::after { animation-duration: 0.01ms !important; transition: none !important; }
+	}
+</style>
+
+<script>
+	import { COPY_LOCS, DISASTERS, disasterHits, survivors, rule321, disasterScore, type CopyLoc, type Disaster } from '../../scripts/os1';
+
+	const LOC: Record<CopyLoc, { e: string; name: string; media: string }> = {
+		laptop: { e: '💻', name: 'اللابتوب (الأصل)', media: 'قرص داخلي' },
+		usb: { e: '🔌', name: 'فلاشة في حقيبة اللابتوب', media: 'فلاشة' },
+		dock: { e: '💽', name: 'قرص خارجي موصول دائماً', media: 'قرص صلب' },
+		drawer: { e: '🗄️', name: 'قرص خارجي في الدرج', media: 'قرص صلب' },
+		cloud: { e: '☁️', name: 'مجلد مزامنة في السحابة', media: 'السحابة' },
+	};
+	const NOTE: Record<CopyLoc, string> = {
+		laptop: 'تحمله معك كل يوم',
+		usb: 'تنسخ عليها كل مساء ثم تنزعها',
+		dock: 'ينسخ كل ساعة نسخة طبق الأصل',
+		drawer: 'تصله مرة في الأسبوع ثم تفصله',
+		cloud: 'يتزامن فوراً مع اللابتوب',
+	};
+	const PLACE = { bag: '🎒 الحقيبة', home: '🏠 المنزل', away: '🌍 خارج المنزل' };
+	const DIS: Record<Disaster, { e: string; name: string; text: string }> = {
+		disk: { e: '💥', name: 'تعطّل القرص', text: 'تعطّل قرص اللابتوب فجأة.' },
+		theft: { e: '🦹', name: 'سرقة الحقيبة', text: 'سُرقت الحقيبة في الحافلة: اللابتوب وكل ما فيها.' },
+		fire: { e: '🔥', name: 'حريق في المنزل', text: 'حريق في المنزل ليلاً: احترق كل ما في المنزل، والحقيبة أيضاً.' },
+		ransom: { e: '☠️', name: 'فيروس الفدية', text: 'فيروس الفدية شفّر الملفات، وتشفّرت معها كل نسخة موصولة أو متزامنة.' },
+		delete: { e: '🗑️', name: 'حذف بالخطأ', text: 'حذفت المجلد بالخطأ، فانحذف أيضاً من كل نسخة «طبق الأصل».' },
+		surge: { e: '🌩️', name: 'صاعقة', text: 'صاعقة على شبكة الكهرباء: تلف كل جهاز موصول بالكهرباء.' },
+	};
+	const DAYS = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+	const n = (x: number) => `<bdi dir="ltr">${x}</bdi>`;
+
+	document.querySelectorAll<HTMLElement>('[data-r3-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const chosen = new Set<CopyLoc>(['laptop']);
+		let busy = false;
+		let timer = 0;
+
+		out('locs').innerHTML = COPY_LOCS.map((l) => {
+			const L = LOC[l.id];
+			const fixed = l.id === 'laptop';
+			return `<button type="button" class="r3-loc${fixed ? ' fixed' : ''}" data-loc="${l.id}" aria-pressed="${fixed}">
+				<span class="e">${L.e}</span><b>${L.name}</b><small>${NOTE[l.id]}</small>
+				<span class="tags"><span class="${l.place === 'away' ? 'far' : ''}">${PLACE[l.place]}</span><span class="${l.online ? 'on' : 'off'}">${l.online ? '🔗 موصول' : '⛓️‍💥 مفصول'}</span><span>${L.media}</span></span>
+				<span class="x" aria-hidden="true"></span></button>`;
+		}).join('');
+		out('dis').innerHTML = DISASTERS.map((d) => `<button type="button" data-dis="${d}"><span>${DIS[d].e}</span>${DIS[d].name}</button>`).join('');
+		const card = (id: CopyLoc) => root.querySelector<HTMLElement>(`[data-loc="${id}"]`)!;
+		const list = () => [...chosen];
+
+		function clearMarks() {
+			root.querySelectorAll('.r3-loc').forEach((c) => c.classList.remove('hit', 'safe'));
+		}
+
+		function update() {
+			const r = rule321(list());
+			const box = (ok: boolean, big: string, small: string) => `<div class="${ok ? 'ok' : 'no'}"><b>${big}</b><small>${small}</small></div>`;
+			out('rule').innerHTML =
+				box(r.copies >= 3, `${r.copies}`, 'نسخ (المطلوب 3)') +
+				box(r.media >= 2, `${r.media}`, 'أنواع وسائط (المطلوب 2)') +
+				box(r.offsite >= 1, `${r.offsite}`, 'خارج المنزل (المطلوب 1)');
+			const score = disasterScore(list());
+			out('score').innerHTML = `${n(score)} من ${n(DISASTERS.length)}`;
+			out('mini').innerHTML = DISASTERS.map((d) => `<span class="${survivors(list(), d).length ? 'ok' : ''}" title="${DIS[d].name}">${DIS[d].e}</span>`).join('');
+			const adv = out('advice');
+			if (score === DISASTERS.length && r.ok) {
+				adv.className = 'wl-msg wl-good';
+				adv.innerHTML = '🏆 ممتاز! خطتك تحقق قاعدة 3-2-1، وفيها نسخة <strong>مفصولة</strong>، فتنجو من كل الكوارث.';
+			} else if (r.ok && !r.offline) {
+				adv.className = 'wl-msg wl-bad';
+				adv.innerHTML = 'تحقق القاعدة 3-2-1، لكن <strong>كل نسخك موصولة</strong>، ففيروس الفدية والحذف بالخطأ يصلان إليها كلها. أضف نسخة مفصولة.';
+			} else if (r.copies === 1) {
+				adv.className = 'wl-msg wl-bad';
+				adv.textContent = 'لديك نسخة واحدة فقط: أي كارثة تضيّع كل شيء!';
+			} else if (!r.offsite) {
+				adv.className = 'wl-msg wl-bad';
+				adv.textContent = 'كل نسخك في المنزل أو معك، فالحريق يضيّعها كلها. ضع نسخة خارج المنزل.';
+			} else {
+				adv.className = 'wl-msg';
+				adv.textContent = 'اقتربت. انظر إلى الكوارث الحمراء: ما الذي ينقص خطتك؟';
+			}
+		}
+
+		// ضربة كارثة وحدة مع حركة. بترجع هل نجت الملفات
+		function strike(d: Disaster, label = '') {
+			clearMarks();
+			const hit = list().filter((l) => disasterHits(d, l));
+			const left = survivors(list(), d);
+			out('banner').innerHTML = `<span class="big">${DIS[d].e}</span><span>${label ? `<strong>${label}:</strong> ` : ''}${DIS[d].text}</span>`;
+			out('banner').classList.remove('show');
+			void out('banner').offsetWidth;
+			out('banner').classList.add('show');
+			hit.forEach((l, i) =>
+				setTimeout(() => {
+					card(l).querySelector('.x')!.textContent = DIS[d].e;
+					card(l).classList.add('hit');
+				}, 150 + i * 180),
+			);
+			setTimeout(() => left.forEach((l) => card(l).classList.add('safe')), 250 + hit.length * 180);
+			return left;
+		}
+
+		function single(d: Disaster) {
+			if (busy) return;
+			out('log').hidden = true;
+			const left = strike(d);
+			const msg = out('msg');
+			if (left.length) {
+				msg.className = 'wl-msg wl-good';
+				msg.innerHTML = `✔ نجت ملفاتك! بقيت ${n(left.length)} من ${n(chosen.size)} نسخ: ${left.map((l) => LOC[l].e).join(' ')}`;
+			} else {
+				msg.className = 'wl-msg wl-bad';
+				msg.textContent = '✘ ضاعت كل النسخ! ضاع مشروع التخرج 😱';
+			}
+		}
+
+		function week() {
+			if (busy) return;
+			busy = true;
+			root.querySelectorAll<HTMLButtonElement>('[data-dis], [data-loc], [data-act]').forEach((b) => (b.disabled = true));
+			// تلات كوارث مختلفة بأيام مختلفة من الأسبوع
+			const pool = [...DISASTERS];
+			const picks: Disaster[] = [];
+			while (picks.length < 3) picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+			const days = [0, 1, 2, 3, 4, 5, 6].sort(() => Math.random() - 0.5).slice(0, 3).sort((a, b) => a - b);
+			const log = out('log');
+			log.innerHTML = '';
+			log.hidden = false;
+			out('msg').className = 'wl-msg';
+			out('msg').textContent = '🎲 بدأ الأسبوع…';
+			let ok = 0;
+			let i = 0;
+			const next = () => {
+				if (i >= picks.length) {
+					busy = false;
+					root.querySelectorAll<HTMLButtonElement>('[data-dis], [data-loc], [data-act]').forEach((b) => (b.disabled = false));
+					clearMarks();
+					out('msg').className = ok === picks.length ? 'wl-msg wl-good' : 'wl-msg wl-bad';
+					out('msg').innerHTML = ok === picks.length
+						? `🎉 انتهى الأسبوع، ونجوت من الكوارث ${n(3)} كلها!`
+						: `انتهى الأسبوع: نجوت من ${n(ok)} من ${n(3)} كوارث. غيّر أماكن النسخ وجرّب من جديد.`;
+					return;
+				}
+				const d = picks[i];
+				const left = strike(d, DAYS[days[i]]);
+				if (left.length) ok++;
+				const li = document.createElement('li');
+				li.className = left.length ? 'ok' : 'bad';
+				li.innerHTML = `${DAYS[days[i]]}: ${DIS[d].e} ${DIS[d].name}، ${left.length ? `نجت الملفات من ${left.map((l) => LOC[l].e).join(' ')}، فاستعدت النسخ الضائعة منها.` : 'ضاعت كل النسخ ✘'}`;
+				log.appendChild(li);
+				i++;
+				timer = window.setTimeout(next, 2200);
+			};
+			next();
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-loc]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const id = b.dataset.loc as CopyLoc;
+				if (id === 'laptop' || busy) return;
+				chosen.has(id) ? chosen.delete(id) : chosen.add(id);
+				b.setAttribute('aria-pressed', String(chosen.has(id)));
+				clearMarks();
+				out('banner').classList.remove('show');
+				out('msg').textContent = '';
+				update();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-dis]').forEach((b) => b.addEventListener('click', () => single(b.dataset.dis as Disaster)));
+		root.querySelector('[data-act="week"]')!.addEventListener('click', week);
+		root.querySelector('[data-act="clear"]')!.addEventListener('click', () => {
+			clearTimeout(timer);
+			clearMarks();
+			out('banner').classList.remove('show');
+			out('log').hidden = true;
+			out('msg').textContent = '';
+		});
+		update();
+	});
+</script>
