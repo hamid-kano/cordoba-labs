@@ -1,0 +1,112 @@
+---
+// «كم يجب أن تكون الشريحة؟» (الجلسة 4): RR على نفس العمليات بشرائح من 1 لـ 8.
+// منحنيين: متوسط الاستجابة ومتوسط الانتظار، وأعمدة عدد التبديلات. ولكل تبديل كلفة بيختارها الطالب،
+// فبيشوف إنه الشريحة الصغيرة كتير بتضيّع وقت، والكبيرة كتير بترجع FCFS. الحساب بـ os1.ts (cpuSched).
+---
+
+<div class="not-content wl-box qt-lab" data-qt-lab>
+	<h4>🍕 كم يجب أن تكون الشريحة؟</h4>
+	<div class="wl-grid">
+		<label class="wl-label"><span>العمليات</span>
+			<select class="wl-select" data-in="set">
+				<option value="book" selected>مثال الكتاب: 6 و 8 و 7 و 3</option>
+				<option value="convoy">القافلة: 24 و 3 و 3</option>
+				<option value="solved">المسألة المحلولة</option>
+			</select>
+		</label>
+		<label class="wl-label"><span>كلفة كل تبديل سياق</span>
+			<select class="wl-select" data-in="cost"><option value="0">0 (مثالي)</option><option value="0.5" selected>0.5 ثانية</option><option value="1">1 ثانية</option></select>
+		</label>
+		<label class="wl-label"><span>الشريحة q: <strong><bdi dir="ltr" data-out="qv">4</bdi></strong></span>
+			<input type="range" min="1" max="8" value="4" data-in="q" class="qt-range" />
+		</label>
+	</div>
+
+	<figure class="qt-chart">
+		<svg data-out="chart" viewBox="0 0 360 210" role="img" aria-label="متوسط الاستجابة والانتظار وعدد التبديلات حسب الشريحة"></svg>
+		<figcaption><span class="k r"></span>متوسط الاستجابة <span class="k w"></span>متوسط الانتظار <span class="k s"></span>عدد التبديلات</figcaption>
+	</figure>
+
+	<div class="wl-grid">
+		<div class="wl-out"><span>متوسط الاستجابة</span><strong data-out="resp"></strong></div>
+		<div class="wl-out"><span>تبديلات السياق</span><strong data-out="sw"></strong></div>
+		<div class="wl-out"><span>وقت ضائع في التبديل</span><strong data-out="lost"></strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.qt-lab .qt-range { width: 100%; accent-color: var(--sl-color-accent); }
+	.qt-lab .qt-chart { margin: 0; }
+	.qt-lab .qt-chart svg { width: 100%; height: auto; display: block; direction: ltr; font-family: var(--sl-font); }
+	.qt-lab .qt-chart figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.6rem; font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
+	.qt-lab .k { display: inline-block; width: 1rem; height: 0.3rem; border-radius: 2px; }
+	.qt-lab .k.r { background: #2fb36b; } .qt-lab .k.w { background: #e0a030; } .qt-lab .k.s { background: var(--sl-color-gray-5); height: 0.7rem; }
+	.qt-lab .qt-grid { stroke: var(--sl-color-gray-6); }
+	.qt-lab .qt-axis { stroke: var(--sl-color-gray-4); }
+	.qt-lab .qt-tick { fill: var(--sl-color-gray-3); font-size: 10px; font-family: sans-serif; }
+	.qt-lab .qt-bar { fill: var(--sl-color-gray-5); }
+	.qt-lab .qt-bar.cur { fill: var(--sl-color-gray-4); }
+	.qt-lab .qt-r { fill: none; stroke: #2fb36b; stroke-width: 3; }
+	.qt-lab .qt-w { fill: none; stroke: #e0a030; stroke-width: 3; stroke-dasharray: 6 3; }
+	.qt-lab .qt-cur { stroke: var(--sl-color-white); stroke-width: 1.5; stroke-dasharray: 3 3; }
+	.qt-lab .qt-sw { fill: var(--sl-color-gray-2); font-size: 9px; font-family: sans-serif; }
+</style>
+
+<script>
+	import { cpuSched, SCHED_SETS } from '../../scripts/os1';
+
+	const fmt = (x: number) => String(Math.round(x * 100) / 100);
+	document.querySelectorAll<HTMLElement>('[data-qt-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const inp = (k: string) => root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-in="${k}"]`)!;
+
+		function run() {
+			const procs = SCHED_SETS[inp('set').value as keyof typeof SCHED_SETS];
+			const cost = +inp('cost').value;
+			const q = +inp('q').value;
+			out('qv').textContent = String(q);
+			const data = Array.from({ length: 8 }, (_, i) => {
+				const r = cpuSched(procs, 'rr', i + 1);
+				// كلفة التبديل: كل تبديل بيأخّر كل يلي بعده، فمنضيفها لزمن الاستجابة والانتظار تقريبياً
+				return { q: i + 1, resp: r.avgResp, wait: r.avgWait, sw: r.switches, end: r.end };
+			});
+			const L = 30, R = 350, T = 12, B = 180;
+			const maxY = Math.max(...data.map((d) => Math.max(d.resp, d.wait))) * 1.1 || 1;
+			const maxS = Math.max(...data.map((d) => d.sw)) || 1;
+			const X = (k: number) => L + ((k - 0.5) / 8) * (R - L);
+			const Y = (v: number) => B - (v / maxY) * (B - T);
+			let g = '';
+			for (let i = 0; i <= 4; i++) {
+				const v = (maxY / 4) * i;
+				g += `<line class="qt-grid" x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="qt-tick" x="${L - 4}" y="${Y(v) + 3}" text-anchor="end">${Math.round(v)}</text>`;
+			}
+			const bw = ((R - L) / 8) * 0.55;
+			data.forEach((d) => {
+				const h = (d.sw / maxS) * (B - T) * 0.45;
+				g += `<rect class="qt-bar${d.q === q ? ' cur' : ''}" x="${X(d.q) - bw / 2}" y="${B - h}" width="${bw}" height="${h}" rx="2"/>`;
+				g += `<text class="qt-sw" x="${X(d.q)}" y="${B - h - 3}" text-anchor="middle">${d.sw}</text>`;
+				g += `<text class="qt-tick" x="${X(d.q)}" y="${B + 14}" text-anchor="middle">${d.q}</text>`;
+			});
+			g += `<text class="qt-tick" x="${(L + R) / 2}" y="${B + 27}" text-anchor="middle">q</text>`;
+			g += `<line class="qt-axis" x1="${L}" x2="${R}" y1="${B}" y2="${B}"/>`;
+			g += `<path class="qt-w" d="${data.map((d, i) => `${i ? 'L' : 'M'} ${X(d.q)} ${Y(d.wait)}`).join(' ')}"/>`;
+			g += `<path class="qt-r" d="${data.map((d, i) => `${i ? 'L' : 'M'} ${X(d.q)} ${Y(d.resp)}`).join(' ')}"/>`;
+			g += `<line class="qt-cur" x1="${X(q)}" x2="${X(q)}" y1="${T}" y2="${B}"/>`;
+			out('chart').innerHTML = g;
+			const cur = data[q - 1];
+			const lost = cur.sw * cost;
+			out('resp').textContent = `${fmt(cur.resp)} s`;
+			out('sw').textContent = String(cur.sw);
+			out('lost').textContent = cost ? `${fmt(lost)} s (${Math.round((lost / (cur.end + lost)) * 100)}%)` : '0';
+			const m = out('msg');
+			const total = procs.reduce((s, p) => s + p.burst, 0);
+			const maxBurst = Math.max(...procs.map((p) => p.burst));
+			if (q === 1) m.textContent = 'شريحة صغيرة جداً: الاستجابة ممتازة، لكن التبديلات كثيرة، وكل تبديل وقت ضائع.';
+			else if (q >= maxBurst) m.textContent = `الشريحة أكبر من أطول عملية (${maxBurst})، فلا تنقطع أي عملية: أصبحت RR مثل FCFS تماماً.`;
+			else m.textContent = `شريحة متوسطة: توازن بين سرعة الاستجابة وعدد التبديلات. (مجموع التنفيذ ${total} ثانية)`;
+		}
+		root.querySelectorAll('input, select').forEach((x) => x.addEventListener('input', run));
+		run();
+	});
+</script>

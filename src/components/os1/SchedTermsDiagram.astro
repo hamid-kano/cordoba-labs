@@ -1,0 +1,55 @@
+---
+// مقاييس الجدولة (الجلسة 4) على عملية وحدة: وصلت عند 2، انتظرت لـ 5، اشتغلت لـ 7، انتظرت لـ 9، اشتغلت لـ 11 وانتهت.
+// الاستجابة 3، والتنفيذ 4، والانتظار 3 + 2 = 5، والدوران 9. الزمن من اليسار لليمين.
+const X = (t: number) => 22 + t * 38;
+const parts = [
+	{ s: 2, e: 5, k: 'wait' },
+	{ s: 5, e: 7, k: 'run' },
+	{ s: 7, e: 9, k: 'wait' },
+	{ s: 9, e: 11, k: 'run' },
+];
+---
+
+<figure class="wl-fig st-fig">
+	<div>
+		<svg class="d-big" viewBox="0 0 470 250" role="img" aria-label="عملية تصل عند 2، وتنتظر حتى 5، وتعمل حتى 7، وتنتظر حتى 9، وتعمل حتى 11 فتنتهي. الاستجابة 3، والانتظار 5، والتنفيذ 4، والدوران 9">
+			<defs>
+				<marker id="st-a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path></marker>
+			</defs>
+			{Array.from({ length: 12 }, (_, t) => (
+				<g>
+					<line x1={X(t)} x2={X(t)} y1="70" y2="120" class="st-grid"></line>
+					<text x={X(t)} y="136" class="d-s d-ltr">{t}</text>
+				</g>
+			))}
+			{parts.map((p) => (
+				<rect x={X(p.s)} y="80" width={X(p.e) - X(p.s)} height="32" rx="4" class={p.k === 'run' ? 'st-run' : 'st-wait'}></rect>
+			))}
+			<text x={X(3.5)} y="101" class="d-s st-dark">ينتظر</text>
+			<text x={X(6)} y="101" class="d-s st-dark">يعمل</text>
+			<text x={X(8)} y="101" class="d-s st-dark">ينتظر</text>
+			<text x={X(10)} y="101" class="d-s st-dark">يعمل</text>
+
+			<path d={`M ${X(2)} 30 L ${X(2)} 76`} class="d-line" marker-end="url(#st-a)"></path>
+			<text x={X(2)} y="22" class="d-s d-b">وصل</text>
+			<path d={`M ${X(5)} 30 L ${X(5)} 76`} class="d-line" marker-end="url(#st-a)"></path>
+			<text x={X(5)} y="22" class="d-s d-b">أول تشغيل</text>
+			<path d={`M ${X(11)} 30 L ${X(11)} 76`} class="d-line" marker-end="url(#st-a)"></path>
+			<text x={X(11)} y="22" class="d-s d-b">انتهى</text>
+
+			<line x1={X(2)} x2={X(5)} y1="160" y2="160" class="d-line d-green" marker-start="url(#st-a)" marker-end="url(#st-a)"></line>
+			<text x={X(3.5)} y="178" class="d-s">الاستجابة: 3</text>
+			<line x1={X(2)} x2={X(11)} y1="200" y2="200" class="d-line d-blue" marker-start="url(#st-a)" marker-end="url(#st-a)"></line>
+			<text x={X(6.5)} y="220" class="d-s">الدوران: 9</text>
+			<text x={X(6.5)} y="240" class="d-s">الانتظار: 5 (المخطّط)</text>
+		</svg>
+	</div>
+	<figcaption>عملية زمن تنفيذها <strong>4</strong>. <strong>الاستجابة</strong> حتى أول مرة تأخذ المعالج، و<strong>الدوران</strong> من الوصول حتى الانتهاء، و<strong>الانتظار</strong> هو كل الوقت الذي كانت فيه جاهزة ولم تعمل.</figcaption>
+</figure>
+
+<style>
+	.st-fig .st-grid { stroke: var(--sl-color-gray-6); }
+	.st-fig .st-run { fill: #2fb36b; }
+	.st-fig .st-wait { fill: #e0a03055; stroke: #e0a030; stroke-dasharray: 4 3; }
+	.st-fig .st-dark { fill: var(--sl-color-white); }
+</style>

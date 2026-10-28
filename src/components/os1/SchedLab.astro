@@ -1,0 +1,237 @@
+---
+// محاكي جدولة المعالج (الجلسة 4): جدول عمليات قابل للتعديل، و6 خوارزميات، ومخطط Gantt بيتعبّى لحظة لحظة،
+// وجدول النتائج لكل عملية، ومقارنة متوسط الانتظار لكل الخوارزميات على نفس العمليات.
+// المنطق بـ os1.ts (cpuSched، SCHED_SETS). الزمن بالمخطط من اليسار لليمين متل أي خط زمني.
+---
+
+<div class="not-content wl-box sc-lab" data-sc-lab>
+	<h4>⏱️ من يأخذ المعالج أولاً؟</h4>
+
+	<div class="wl-row" role="group" aria-label="أمثلة جاهزة">
+		<span class="se-note">أمثلة:</span>
+		<button type="button" class="wl-btn" data-set="convoy">🚛 القافلة</button>
+		<button type="button" class="wl-btn" data-set="book" aria-pressed="true">📘 مثال الكتاب</button>
+		<button type="button" class="wl-btn" data-set="arrive">🚶 وصول مختلف</button>
+		<button type="button" class="wl-btn" data-set="prio">⭐ الأولويات</button>
+		<button type="button" class="wl-btn" data-set="solved">✏️ المسألة المحلولة</button>
+	</div>
+
+	<div class="wl-scroll">
+		<table class="wl-table sc-procs">
+			<thead><tr><th>العملية</th><th>الوصول</th><th>التنفيذ</th><th>الأولوية</th></tr></thead>
+			<tbody data-out="procs"></tbody>
+		</table>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-act="add">＋ عملية</button>
+		<button type="button" class="wl-btn" data-act="del">− عملية</button>
+		<span class="se-note">الأولوية: الرقم الأصغر هو الأهم.</span>
+	</div>
+
+	<div class="wl-row" role="group" aria-label="الخوارزمية">
+		<button type="button" class="wl-btn" data-algo="fcfs" aria-pressed="true">FCFS</button>
+		<button type="button" class="wl-btn" data-algo="sjf" aria-pressed="false">SJF</button>
+		<button type="button" class="wl-btn" data-algo="srtf" aria-pressed="false">SRTF</button>
+		<button type="button" class="wl-btn" data-algo="rr" aria-pressed="false">RR</button>
+		<button type="button" class="wl-btn" data-algo="prio" aria-pressed="false">أولوية</button>
+		<button type="button" class="wl-btn" data-algo="pprio" aria-pressed="false">أولوية مع مقاطعة</button>
+		<label class="sc-q" data-qbox hidden>الشريحة q =
+			<select class="wl-select" data-in="q"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+		</label>
+	</div>
+	<p class="wl-msg sc-desc" data-out="desc"></p>
+
+	<div class="gt-wrap">
+		<div data-out="ganttbox">
+			<div class="gt-bar" data-out="gantt"></div>
+			<div class="gt-ticks" data-out="ticks"></div>
+		</div>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="play">▶ شغّل</button>
+		<button type="button" class="wl-btn" data-act="all">⏭ النتيجة مباشرة</button>
+		<span class="se-note" data-out="now"></span>
+	</div>
+
+	<div class="wl-scroll">
+		<table class="wl-table sc-res">
+			<thead><tr><th>العملية</th><th>الانتهاء</th><th>الدوران</th><th>الانتظار</th><th>الاستجابة</th></tr></thead>
+			<tbody data-out="rows"></tbody>
+			<tfoot data-out="avg"></tfoot>
+		</table>
+	</div>
+	<p class="se-note">الدوران = الانتهاء − الوصول. والانتظار = الدوران − التنفيذ. والاستجابة = أول تشغيل − الوصول.</p>
+
+	<div class="sc-cmp">
+		<b>متوسط الانتظار بكل الخوارزميات، للعمليات نفسها:</b>
+		<div data-out="cmp"></div>
+	</div>
+</div>
+
+<style is:global>
+	.sc-lab .sc-procs input { width: 3.6rem; text-align: center; direction: ltr; }
+	.sc-lab .sc-procs td, .sc-lab .sc-res td { text-align: center; }
+	.sc-lab .sc-procs td:first-child b { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 0.3rem; color: #111; font-family: sans-serif; }
+	.sc-lab .sc-q { display: inline-flex; align-items: center; gap: 0.35rem; font-size: var(--sl-text-sm); }
+	.sc-lab .sc-desc { font-weight: 400; font-size: var(--sl-text-sm); }
+	.sc-lab .gt-bar > span { transition: opacity 0.25s; }
+	.sc-lab .gt-bar > span.later { opacity: 0.08; }
+	.sc-lab .sc-res tfoot td { font-weight: 700; border-top: 2px solid var(--sl-color-gray-4); }
+	.sc-lab .sc-res .hide { color: transparent; }
+	.sc-lab .sc-cmp { display: flex; flex-direction: column; gap: 0.35rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); font-size: var(--sl-text-sm); }
+	.sc-lab .sc-cmp-row { display: grid; grid-template-columns: 7.5rem 1fr 3rem; gap: 0.4rem; align-items: center; font-size: var(--sl-text-xs); }
+	.sc-lab .sc-cmp-row i { display: block; height: 1rem; border-radius: 0.25rem; background: var(--sl-color-gray-4); transition: width 0.4s; }
+	.sc-lab .sc-cmp-row.cur i { background: var(--sl-color-accent); }
+	.sc-lab .sc-cmp-row.best b::after { content: ' 🏆'; }
+	.sc-lab .sc-cmp-row span:last-child { font-family: var(--sl-font-system-mono); text-align: center; }
+</style>
+
+<script>
+	import { cpuSched, SCHED_SETS, SCHED_NAMES, type SchedAlgo, type SchedProc, type SchedResult } from '../../scripts/os1';
+
+	const DESC: Record<SchedAlgo, string> = {
+		fcfs: 'FCFS: من يصل أولاً يُخدم أولاً، ويبقى على المعالج حتى ينتهي. بسيط وعادل، لكن عملية طويلة في المقدمة تؤخّر الجميع.',
+		sjf: 'SJF: من بين الواصلين، الأقصر تنفيذاً أولاً، ولا يُقاطَع. يعطي أقل متوسط انتظار، لكن يجب أن نعرف الطول مسبقاً.',
+		srtf: 'SRTF: مثل SJF، لكن إذا وصلت عملية أقصر مما بقي للعملية الحالية، تقاطعها وتأخذ المعالج.',
+		rr: 'RR: بالدور. كل عملية تأخذ شريحة زمنية q، ثم تعود إلى آخر الطابور إذا لم تنتهِ. استجابة سريعة للجميع.',
+		prio: 'أولوية: الأهم أولاً (الرقم الأصغر)، ولا يُقاطَع. والخطر أن تنتظر العملية غير المهمة إلى الأبد.',
+		pprio: 'أولوية مع مقاطعة: إذا وصلت عملية أهم، تقاطع العملية الحالية فوراً.',
+	};
+	const COLORS = ['#6cc3e0', '#f0c070', '#7ed6a0', '#c3a6f5', '#f39a8f', '#e8d36a'];
+	const fmt = (x: number) => String(Math.round(x * 100) / 100);
+	const ALGOS: SchedAlgo[] = ['fcfs', 'sjf', 'srtf', 'rr', 'prio', 'pprio'];
+
+	document.querySelectorAll<HTMLElement>('[data-sc-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let procs: SchedProc[] = SCHED_SETS.book.map((p) => ({ ...p }));
+		let algo: SchedAlgo = 'fcfs';
+		let r: SchedResult;
+		let shown = 0; // كم لحظة انعرضت من المخطط
+		let timer = 0;
+		const q = () => +(root.querySelector('[data-in="q"]') as HTMLSelectElement).value;
+
+		function table() {
+			out('procs').innerHTML = procs
+				.map(
+					(p, i) =>
+						`<tr><td><b style="background:${COLORS[i % 6]}">${p.name}</b></td>` +
+						['arrival', 'burst', 'prio'].map((k) => `<td><input class="wl-input" type="number" min="${k === 'burst' ? 1 : 0}" max="30" data-i="${i}" data-k="${k}" value="${p[k as 'arrival']}" /></td>`).join('') +
+						'</tr>',
+				)
+				.join('');
+		}
+
+		function compute() {
+			stop();
+			r = cpuSched(procs, algo, q());
+			shown = r.end;
+			out('desc').textContent = DESC[algo];
+			(root.querySelector('[data-qbox]') as HTMLElement).hidden = algo !== 'rr';
+			draw();
+			compare();
+		}
+
+		function draw() {
+			const pct = (x: number) => `${(x / r.end) * 100}%`;
+			(out('ganttbox') as HTMLElement).style.minWidth = `${Math.max(18, r.end * 1.4)}rem`;
+			out('gantt').innerHTML = r.segs
+				.map((s) => {
+					const cls = s.p < 0 ? 'idle' : '';
+					const style = s.p < 0 ? '' : `background:${COLORS[s.p % 6]};`;
+					return `<span class="${cls}${s.start >= shown ? ' later' : ''}" style="${style}width:${pct(s.end - s.start)}">${s.p < 0 ? '–' : procs[s.p].name}</span>`;
+				})
+				.join('');
+			const ticks = [...new Set([0, ...r.segs.map((s) => s.end)])];
+			out('ticks').innerHTML = ticks.map((t) => `<span style="left:${pct(t)}">${t}</span>`).join('');
+			const done = shown >= r.end;
+			out('rows').innerHTML = procs
+				.map((p, i) => {
+					const x = r.rows[i];
+					const vis = done || x.finish <= shown;
+					const c = (v: number) => `<td class="${vis ? '' : 'hide'}">${v}</td>`;
+					return `<tr><td><b style="color:${COLORS[i % 6]}">${p.name}</b></td>${c(x.finish)}${c(x.turnaround)}${c(x.waiting)}${c(x.response)}</tr>`;
+				})
+				.join('');
+			out('avg').innerHTML = done
+				? `<tr><td>المتوسط</td><td>–</td><td>${fmt(r.avgTurn)}</td><td>${fmt(r.avgWait)}</td><td>${fmt(r.avgResp)}</td></tr>`
+				: '<tr><td>المتوسط</td><td colspan="4">…</td></tr>';
+			const seg = r.segs.find((s) => s.start < shown && s.end >= shown);
+			out('now').innerHTML = done
+				? `انتهت كل العمليات عند <bdi dir="ltr">${r.end}</bdi>، وتبديلات السياق: <bdi dir="ltr">${r.switches}</bdi>`
+				: `اللحظة <bdi dir="ltr">${shown}</bdi>: ${seg && seg.p >= 0 ? procs[seg.p].name + ' على المعالج' : 'المعالج فارغ'}`;
+		}
+
+		function compare() {
+			const res = ALGOS.map((a) => ({ a, w: cpuSched(procs, a, q()).avgWait }));
+			const max = Math.max(...res.map((x) => x.w), 0.01);
+			const best = Math.min(...res.map((x) => x.w));
+			out('cmp').innerHTML = res
+				.map((x) => `<div class="sc-cmp-row${x.a === algo ? ' cur' : ''}${x.w === best ? ' best' : ''}"><b>${SCHED_NAMES[x.a]}${x.a === 'rr' ? ` (q = ${q()})` : ''}</b><span><i style="width:${(x.w / max) * 100}%"></i></span><span>${fmt(x.w)}</span></div>`)
+				.join('');
+		}
+
+		function stop() {
+			clearInterval(timer);
+			timer = 0;
+			(root.querySelector('[data-act="play"]') as HTMLButtonElement).textContent = '▶ شغّل';
+		}
+
+		root.querySelector('[data-act="play"]')!.addEventListener('click', (e) => {
+			if (timer) return stop();
+			shown = 0;
+			draw();
+			(e.currentTarget as HTMLButtonElement).textContent = '⏸ أوقف';
+			const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
+			timer = window.setInterval(() => {
+				shown++;
+				if (shown >= r.end) stop();
+				draw();
+			}, fast ? 40 : Math.max(120, 6000 / r.end));
+		});
+		root.querySelector('[data-act="all"]')!.addEventListener('click', () => {
+			stop();
+			shown = r.end;
+			draw();
+		});
+		root.querySelectorAll<HTMLButtonElement>('[data-algo]').forEach((b) =>
+			b.addEventListener('click', () => {
+				algo = b.dataset.algo as SchedAlgo;
+				root.querySelectorAll('[data-algo]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				compute();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) =>
+			b.addEventListener('click', () => {
+				procs = SCHED_SETS[b.dataset.set as keyof typeof SCHED_SETS].map((p) => ({ ...p }));
+				root.querySelectorAll('[data-set]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				table();
+				compute();
+			}),
+		);
+		root.querySelector('[data-in="q"]')!.addEventListener('change', compute);
+		out('procs').addEventListener('input', (e) => {
+			const t = e.target as HTMLInputElement;
+			const v = Math.round(+t.value);
+			if (!Number.isFinite(v) || t.value === '') return;
+			const k = t.dataset.k as 'arrival' | 'burst' | 'prio';
+			procs[+t.dataset.i!][k] = Math.max(k === 'burst' ? 1 : 0, Math.min(30, v));
+			root.querySelectorAll('[data-set]').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+			compute();
+		});
+		root.querySelector('[data-act="add"]')!.addEventListener('click', () => {
+			if (procs.length >= 6) return;
+			const last = procs[procs.length - 1];
+			procs.push({ name: `P${procs.length + 1}`, arrival: last ? last.arrival + 1 : 0, burst: 3, prio: 2 });
+			table();
+			compute();
+		});
+		root.querySelector('[data-act="del"]')!.addEventListener('click', () => {
+			if (procs.length <= 2) return;
+			procs.pop();
+			table();
+			compute();
+		});
+		table();
+		compute();
+	});
+</script>

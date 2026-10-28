@@ -1,0 +1,23 @@
+---
+// مخطط Gantt ثابت بينحسب وقت البناء من محرك os1.ts (cpuSched)، لحتى أرقام المسائل المحلولة تطابق المحاكي دايماً.
+// المستخدم: <GanttStrip set="solved" algo="srtf" q={2} />
+import { cpuSched, SCHED_SETS, type SchedAlgo } from '../../scripts/os1';
+interface Props { set: keyof typeof SCHED_SETS; algo: SchedAlgo; q?: number; caption?: string }
+const { set, algo, q = 2, caption } = Astro.props;
+const procs = SCHED_SETS[set];
+const r = cpuSched(procs, algo, q);
+const pct = (x: number) => `${(x / r.end) * 100}%`;
+const ticks = [...new Set([0, ...r.segs.map((s) => s.end)])];
+---
+
+<figure class="gt-fig">
+	<div class="gt-wrap">
+		<div style={`min-width:${Math.max(18, r.end * 1.4)}rem`}>
+			<div class="gt-bar" role="img" aria-label={r.segs.map((s) => `${s.p < 0 ? 'فارغ' : procs[s.p].name} من ${s.start} إلى ${s.end}`).join('، ')}>
+				{r.segs.map((s) => <span class={s.p < 0 ? 'idle' : `gt-c${s.p % 6}`} style={`width:${pct(s.end - s.start)}`}>{s.p < 0 ? '–' : procs[s.p].name}</span>)}
+			</div>
+			<div class="gt-ticks">{ticks.map((t) => <span style={`left:${pct(t)}`}>{t}</span>)}</div>
+		</div>
+	</div>
+	{caption && <figcaption>{caption}</figcaption>}
+</figure>

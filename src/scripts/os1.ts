@@ -351,3 +351,102 @@ export function threadSim(requests: number, cpu: number, io: number, threads: nu
 export const amdahl = (p: number, n: number) => 1 / (1 - p + p / n);
 /** الزمن الجديد لبرنامج زمنه total ثانية */
 export const amdahlTime = (total: number, p: number, n: number) => total * (1 - p) + (total * p) / n;
+
+// ===== جدولة المعالج (الجلسة 4) =====
+// كل عملية: اسم، ووقت الوصول، وزمن التنفيذ، والأولوية (الرقم الأصغر = الأولوية الأعلى).
+// الخوارزميات: fcfs، و sjf (بلا مقاطعة)، و srtf (SJF مع مقاطعة)، و rr (بالدور بشريحة q)، و prio (أولوية بلا مقاطعة)، و pprio (مع مقاطعة).
+// عند التساوي: الأسبق وصولاً، ثم الأصغر رقماً. وبـ RR: الواصل بنفس لحظة انتهاء الشريحة بيدخل الطابور قبل يلي انقطع.
+export type SchedAlgo = 'fcfs' | 'sjf' | 'srtf' | 'rr' | 'prio' | 'pprio';
+export interface SchedProc { name: string; arrival: number; burst: number; prio: number }
+export interface SchedSeg { p: number; start: number; end: number } // p = -1 يعني المعالج فارغ
+export interface SchedRow { finish: number; turnaround: number; waiting: number; response: number }
+export interface SchedResult { segs: SchedSeg[]; rows: SchedRow[]; avgWait: number; avgTurn: number; avgResp: number; switches: number; end: number }
+
+export function cpuSched(procs: SchedProc[], algo: SchedAlgo, q = 2): SchedResult {
+	const n = procs.length;
+	const left = procs.map((p) => p.burst);
+	const firstRun = new Array(n).fill(-1);
+	const finish = new Array(n).fill(0);
+	const segs: SchedSeg[] = [];
+	const push = (p: number, s: number, e: number) => {
+		const last = segs[segs.length - 1];
+		if (last && last.p === p && last.end === s) last.end = e;
+		else segs.push({ p, start: s, end: e });
+	};
+	const better = (a: number, b: number, key: (i: number) => number) =>
+		key(a) - key(b) || procs[a].arrival - procs[b].arrival || a - b;
+	let t = 0, done = 0;
+	if (algo === 'rr') {
+		const order = procs.map((_, i) => i).sort((a, b) => procs[a].arrival - procs[b].arrival || a - b);
+		let next = 0;
+		const queue: number[] = [];
+		const admit = (upTo: number) => {
+			while (next < n && procs[order[next]].arrival <= upTo) queue.push(order[next++]);
+		};
+		admit(0);
+		while (done < n) {
+			if (!queue.length) {
+				const nt = procs[order[next]].arrival;
+				push(-1, t, nt);
+				t = nt;
+				admit(t);
+				continue;
+			}
+			const i = queue.shift()!;
+			if (firstRun[i] < 0) firstRun[i] = t;
+			const run = Math.min(q, left[i]);
+			push(i, t, t + run);
+			t += run;
+			left[i] -= run;
+			admit(t);
+			if (left[i] > 0) queue.push(i);
+			else { finish[i] = t; done++; }
+		}
+	} else {
+		const pre = algo === 'srtf' || algo === 'pprio';
+		const key = (i: number) => (algo === 'fcfs' ? procs[i].arrival : algo === 'sjf' ? procs[i].burst : algo === 'srtf' ? left[i] : procs[i].prio);
+		while (done < n) {
+			const ready = procs.map((_, i) => i).filter((i) => left[i] > 0 && procs[i].arrival <= t);
+			if (!ready.length) {
+				const nt = Math.min(...procs.map((p, i) => (left[i] > 0 ? p.arrival : Infinity)));
+				push(-1, t, nt);
+				t = nt;
+				continue;
+			}
+			const i = ready.sort((a, b) => better(a, b, key))[0];
+			if (firstRun[i] < 0) firstRun[i] = t;
+			let run = left[i];
+			if (pre) {
+				// منشتغل لحتى ينتهي أو توصل عملية جديدة (منعيد القرار عند كل وصول)
+				const arrivals = procs.map((p) => p.arrival).filter((a) => a > t);
+				if (arrivals.length) run = Math.min(run, Math.min(...arrivals) - t);
+			}
+			push(i, t, t + run);
+			t += run;
+			left[i] -= run;
+			if (left[i] === 0) { finish[i] = t; done++; }
+		}
+	}
+	const rows = procs.map((p, i) => ({
+		finish: finish[i],
+		turnaround: finish[i] - p.arrival,
+		waiting: finish[i] - p.arrival - p.burst,
+		response: firstRun[i] - p.arrival,
+	}));
+	const avg = (k: keyof SchedRow) => rows.reduce((s, r) => s + r[k], 0) / n;
+	const busy = segs.filter((s) => s.p >= 0);
+	let switches = 0;
+	for (let k = 1; k < busy.length; k++) if (busy[k].p !== busy[k - 1].p) switches++;
+	return { segs, rows, avgWait: avg('waiting'), avgTurn: avg('turnaround'), avgResp: avg('response'), switches, end: t };
+}
+
+const mk = (a: [number, number, number][]): SchedProc[] => a.map(([arrival, burst, prio], i) => ({ name: `P${i + 1}`, arrival, burst, prio }));
+/** الأمثلة الجاهزة بالمحاكي والمسائل المحلولة (أغلبها من كتاب Silberschatz) */
+export const SCHED_SETS = {
+	convoy: mk([[0, 24, 1], [0, 3, 1], [0, 3, 1]]),
+	book: mk([[0, 6, 1], [0, 8, 1], [0, 7, 1], [0, 3, 1]]),
+	arrive: mk([[0, 8, 1], [1, 4, 1], [2, 9, 1], [3, 5, 1]]),
+	prio: mk([[0, 10, 3], [0, 1, 1], [0, 2, 4], [0, 1, 5], [0, 5, 2]]),
+	solved: mk([[0, 5, 2], [1, 3, 1], [2, 1, 3], [3, 2, 2]]),
+};
+export const SCHED_NAMES: Record<SchedAlgo, string> = { fcfs: 'FCFS', sjf: 'SJF', srtf: 'SRTF', rr: 'RR', prio: 'أولوية', pprio: 'أولوية مع مقاطعة' };

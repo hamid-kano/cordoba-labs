@@ -511,3 +511,16 @@ code,
 .gw-box i { font-style: normal; font-weight: 700; min-width: 1.8rem; height: 1.8rem; display: grid; place-items: center; border-radius: 0.3rem; background: #3a9ec2; color: #111; }
 .gw-box i.out { background: #e0a030; }
 .gw-box i.v { background: #2fb36b; }
+
+/* ===== مخطط Gantt لجدولة المعالج (نظم التشغيل، الجلسة 4): GanttStrip الثابت و SchedLab ===== */
+.gt-wrap { direction: ltr; overflow-x: auto; max-width: 100%; padding-bottom: 0.2rem; }
+.gt-bar { position: relative; display: flex; height: 2.1rem; border-radius: 0.35rem; overflow: hidden; background: var(--sl-color-gray-6); }
+.gt-bar > span { flex: none; display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; color: #111; font: 700 0.75rem/1 sans-serif; border-inline-end: 2px solid var(--sl-color-black); box-sizing: border-box; }
+.gt-bar > span.idle { background: repeating-linear-gradient(135deg, var(--sl-color-gray-5) 0 4px, transparent 4px 8px); color: var(--sl-color-gray-3); }
+.gt-ticks { position: relative; height: 1.1rem; font: 0.68rem/1 sans-serif; color: var(--sl-color-gray-3); }
+.gt-ticks span { position: absolute; top: 0.2rem; transform: translateX(-50%); }
+.gt-ticks span:first-child { transform: none; }
+.gt-ticks span:last-child { transform: translateX(-100%); }
+.gt-c0 { background: #6cc3e0; } .gt-c1 { background: #f0c070; } .gt-c2 { background: #7ed6a0; } .gt-c3 { background: #c3a6f5; } .gt-c4 { background: #f39a8f; } .gt-c5 { background: #e8d36a; }
+figure.gt-fig { margin-block: 1rem; }
+figure.gt-fig figcaption { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin-top: 0.2rem; }
