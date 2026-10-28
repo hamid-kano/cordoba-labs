@@ -1,0 +1,46 @@
+---
+// نماذج ربط خيوط المستخدم بخيوط النواة (الجلسة 5): متعدد لواحد، وواحد لواحد، ومتعدد لمتعدد.
+// فوق: خيوط المستخدم (أخضر)، وتحت: خيوط النواة (أزرق) يلي بيشوفها نظام التشغيل وبيوزّعها على الأنوية.
+const models = [
+	{ title: 'متعدد لواحد', user: 4, kernel: 1, links: [[0, 0], [1, 0], [2, 0], [3, 0]], note: 'إذا انتظر خيطٌ القرص، توقّف الجميع' },
+	{ title: 'واحد لواحد', user: 4, kernel: 4, links: [[0, 0], [1, 1], [2, 2], [3, 3]], note: 'ويندوز ولينكس اليوم' },
+	{ title: 'متعدد لمتعدد', user: 4, kernel: 2, links: [[0, 0], [1, 0], [2, 1], [3, 1], [1, 1], [2, 0]], note: 'مرن، لكنه معقد' },
+];
+const W = 210;
+const xs = (n: number, i: number, ox: number) => ox + (W / (n + 1)) * (i + 1);
+---
+
+<figure class="wl-fig wl-wide tm-fig">
+	<div class="wl-scroll">
+		<svg viewBox="0 0 660 270" role="img" aria-label="ثلاثة نماذج: متعدد لواحد حيث كل خيوط المستخدم على خيط نواة واحد، وواحد لواحد حيث لكل خيط مستخدم خيط نواة، ومتعدد لمتعدد حيث تتوزع خيوط المستخدم على عدد أقل من خيوط النواة">
+			{models.map((m, k) => {
+				// الأول باليمين (قراءة عربية)، ولما تنسحب عالموبايل بيبيّن الأول
+				const ox = 14 + (2 - k) * (W + 5);
+				return (
+					<g>
+						<rect x={ox} y="6" width={W - 10} height="258" rx="10" class="d-box2 tm-panel"></rect>
+						<text x={ox + (W - 10) / 2} y="30" class="d-t d-b">{m.title}</text>
+						{m.links.map(([u, kk]) => (
+							<line x1={xs(m.user, u, ox)} y1="92" x2={xs(m.kernel, kk, ox)} y2="180" class="d-line tm-link"></line>
+						))}
+						{Array.from({ length: m.user }, (_, i) => (
+							<circle cx={xs(m.user, i, ox)} cy="78" r="13" class="tm-user"></circle>
+						))}
+						{Array.from({ length: m.kernel }, (_, i) => (
+							<rect x={xs(m.kernel, i, ox) - 15} y="180" width="30" height="30" rx="6" class="tm-kernel"></rect>
+						))}
+						<text x={ox + (W - 10) / 2} y="240" class="d-s">{m.note}</text>
+					</g>
+				);
+			})}
+		</svg>
+	</div>
+	<figcaption>البرنامج ينشئ <strong>خيوط المستخدم</strong> (الدوائر)، لكن نظام التشغيل لا يرى ولا يوزّع على الأنوية إلا <strong>خيوط النواة</strong> (المربعات). وطريقة الربط بينهما تحدد هل تستفيد من عدة أنوية أم لا.</figcaption>
+</figure>
+
+<style>
+	.tm-fig .tm-panel { fill-opacity: 0.35; }
+	.tm-fig .tm-user { fill: #2fb36b; stroke: var(--sl-color-black); stroke-width: 2; }
+	.tm-fig .tm-kernel { fill: #3a9ec2; stroke: var(--sl-color-black); stroke-width: 2; }
+	.tm-fig .tm-link { stroke-width: 2; }
+</style>

@@ -1,0 +1,57 @@
+---
+// حالات الخيط (الجلسة 5): جديد ← جاهز ⇄ يعمل ← منتهٍ، ويعمل ← محجوب ← جاهز.
+// نفس ألوان أداة «خادم يخدم الطلبات»: يعمل أخضر، جاهز برتقالي، محجوب أزرق.
+---
+
+<figure class="wl-fig ts-fig">
+	<svg class="d-big" viewBox="0 0 640 300" role="img" aria-label="حالات الخيط: جديد ثم جاهز، ومن جاهز إلى يعمل عندما يأخذ المعالج، ومن يعمل إلى جاهز إذا انتهى دوره، أو إلى محجوب إذا انتظر القرص أو الشبكة، ومن محجوب إلى جاهز عندما يصل ما ينتظره، ومن يعمل إلى منتهٍ">
+		<defs>
+			<marker id="ts-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+				<path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path>
+			</marker>
+		</defs>
+		<!-- الحالات: الزمن من اليمين لليسار متل القراءة العربية -->
+		<rect x="530" y="40" width="96" height="50" rx="25" class="d-box2"></rect>
+		<text x="578" y="71" class="d-t d-b">جديد</text>
+
+		<rect x="350" y="40" width="120" height="50" rx="25" class="ts-ready"></rect>
+		<text x="410" y="71" class="d-t d-b">جاهز</text>
+
+		<rect x="150" y="40" width="120" height="50" rx="25" class="ts-run"></rect>
+		<text x="210" y="71" class="d-t d-b ts-dark">يعمل</text>
+
+		<rect x="14" y="40" width="96" height="50" rx="25" class="d-box2"></rect>
+		<text x="62" y="71" class="d-t d-b">منتهٍ</text>
+
+		<rect x="250" y="210" width="140" height="50" rx="25" class="ts-block"></rect>
+		<text x="320" y="241" class="d-t d-b ts-dark">محجوب</text>
+
+		<!-- جديد ← جاهز -->
+		<line x1="530" y1="65" x2="474" y2="65" class="d-line" marker-end="url(#ts-arr)"></line>
+		<text x="502" y="56" class="d-s">أُنشئ</text>
+		<!-- جاهز ← يعمل (فوق) -->
+		<path d="M 360 42 Q 310 0 262 42" class="d-line d-green" marker-end="url(#ts-arr)"></path>
+		<text x="310" y="16" class="d-s">أخذ المعالج</text>
+		<!-- يعمل ← جاهز (تحت) -->
+		<path d="M 262 90 Q 310 128 358 90" class="d-line d-orange" marker-end="url(#ts-arr)"></path>
+		<text x="310" y="134" class="d-s">انتهى دوره</text>
+		<!-- يعمل ← منتهٍ -->
+		<line x1="150" y1="65" x2="114" y2="65" class="d-line" marker-end="url(#ts-arr)"></line>
+		<!-- يعمل ← محجوب -->
+		<path d="M 200 92 Q 200 230 246 234" class="d-line d-blue" marker-end="url(#ts-arr)"></path>
+		<text x="150" y="170" class="d-s">ينتظر القرص</text>
+		<text x="150" y="187" class="d-s">أو الشبكة</text>
+		<!-- محجوب ← جاهز -->
+		<path d="M 394 234 Q 430 230 430 94" class="d-line d-blue" marker-end="url(#ts-arr)"></path>
+		<text x="500" y="170" class="d-s">وصل ما</text>
+		<text x="500" y="187" class="d-s">ينتظره</text>
+	</svg>
+	<figcaption>حالات الخيط. على <strong>نواة واحدة</strong> يكون خيط واحد فقط في «يعمل» في كل لحظة، والباقي في «جاهز» أو «محجوب». والخيط «المحجوب» لا يأخذ المعالج أبداً، فيعطيه لغيره.</figcaption>
+</figure>
+
+<style>
+	.ts-fig .ts-ready { fill: #e0a03044; stroke: #e0a030; stroke-width: 2; stroke-dasharray: 5 3; }
+	.ts-fig .ts-run { fill: #2fb36b; stroke: #2fb36b; }
+	.ts-fig .ts-block { fill: #3a9ec2; stroke: #3a9ec2; }
+	.ts-fig .ts-dark { fill: #111; }
+</style>

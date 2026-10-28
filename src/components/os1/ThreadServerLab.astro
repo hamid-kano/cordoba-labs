@@ -1,0 +1,263 @@
+---
+// «خادم المطعم» (الجلسة 5، الخيوط): خادم بيخدم طلبات، كل طلب = حساب على المعالج ثم انتظار قاعدة البيانات.
+// الطالب بيغيّر عدد الخيوط والأنوية وبيشوف خط زمني متحرك لكل خيط (يعمل / جاهز / ينتظر) ولكل نواة.
+// الفكرة: الخيوط بتفيد حتى على نواة وحدة إذا في انتظار (تزامن)، والأنوية بتفيد إذا الحساب تقيل (توازي).
+// المنطق بـ os1.ts (threadSim). الزمن بالرسمة من اليسار لليمين متل خط الزمن بمادة الزمن الحقيقي.
+---
+
+<div class="not-content wl-box th-lab" data-th-lab>
+	<h4>🍽️ خادم يخدم الطلبات</h4>
+	<p class="se-hint">يصل إلى الخادم عدد من الطلبات. كل طلب يحتاج <strong>حساباً على المعالج</strong>، ثم <strong>انتظار قاعدة البيانات</strong> حتى تجيب. كل خيط يأخذ الطلب التالي من الطابور عندما يفرغ.</p>
+
+	<div class="wl-row" role="group" aria-label="أمثلة جاهزة">
+		<span class="se-note">أمثلة جاهزة:</span>
+		<button type="button" class="wl-btn" data-preset="1,3" aria-pressed="true">⏳ خادم ينتظر كثيراً</button>
+		<button type="button" class="wl-btn" data-preset="3,1" aria-pressed="false">🧮 حساب ثقيل</button>
+		<button type="button" class="wl-btn" data-preset="2,2" aria-pressed="false">⚖️ متوازن</button>
+	</div>
+
+	<div class="th-controls">
+		<label class="wl-label"><span>عدد الطلبات</span>
+			<select class="wl-select" data-in="req"><option>4</option><option>5</option><option selected>6</option><option>8</option></select>
+		</label>
+		<label class="wl-label"><span>حساب كل طلب (ث)</span>
+			<select class="wl-select" data-in="cpu"><option selected>1</option><option>2</option><option>3</option><option>4</option></select>
+		</label>
+		<label class="wl-label"><span>انتظار كل طلب (ث)</span>
+			<select class="wl-select" data-in="io"><option>0</option><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+		</label>
+		<label class="wl-label"><span>عدد الخيوط</span>
+			<select class="wl-select" data-in="th"><option selected>1</option><option>2</option><option>3</option><option>4</option><option>6</option></select>
+		</label>
+		<label class="wl-label"><span>عدد الأنوية</span>
+			<select class="wl-select" data-in="cores"><option selected>1</option><option>2</option><option>4</option></select>
+		</label>
+	</div>
+
+	<div class="se-predict" data-predict>
+		<p><strong>توقّع أولاً:</strong> في مثال «خادم ينتظر كثيراً»، يحتاج الخادم بخيط واحد <strong>24</strong> ثانية. كم يحتاج بـ <strong>3 خيوط</strong> على <strong>نواة واحدة</strong> فقط؟</p>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-guess="24">24 ثانية، فالنواة واحدة</button>
+			<button type="button" class="wl-btn" data-guess="10">قرابة 10 ثوانٍ</button>
+			<button type="button" class="wl-btn" data-guess="8">8 ثوانٍ، أي الثلث</button>
+		</div>
+		<p class="se-note" data-out="guess"></p>
+	</div>
+
+	<div class="th-legend" aria-hidden="true">
+		<span><i class="th-c run"></i>يعمل على المعالج</span>
+		<span><i class="th-c ready"></i>جاهز، ينتظر معالجاً</span>
+		<span><i class="th-c io"></i>ينتظر قاعدة البيانات</span>
+		<span><i class="th-c idle"></i>فارغ</span>
+	</div>
+
+	<div class="wl-scroll th-scroll" dir="ltr">
+		<div class="th-grid" data-out="grid"></div>
+	</div>
+	<p class="th-now" data-out="now"></p>
+
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="play">▶ شغّل</button>
+		<button type="button" class="wl-btn" data-act="step">الخطوة التالية ←</button>
+		<button type="button" class="wl-btn" data-act="all">⏭ كل الخطوات</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من البداية</button>
+	</div>
+
+	<div class="wl-grid">
+		<div class="wl-out"><span>متى انتهت كل الطلبات؟</span><strong data-out="end"></strong></div>
+		<div class="wl-out"><span>أسرع من خيط واحد بـ</span><strong data-out="speed"></strong></div>
+		<div class="wl-out"><span>استغلال المعالج</span><strong data-out="util"></strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+
+	<div class="th-log">
+		<span>تجاربك:</span>
+		<div class="th-chips" data-out="log"></div>
+	</div>
+</div>
+
+<style is:global>
+	.th-lab .th-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 0.5rem; }
+	.th-lab .th-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: var(--sl-text-xs); color: var(--sl-color-gray-2); }
+	.th-lab .th-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+	.th-lab .th-legend .th-c { width: 1rem; height: 1rem; border-radius: 0.2rem; display: inline-block; }
+	.th-lab .th-scroll { border-radius: 0.5rem; background: var(--sl-color-gray-6); padding: 0.5rem; }
+	.th-lab .th-grid { display: grid; gap: 3px 2px; align-items: center; min-width: 100%; }
+	.th-lab .th-name { font-size: 0.72rem; font-weight: 700; white-space: nowrap; padding-inline-end: 0.35rem; color: var(--sl-color-white); }
+	.th-lab .th-name.core { color: var(--sl-color-gray-3); }
+	.th-lab .th-sep { grid-column: 1 / -1; height: 1px; margin-block: 0.25rem; background: var(--sl-color-gray-5); }
+	.th-lab .th-c { height: 1.55rem; border-radius: 0.25rem; display: flex; align-items: center; justify-content: center; font: 700 0.68rem/1 sans-serif; color: #111; transition: opacity 0.25s, transform 0.25s; min-width: 0; }
+	.th-lab .th-c.run { background: #2fb36b; }
+	.th-lab .th-c.ready { background: #e0a03055; border: 1.5px dashed #e0a030; color: var(--sl-color-white); }
+	.th-lab .th-c.io { background: repeating-linear-gradient(135deg, #3a9ec2 0 5px, #3a9ec288 5px 10px); }
+	.th-lab .th-c.idle { background: transparent; border: 1px solid var(--sl-color-gray-5); }
+	.th-lab .th-c.core-on { background: #2fb36b; }
+	.th-lab .th-c.core-off { background: var(--sl-color-gray-5); color: var(--sl-color-gray-3); }
+	.th-lab .th-c.later { opacity: 0.12; }
+	.th-lab .th-c.now { transform: scale(1.12); box-shadow: 0 0 0 2px var(--sl-color-white); }
+	.th-lab .th-tick { font: 0.62rem/1 sans-serif; text-align: center; color: var(--sl-color-gray-3); }
+	.th-lab .th-tick.now { color: var(--sl-color-white); font-weight: 700; }
+	.th-lab .th-now { margin: 0; min-height: 1.5em; font-size: var(--sl-text-sm); }
+	.th-lab .th-now b { padding: 0 0.3rem; border-radius: 0.25rem; }
+	.th-lab .th-now .r { background: #2fb36b; color: #111; }
+	.th-lab .th-now .w { background: #e0a030; color: #111; }
+	.th-lab .th-now .d { background: #3a9ec2; color: #111; }
+	.th-lab .th-log { display: flex; flex-direction: column; gap: 0.35rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); font-size: var(--sl-text-sm); }
+	.th-lab .th-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+	.th-lab .th-chips span { padding: 0.1rem 0.55rem; border-radius: 99px; font-size: var(--sl-text-xs); border: 1px solid var(--sl-color-gray-4); }
+	.th-lab .th-chips span.best { background: #2fb36b; border-color: #2fb36b; color: #111; }
+	@media (prefers-reduced-motion: reduce) {
+		.th-lab .th-c { transition: none; }
+	}
+</style>
+
+<script>
+	import { threadSim, type ThResult } from '../../scripts/os1';
+	const times = (x: number) => { const r = Math.round(x * 100) / 100; return Number.isInteger(r) && r === 2 ? 'مرتان' : Number.isInteger(r) && r >= 3 && r <= 10 ? `${r} مرات` : `${r} مرة`; };
+
+	document.querySelectorAll<HTMLElement>('[data-th-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const inp = (k: string) => root.querySelector<HTMLSelectElement>(`[data-in="${k}"]`)!;
+		const v = (k: string) => +inp(k).value;
+		let r: ThResult;
+		let base = 0; // زمن خيط واحد على نواة واحدة لنفس الطلبات
+		let pos = 0; // كم لحظة انعرضت
+		let timer = 0;
+		const tried = new Map<string, number>();
+
+		const n = (x: number) => `<bdi dir="ltr">${x}</bdi>`;
+
+		function compute() {
+			stop();
+			r = threadSim(v('req'), v('cpu'), v('io'), v('th'), v('cores'));
+			base = threadSim(v('req'), v('cpu'), v('io'), 1, 1).end;
+			pos = 0;
+			draw();
+		}
+
+		function draw() {
+			const T = r.end;
+			const grid = out('grid');
+			grid.style.gridTemplateColumns = `auto repeat(${T}, minmax(1.15rem, 1fr))`;
+			let h = '<span></span>';
+			for (let t = 0; t < T; t++) h += `<span class="th-tick${t === pos - 1 && pos < T ? ' now' : ''}">${t}</span>`;
+			const cls = (t: number) => (t >= pos ? ' later' : t === pos - 1 && pos < T ? ' now' : '');
+			r.cells.forEach((row, i) => {
+				h += `<span class="th-name">🧵 خيط ${i + 1}</span>`;
+				row.forEach((c, t) => {
+					const txt = c.req >= 0 && c.s !== 'idle' ? `${c.req + 1}` : '';
+					h += `<span class="th-c ${c.s}${cls(t)}" title="الطلب ${c.req + 1}">${txt}</span>`;
+				});
+			});
+			h += '<span class="th-sep"></span>';
+			r.cores.forEach((row, c) => {
+				h += `<span class="th-name core">⚙️ نواة ${c + 1}</span>`;
+				row.forEach((who, t) => {
+					h += `<span class="th-c ${who >= 0 ? 'core-on' : 'core-off'}${cls(t)}">${who >= 0 ? 'خ' + (who + 1) : '–'}</span>`;
+				});
+			});
+			grid.innerHTML = h;
+			const done = pos >= T;
+			(root.querySelector('[data-act="step"]') as HTMLButtonElement).disabled = done;
+			// وصف اللحظة الحالية
+			if (pos === 0) out('now').innerHTML = 'اضغط «شغّل» وراقب كل خيط لحظة بلحظة.';
+			else if (!done) {
+				const t = pos - 1;
+				const cnt = (s: string) => r.cells.filter((row) => row[t].s === s).length;
+				const served = r.doneAt.filter((d) => d <= t).length;
+				out('now').innerHTML = `اللحظة ${n(t)}: <b class="r">يعمل ${n(cnt('run'))}</b> <b class="w">جاهز ${n(cnt('ready'))}</b> <b class="d">ينتظر ${n(cnt('io'))}</b> · انتهى ${n(served)} من ${n(r.doneAt.length)} طلبات`;
+			} else out('now').innerHTML = `انتهت كل الطلبات عند اللحظة ${n(T)}.`;
+			const show = done;
+			out('end').textContent = show ? `${T} s` : '…';
+			out('speed').textContent = show ? times(base / T) : '…';
+			out('util').textContent = show ? `${Math.round(r.util * 100)}%` : '…';
+			const m = out('msg');
+			m.className = 'wl-msg';
+			if (!show) m.textContent = '';
+			else {
+				const thw = (k: number) => (k === 1 ? 'خيط واحد' : k === 2 ? 'خيطان' : `${k} خيوط`);
+				const cw = (k: number) => (k === 1 ? 'نواة واحدة' : k === 2 ? 'نواتان' : `${k} أنوية`);
+				const key = `${n(v('req'))} طلبات <bdi dir="ltr">(${v('cpu')}+${v('io')})</bdi> · ${thw(v('th'))} · ${cw(v('cores'))}`;
+				tried.set(key, T);
+				renderLog();
+				const ready = r.cells.some((row) => row.some((c) => c.s === 'ready'));
+				if (v('th') === 1) m.textContent = 'خيط واحد: كل طلب ينتظر الذي قبله حتى ينتهي تماماً، والمعالج فارغ طوال وقت الانتظار.';
+				else if (T === base) m.textContent = 'لم تتحسّن السرعة: لا يوجد انتظار تملؤه الخيوط، ولا نواة إضافية تعمل عليها.';
+				else if (ready && v('cores') < v('th')) {
+					m.textContent = `✔ أسرع بـ ${(base / T).toFixed(1)} مرة. لكن انظر إلى المربعات الصفراء: خيوط جاهزة تنتظر نواة. هنا يفيد أن تزيد الأنوية.`;
+					m.className = 'wl-msg wl-good';
+				} else {
+					m.textContent = `✔ أسرع بـ ${(base / T).toFixed(1)} مرة: بينما ينتظر خيطٌ قاعدةَ البيانات، يعمل خيطٌ آخر على المعالج.`;
+					m.className = 'wl-msg wl-good';
+				}
+			}
+		}
+
+		function renderLog() {
+			const best = Math.min(...tried.values());
+			out('log').innerHTML = [...tried].map(([k, t]) => `<span class="${t === best ? 'best' : ''}">${k} ← <bdi dir="ltr">${t} s</bdi></span>`).join('');
+		}
+
+		function stop() {
+			clearInterval(timer);
+			timer = 0;
+			(root.querySelector('[data-act="play"]') as HTMLButtonElement).textContent = '▶ شغّل';
+		}
+
+		root.querySelector('[data-act="play"]')!.addEventListener('click', (e) => {
+			if (timer) return stop();
+			if (pos >= r.end) pos = 0;
+			(e.currentTarget as HTMLButtonElement).textContent = '⏸ أوقف';
+			const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
+			timer = window.setInterval(() => {
+				pos++;
+				if (pos >= r.end) stop();
+				draw();
+			}, fast ? 60 : 420);
+		});
+		root.querySelector('[data-act="step"]')!.addEventListener('click', () => {
+			stop();
+			pos = Math.min(r.end, pos + 1);
+			draw();
+		});
+		root.querySelector('[data-act="all"]')!.addEventListener('click', () => {
+			stop();
+			pos = r.end;
+			draw();
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', () => {
+			stop();
+			pos = 0;
+			draw();
+		});
+		root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const [c, w] = b.dataset.preset!.split(',');
+				inp('cpu').value = c;
+				inp('io').value = w;
+				inp('req').value = '6';
+				root.querySelectorAll('[data-preset]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				compute();
+			}),
+		);
+		root.querySelectorAll('select').forEach((s) =>
+			s.addEventListener('change', () => {
+				root.querySelectorAll('[data-preset]').forEach((x) => x.setAttribute('aria-pressed', String((x as HTMLElement).dataset.preset === `${v('cpu')},${v('io')}` && v('req') === 6)));
+				compute();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-guess]').forEach((b) =>
+			b.addEventListener('click', () => {
+				root.querySelectorAll('[data-guess]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				const g = b.dataset.guess;
+				out('guess').textContent =
+					g === '10'
+						? '✔ صحيح! النواة واحدة، لكن الخيوط تملأ وقت الانتظار. جرّب: اختر 3 خيوط ونواة واحدة، ثم «شغّل».'
+						: g === '24'
+							? '✘ ليس تماماً. النواة واحدة فعلاً، لكنها كانت فارغة 75% من الوقت. جرّب 3 خيوط ونواة واحدة وانظر.'
+							: '✘ ليس تماماً. الحساب وحده يحتاج 6 ثوانٍ، والنواة واحدة، فلا يمكن أن نصل إلى الثلث. جرّب 3 خيوط ونواة واحدة.';
+			}),
+		);
+		compute();
+	});
+</script>

@@ -1,0 +1,103 @@
+---
+// «ماذا يتشارك الخيوط؟» (الجلسة 5): 8 بطاقات، والطالب بيصنّف كل وحدة «مشترك» أو «خاص بكل خيط»، وبعدين «تحقّق».
+// بعد التحقق بيطلع سبب كل بطاقة. الترتيب بيتخلط بكل مرة.
+const ITEMS: { t: string; e: string; a: 'shared' | 'own'; why: string }[] = [
+	{ t: 'كود البرنامج', e: '📜', a: 'shared', why: 'كل الخيوط تنفّذ من نسخة الكود نفسها. لا داعي لنسخه.' },
+	{ t: 'المتغيرات العامة', e: '🌐', a: 'shared', why: 'يراها كل الخيوط ويعدّلونها. ولهذا قد تحدث حالة السباق.' },
+	{ t: 'الملفات المفتوحة', e: '📂', a: 'shared', why: 'إذا فتح خيطٌ ملفاً، يستطيع الخيط الآخر أن يكتب فيه أيضاً.' },
+	{ t: 'الذاكرة المحجوزة أثناء العمل', e: '🧺', a: 'shared', why: 'ما يحجزه البرنامج أثناء العمل (الكومة) واحد للجميع.' },
+	{ t: 'عدّاد البرنامج: التعليمة التالية', e: '👉', a: 'own', why: 'كل خيط في مكان مختلف من الكود، فلكل واحد عدّاده.' },
+	{ t: 'المسجلات', e: '🗂️', a: 'own', why: 'هي «يدا» الخيط أثناء الحساب. وعند التبديل يحفظها النظام ثم يعيدها.' },
+	{ t: 'المكدس: المتغيرات المحلية', e: '🥞', a: 'own', why: 'كل خيط يستدعي دواله الخاصة، فلكل واحد مكدس منفصل.' },
+	{ t: 'رقم الخيط وحالته', e: '🏷️', a: 'own', why: 'لكل خيط رقم يميّزه، وحالة: يعمل أو جاهز أو محجوب.' },
+];
+---
+
+<div class="not-content wl-box ss-lab" data-ss-lab data-items={JSON.stringify(ITEMS)}>
+	<h4>🧩 ماذا يتشارك الخيوط؟</h4>
+	<p class="se-hint">صنّف كل بطاقة: هل هي <strong>مشتركة</strong> بين كل خيوط العملية، أم <strong>خاصة</strong> بكل خيط؟ ثم اضغط «تحقّق».</p>
+	<div class="ss-cards" data-out="cards"></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="check">✔ تحقّق</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من جديد</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.ss-lab .ss-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.45rem; }
+	.ss-lab .ss-card { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.5rem 0.6rem; border-radius: 0.5rem; border: 1px solid var(--sl-color-gray-5); background: var(--sl-color-black); }
+	.ss-lab .ss-card > b { display: flex; gap: 0.4rem; align-items: center; }
+	.ss-lab .ss-card .wl-row { gap: 0.35rem; }
+	.ss-lab .ss-card .wl-btn { flex: 1; padding-block: 0.25rem; font-size: var(--sl-text-sm); }
+	.ss-lab .ss-card [data-v='shared'][aria-pressed='true'] { background: #e0a030; border-color: #e0a030; color: #111; }
+	.ss-lab .ss-card [data-v='own'][aria-pressed='true'] { background: #3a9ec2; border-color: #3a9ec2; color: #111; }
+	.ss-lab .ss-card.ok { border-color: #2fb36b; box-shadow: inset 4px 0 0 #2fb36b; }
+	.ss-lab .ss-card.no { border-color: #e5534b; box-shadow: inset 4px 0 0 #e5534b; }
+	.ss-lab .ss-card small { color: var(--sl-color-gray-2); }
+</style>
+
+<script>
+	type Item = { t: string; e: string; a: 'shared' | 'own'; why: string };
+	document.querySelectorAll<HTMLElement>('[data-ss-lab]').forEach((root) => {
+		const items: Item[] = JSON.parse(root.dataset.items!);
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let order: number[] = [];
+		let pick: Record<number, string> = {};
+		let checked = false;
+
+		function shuffle() {
+			order = items.map((_, i) => i);
+			for (let i = order.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[order[i], order[j]] = [order[j], order[i]];
+			}
+		}
+		function render() {
+			out('cards').innerHTML = order
+				.map((i) => {
+					const it = items[i];
+					const st = checked ? (pick[i] === it.a ? ' ok' : ' no') : '';
+					const btn = (v: string, label: string) => `<button type="button" class="wl-btn" data-i="${i}" data-v="${v}" aria-pressed="${pick[i] === v}">${label}</button>`;
+					return `<div class="ss-card${st}"><b><span>${it.e}</span>${it.t}</b><div class="wl-row">${btn('shared', 'مشترك')}${btn('own', 'خاص بكل خيط')}</div>${checked ? `<small>${pick[i] === it.a ? '✔' : '✘ الصحيح: ' + (it.a === 'shared' ? 'مشترك' : 'خاص') + '.'} ${it.why}</small>` : ''}</div>`;
+				})
+				.join('');
+		}
+		out('cards').addEventListener('click', (e) => {
+			const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-v]');
+			if (!b) return;
+			pick[+b.dataset.i!] = b.dataset.v!;
+			if (checked) {
+				checked = false;
+				out('msg').textContent = '';
+			}
+			render();
+		});
+		root.querySelector('[data-act="check"]')!.addEventListener('click', () => {
+			const m = out('msg');
+			const left = items.length - Object.keys(pick).length;
+			if (left) {
+				m.className = 'wl-msg';
+				m.textContent = `بقي ${left} ${left === 1 ? 'بطاقة' : left === 2 ? 'بطاقتان' : 'بطاقات'} دون تصنيف.`;
+				return;
+			}
+			checked = true;
+			const ok = items.filter((it, i) => pick[i] === it.a).length;
+			m.className = ok === items.length ? 'wl-msg wl-good' : 'wl-msg wl-bad';
+			m.textContent =
+				ok === items.length
+					? `✔ ${ok} من ${items.length}! القاعدة: ما يخص «البرنامج» مشترك، وما يخص «مكان التنفيذ الآن» خاص بكل خيط.`
+					: `${ok} من ${items.length}. اقرأ السبب تحت كل بطاقة حمراء، وغيّر جوابك.`;
+			render();
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', () => {
+			pick = {};
+			checked = false;
+			out('msg').textContent = '';
+			shuffle();
+			render();
+		});
+		shuffle();
+		render();
+	});
+</script>

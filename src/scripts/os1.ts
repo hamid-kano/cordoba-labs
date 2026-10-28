@@ -287,3 +287,67 @@ export function balance(tasks: number[], cpus: number, policy: LbPolicy) {
 	const sum = tasks.reduce((a, b) => a + b, 0);
 	return { lanes, load, makespan, utilization: sum / (makespan * cpus) };
 }
+
+// ===== الخيوط (الجلسة 5) =====
+// خادم بيخدم طلبات: كل طلب = حساب على المعالج (cpu) ثم انتظار القرص أو الشبكة (io).
+// كل خيط بياخد الطلب التالي من الطابور لما يفضى. المعالج بيروح للخيط الجاهز الأقدم، وبلا مقاطعة.
+// الانتظار (io) ما بياخد معالج، ونفترض إنه أكتر من طلب بيقدر ينتظر بنفس الوقت.
+export type ThState = 'run' | 'ready' | 'io' | 'idle';
+export interface ThCell { s: ThState; req: number; core: number }
+export interface ThResult {
+	cells: ThCell[][]; // [خيط][لحظة]
+	cores: number[][]; // [نواة][لحظة] = رقم الخيط أو -1
+	end: number; // متى انتهى آخر طلب
+	busy: number; // كم لحظة كان فيها معالج شغّال
+	util: number; // الاستغلال من 0 لـ 1
+	doneAt: number[]; // متى انتهى كل طلب
+}
+export function threadSim(requests: number, cpu: number, io: number, threads: number, cores: number): ThResult {
+	type T = { s: ThState; req: number; left: number; since: number; core: number };
+	const th: T[] = Array.from({ length: threads }, () => ({ s: 'idle', req: -1, left: 0, since: 0, core: -1 }));
+	const cells: ThCell[][] = th.map(() => []);
+	const coreRows: number[][] = Array.from({ length: cores }, () => []);
+	const doneAt = new Array(requests).fill(0);
+	let next = 0, finished = 0, t = 0, busy = 0;
+	while (finished < requests && t < 500) {
+		// 1. أي خيط فاضي بياخد الطلب التالي
+		th.forEach((x) => {
+			if (x.s === 'idle' && next < requests) Object.assign(x, { s: 'ready', req: next++, left: cpu, since: t });
+		});
+		// 2. النوى الفاضية للخيوط الجاهزة، الأقدم أولاً
+		const used = new Set(th.filter((x) => x.s === 'run').map((x) => x.core));
+		const waiting = th.map((x, i) => ({ x, i })).filter(({ x }) => x.s === 'ready').sort((a, b) => a.x.since - b.x.since || a.i - b.i);
+		for (const { x } of waiting) {
+			let c = 0;
+			while (c < cores && used.has(c)) c++;
+			if (c === cores) break;
+			used.add(c);
+			x.s = 'run';
+			x.core = c;
+		}
+		// 3. سجّل اللحظة
+		th.forEach((x, i) => cells[i].push({ s: x.s, req: x.req, core: x.s === 'run' ? x.core : -1 }));
+		for (let c = 0; c < cores; c++) coreRows[c].push(th.findIndex((x) => x.s === 'run' && x.core === c));
+		busy += used.size;
+		// 4. تقدّم لحظة
+		t++;
+		const finish = (x: T) => {
+			doneAt[x.req] = t;
+			finished++;
+			Object.assign(x, { s: 'idle', req: -1, core: -1 });
+		};
+		th.forEach((x) => {
+			if (x.s === 'io' && --x.left === 0) finish(x);
+			else if (x.s === 'run' && --x.left === 0) {
+				if (io > 0) Object.assign(x, { s: 'io', left: io, core: -1 });
+				else finish(x);
+			}
+		});
+	}
+	return { cells, cores: coreRows, end: t, busy, util: busy / (t * cores), doneAt };
+}
+
+/** قانون أمدال: كم مرة أسرع بـ n نواة، إذا كان الجزء p (من 0 لـ 1) بيتقسّم */
+export const amdahl = (p: number, n: number) => 1 / (1 - p + p / n);
+/** الزمن الجديد لبرنامج زمنه total ثانية */
+export const amdahlTime = (total: number, p: number, n: number) => total * (1 - p) + (total * p) / n;

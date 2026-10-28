@@ -55,7 +55,10 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 	interface Row { id: string; quiz: string; course: string; name: string; sid: string; score: number; total: number; at: Date | null; client: string; left?: number; secs?: number }
 	const COURSE: Record<string, string> = { ai2: 'الذكاء الصنعي 2', wireless: 'الشبكات اللاسلكية', os1: 'نظم التشغيل 1', rts: 'نظم الزمن الحقيقي' };
 	// اسم مقروء للاختبار، وأي معرّف غريب (متل محاولات الفحص) بيطلع متل ما هو
-const quizName = (id: string) => { const m = id.match(/^(ai2|wireless|os1|rts)-(exam|s(\d+))$/); return m ? `${COURSE[m[1]]}: ${m[2] === 'exam' ? 'اختبار المادة' : 'الجلسة ' + m[3]}` : id; };
+	// مفاتيح الاختبارات ما بتتغيّر (لحتى المحاولات القديمة تضل مربوطة بجلستها)، بس رقم الجلسة الظاهر ممكن يتغيّر:
+	// نظم التشغيل 1 (2026-10-28): النسخ الاحتياطي (s3) انأرشف، وقواعد البيانات صارت 3، والمعالج 4، والخيوط الجديدة (s9) صارت 5
+	const RENAME: Record<string, string> = { 'os1-s3': 'أرشيف: النسخ الاحتياطي', 'os1-s4': 'الجلسة 3', 'os1-s5': 'الجلسة 4', 'os1-s9': 'الجلسة 5' };
+const quizName = (id: string) => { const m = id.match(/^(ai2|wireless|os1|rts)-(exam|s(\d+))$/); return m ? `${COURSE[m[1]]}: ${m[2] === 'exam' ? 'اختبار المادة' : RENAME[id] ?? 'الجلسة ' + m[3]}` : id; };
 const mark = (s: number, t: number) => `${s} من ${t}`;
 	// الخروج من الصفحة أثناء الاختبار، والمدة (للمحاولات القديمة قبل الاختبار المتسلسل: —)
 	const leftCell = (n?: number) => (n === undefined ? '<td class="num">—</td>' : `<td class="num${n ? ' lo' : ''}">${n ? '⚠ ' + n : '0'}</td>`);

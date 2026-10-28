@@ -1,0 +1,72 @@
+---
+// العملية مقابل الخيوط (الجلسة 5): يمين = 3 عمليات منفصلة، كل وحدة بكودها وبياناتها وملفاتها وخيط واحد.
+// يسار = عملية وحدة فيها 3 خيوط بيتشاركوا الكود والبيانات والملفات، ولكل خيط مسجلاته ومكدسه.
+const cols = [0, 1, 2];
+// العمود i من اليمين: رقم 1 باليمين متل القراءة العربية
+const c = (i: number) => 2 - i;
+const shared = ['الكود', 'البيانات', 'الملفات'];
+// خط متعرّج يمثّل الخيط (مسار التنفيذ)
+const wave = (x: number, y: number, h: number) => {
+	let d = `M ${x} ${y}`;
+	for (let i = 0; i < 4; i++) d += ` q ${i % 2 ? -9 : 9} ${h / 8} 0 ${h / 4}`;
+	return d;
+};
+---
+
+<div class="ai-two pt-fig">
+	<figure class="wl-fig">
+		<svg class="d-big" viewBox="0 0 320 290" role="img" aria-label="ثلاث عمليات منفصلة: لكل عملية كودها وبياناتها وملفاتها، وفيها خيط واحد">
+			<text x="160" y="22" class="d-t d-b">3 عمليات منفصلة</text>
+			{cols.map((i) => (
+				<g>
+					<rect x={8 + c(i) * 104} y="36" width="96" height="244" rx="10" class="d-box2 pt-proc"></rect>
+					<text x={56 + c(i) * 104} y="56" class="d-s d-b">عملية {i + 1}</text>
+					{shared.map((s, j) => (
+						<g>
+							<rect x={16 + c(i) * 104} y={66 + j * 32} width="80" height="26" rx="5" class="pt-own"></rect>
+							<text x={56 + c(i) * 104} y={84 + j * 32} class="d-s pt-txt">{s}</text>
+						</g>
+					))}
+					<path d={wave(56 + c(i) * 104, 170, 64)} class="pt-thread"></path>
+					<rect x={16 + c(i) * 104} y="236" width="80" height="38" rx="5" class="pt-priv"></rect>
+					<text x={56 + c(i) * 104} y="252" class="pt-sm">مسجلات</text>
+					<text x={56 + c(i) * 104} y="268" class="pt-sm">ومكدس</text>
+				</g>
+			))}
+		</svg>
+		<figcaption><strong>عمليات منفصلة:</strong> كل برنامج في «بيت» خاص به، ولا يرى ذاكرة غيره. آمن، لكن إنشاؤه أبطأ، والتواصل بينها يحتاج طرقاً خاصة.</figcaption>
+	</figure>
+	<figure class="wl-fig">
+		<svg class="d-big" viewBox="0 0 320 290" role="img" aria-label="عملية واحدة فيها ثلاثة خيوط: يتشاركون الكود والبيانات والملفات، ولكل خيط مسجلاته ومكدسه">
+			<text x="160" y="22" class="d-t d-b">عملية واحدة بـ 3 خيوط</text>
+			<rect x="8" y="36" width="304" height="244" rx="12" class="d-box2 pt-proc"></rect>
+			{shared.map((s, j) => (
+				<g>
+					<rect x={18 + (2 - j) * 99} y="50" width="88" height="34" rx="6" class="pt-share"></rect>
+					<text x={62 + (2 - j) * 99} y="72" class="d-s d-b pt-txt">{s}</text>
+				</g>
+			))}
+			<text x="160" y="104" class="d-s">⬆ مشتركة بين كل الخيوط</text>
+			{cols.map((i) => (
+				<g>
+					<path d={wave(62 + c(i) * 99, 116, 100)} class="pt-thread"></path>
+					<text x={62 + c(i) * 99} y="228" class="d-s d-b">خيط {i + 1}</text>
+					<rect x={22 + c(i) * 99} y="236" width="80" height="38" rx="5" class="pt-priv"></rect>
+					<text x={62 + c(i) * 99} y="252" class="pt-sm">مسجلات</text>
+					<text x={62 + c(i) * 99} y="268" class="pt-sm">ومكدس</text>
+				</g>
+			))}
+		</svg>
+		<figcaption><strong>خيوط في عملية واحدة:</strong> كأنهم طبّاخون في مطبخ واحد: يتشاركون الأدوات والثلاجة، ولكل واحد منهم يداه وورقة طلبه. أسرع وأخف، لكن يجب أن يتفقوا حتى لا يتخاطفوا الشيء نفسه.</figcaption>
+	</figure>
+</div>
+
+<style>
+	.pt-fig .pt-proc { fill-opacity: 0.5; }
+	.pt-fig .pt-own { fill: #e0a03033; stroke: #e0a030; stroke-width: 1.5; }
+	.pt-fig .pt-share { fill: #e0a03055; stroke: #e0a030; stroke-width: 2.5; }
+	.pt-fig .pt-priv { fill: #3a9ec233; stroke: #3a9ec2; stroke-width: 1.5; }
+	.pt-fig .pt-thread { fill: none; stroke: #2fb36b; stroke-width: 3.5; stroke-linecap: round; }
+	.pt-fig .pt-txt { fill: var(--sl-color-white); }
+	.pt-fig .pt-sm { fill: var(--sl-color-white); font-size: 13px; text-anchor: middle; }
+</style>

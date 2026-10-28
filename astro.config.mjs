@@ -28,6 +28,11 @@ export default defineConfig({
 	vite: { optimizeDeps: { include: ['sql.js/dist/sql-wasm.js'] } },
 	site,
 	base,
+	// جلسات انتقلت لمكان تاني: الروابط القديمة يلي انبعتت للطلاب بتضل شغّالة
+	redirects: {
+		// الوجهة لازم فيها الـ base (Astro بيضيفه للمصدر بس)
+		'/os1/lab-03-backup-recovery/': withBase('os1-archive/backup-recovery/'),
+	},
 	markdown: { remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] },
 	integrations: [
 		starlight({
