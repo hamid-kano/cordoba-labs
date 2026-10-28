@@ -1,0 +1,52 @@
+---
+// النواة والخيط (الجلسة 3): تلات مستويات. تحت: الرقاقة فيها نواتين (عتاد)، وكل نواة فيها خيطين منطقيين (Hyper-Threading).
+// فوق: خيوط برمجية كتير (من البرامج) بتستنى دورها، والنظام بيحط 4 منها بس على الخيوط المنطقية بكل لحظة.
+const sw = Array.from({ length: 12 }, (_, i) => i);
+const running = [1, 4, 7, 10]; // الخيوط يلي شغّالة هلق
+const slotX = [60, 120, 220, 280]; // مكان الخيوط المنطقية الأربعة
+---
+
+<figure class="wl-fig ct-fig">
+	<svg class="d-big" viewBox="0 0 360 300" role="img" aria-label="رقاقة معالج فيها نواتان، وفي كل نواة خيطان منطقيان، أي 4 خيوط منطقية. وفوقها 12 خيطاً برمجياً من البرامج، يعمل منها 4 فقط في هذه اللحظة، والباقي ينتظر">
+		<defs>
+			<marker id="ct-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ct-arr"></path></marker>
+		</defs>
+		<text x="180" y="18" class="d-s d-b">خيوط برمجية من البرامج (بالآلاف في الحقيقة)</text>
+		{sw.map((i) => (
+			<path d={`M ${18 + i * 28} 32 q 6 8 0 16 q -6 8 0 16`} class={running.includes(i) ? 'ct-sw on' : 'ct-sw'}></path>
+		))}
+		{running.map((i, k) => (
+			<line x1={18 + i * 28} y1="68" x2={slotX[k]} y2="150" class="ct-link" marker-end="url(#ct-a)"></line>
+		))}
+		<text x="180" y="100" class="d-s ct-note">النظام يختار 4 منها في كل لحظة</text>
+
+		<rect x="20" y="120" width="320" height="160" rx="14" class="ct-chip"></rect>
+		<text x="180" y="272" class="d-s d-b">رقاقة المعالج: نواتان، و 4 خيوط منطقية</text>
+		{[0, 1].map((c) => (
+			<g>
+				<rect x={34 + c * 160} y="136" width="132" height="110" rx="10" class="ct-core"></rect>
+				<text x={100 + c * 160} y="238" class="d-s d-b">النواة {2 - c}</text>
+				{[0, 1].map((h) => (
+					<g>
+						<rect x={slotX[c * 2 + h] - 24} y="152" width="48" height="56" rx="7" class="ct-hw"></rect>
+						<text x={slotX[c * 2 + h]} y="178" class="ct-dark">خيط</text>
+						<text x={slotX[c * 2 + h]} y="196" class="ct-dark">منطقي</text>
+					</g>
+				))}
+			</g>
+		))}
+	</svg>
+	<figcaption><strong>تحت:</strong> العتاد. نواتان حقيقيتان، وفي كل نواة خيطان منطقيان، فيرى ويندوز 4 «معالجات». <strong>فوق:</strong> البرامج. خيوط برمجية كثيرة، والنظام يضع 4 منها فقط على الخيوط المنطقية في كل لحظة، ويبدّل بينها بسرعة.</figcaption>
+</figure>
+
+<style>
+	.ct-fig .ct-sw { fill: none; stroke: var(--sl-color-gray-4); stroke-width: 3; stroke-linecap: round; }
+	.ct-fig .ct-sw.on { stroke: #2fb36b; stroke-width: 3.5; }
+	.ct-fig .ct-link { stroke: #2fb36b; stroke-width: 1.6; stroke-dasharray: 4 3; }
+	.ct-fig .ct-arr { fill: #2fb36b; }
+	.ct-fig .ct-note { fill: #2fb36b; }
+	.ct-fig .ct-chip { fill: var(--sl-color-gray-6); stroke: var(--sl-color-gray-4); stroke-width: 2; }
+	.ct-fig .ct-core { fill: var(--sl-color-accent-low); stroke: var(--sl-color-accent); stroke-width: 2; }
+	.ct-fig .ct-hw { fill: #3a9ec2; }
+	.ct-fig .ct-dark { fill: #111; font-weight: 700; font-size: 12.5px; text-anchor: middle; }
+</style>
