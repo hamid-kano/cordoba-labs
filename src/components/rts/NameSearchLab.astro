@@ -1,0 +1,229 @@
+---
+// «ابحث في قائمة الحضور» (الجلسة 2): بديل WcetLab. المهمة بحث خطي عن رقم جامعي بقائمة فيها مليون رقم.
+// 1) الطالب بيختار مكان الرقم (أول، نص، آخر، مش موجود)، وبيشوف مؤشر بيمشي على القائمة (200 خانة، كل خانة = 5000 رقم)،
+//    وعدّاد الخطوات (المقارنات)، والزمن المقاس فعلاً بـ performance.now. وبيتعبّى جدول بأربع حالات.
+// 2) «أعد 20 مرة» لنفس الحالة: نفس المدخلات بتعطي أزمنة مختلفة شوي (ضجيج الجهاز)، ومع «برنامج آخر بالخلفية» أكتر.
+// 3) C للتصميم = أكبر زمن رأيناه + 20%. الأرقام بتختلف من جهاز لجهاز، فما منكتب أزمنة ثابتة بالصفحة (بس عدد الخطوات).
+---
+
+<div class="not-content wl-box ns-lab" data-ns-lab>
+	<h4>🔎 ابحث في قائمة الحضور</h4>
+	<p class="se-hint">المهمة: البحث عن <strong>رقم جامعي</strong> في قائمة فيها <strong>مليون</strong> رقم، من أولها إلى آخرها، واحداً واحداً. اختر أين يكون الرقم المطلوب:</p>
+	<div class="ns-cases" role="group" aria-label="مكان الرقم">
+		<button type="button" class="wl-btn" data-case="first">🥇 في أول القائمة</button>
+		<button type="button" class="wl-btn" data-case="mid">↔️ في النصف</button>
+		<button type="button" class="wl-btn" data-case="last">🔚 في آخرها</button>
+		<button type="button" class="wl-btn" data-case="none">🚫 غير موجود</button>
+	</div>
+
+	<div class="ns-list" data-out="list" dir="ltr" aria-hidden="true"></div>
+	<p class="ns-now" data-out="now">اختر حالة لتبدأ.</p>
+
+	<div class="wl-scroll">
+		<table class="wl-table ns-table">
+			<thead><tr><th>الحالة</th><th>الخطوات (مقارنات)</th><th>الزمن المقاس</th></tr></thead>
+			<tbody data-out="rows"></tbody>
+		</table>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+
+	<div class="ns-noise">
+		<b>🎲 هل يعطي الرقم نفسه الزمن نفسه دائماً؟</b>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-act="repeat" disabled>أعد آخر حالة 20 مرة</button>
+			<label class="ai-check"><input type="checkbox" data-in="load" /> شغّل برنامجاً آخر في الخلفية</label>
+		</div>
+		<div class="ns-bars" data-out="bars" dir="ltr"></div>
+		<div class="wl-grid">
+			<div class="wl-out"><span>أقل زمن من الـ 20</span><strong data-out="min">–</strong></div>
+			<div class="wl-out"><span>أكبر زمن من الـ 20</span><strong data-out="max">–</strong></div>
+			<div class="wl-out"><span>C للتصميم (الأكبر + 20%)</span><strong data-out="design">–</strong></div>
+		</div>
+	</div>
+</div>
+
+<style is:global>
+	.ns-lab .ns-cases { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 0.4rem; }
+	.ns-lab .ns-list { display: grid; grid-template-columns: repeat(25, minmax(0, 1fr)); gap: 2px; padding: 0.4rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); }
+	.ns-lab .ns-list i { display: block; aspect-ratio: 1; border-radius: 2px; background: var(--sl-color-gray-5); min-width: 0; }
+	.ns-lab .ns-list i.seen { background: #3a9ec2; }
+	.ns-lab .ns-list i.hit { background: #2fb36b; box-shadow: 0 0 0 2px #2fb36b; }
+	.ns-lab .ns-list i.miss { background: #e5534b; }
+	.ns-lab .ns-now { margin: 0; min-height: 1.5em; font-size: var(--sl-text-sm); }
+	.ns-lab .ns-table td { text-align: center; font-size: var(--sl-text-sm); }
+	.ns-lab .ns-table td:first-child { text-align: start; }
+	.ns-lab .ns-table tr.worst td { color: #e5534b; font-weight: 700; }
+	.ns-lab .ns-table tr.pending td { color: var(--sl-color-gray-4); }
+	.ns-lab .ns-noise { display: flex; flex-direction: column; gap: 0.45rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); font-size: var(--sl-text-sm); }
+	.ns-lab .ns-bars { display: flex; align-items: flex-end; gap: 3px; height: 5rem; }
+	.ns-lab .ns-bars:empty { display: none; }
+	.ns-lab .ns-bars i { flex: 1; min-width: 0; border-radius: 2px 2px 0 0; background: var(--sl-color-accent); animation: ns-up 0.3s ease-out; }
+	.ns-lab .ns-bars i.top { background: #e5534b; }
+	@keyframes ns-up { from { transform: scaleY(0); transform-origin: bottom; } }
+</style>
+
+<script>
+	const N = 1_000_000;
+	const CELLS = 200;
+	const CASES = {
+		first: { name: 'في أول القائمة', pos: 0 },
+		mid: { name: 'في النصف', pos: N / 2 - 1 },
+		last: { name: 'في آخرها', pos: N - 1 },
+		none: { name: 'غير موجود', pos: -1 },
+	} as const;
+	type Case = keyof typeof CASES;
+	const WORKER_SRC = `const a=new Float64Array(1<<22);let i=0,s=0;for(;;){for(let k=0;k<1e6;k++){i=(i*1103515245+12345)&((1<<22)-1);s+=a[i];a[i]=s%7;}}`;
+	const fmt = (ms: number) => (ms < 0.01 ? '< 0.01' : ms >= 10 ? ms.toFixed(1) : ms >= 1 ? ms.toFixed(2) : ms.toFixed(2)) + ' ms';
+	const num = (x: number) => x.toLocaleString('en');
+
+	document.querySelectorAll<HTMLElement>('[data-ns-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let ids: Int32Array | null = null;
+		const results: Partial<Record<Case, { steps: number; ms: number }>> = {};
+		let last: Case | null = null;
+		let all: number[] = []; // كل الأزمنة المقاسة (للأكبر و C للتصميم)
+		let busy = false;
+		let sink = 0;
+
+		out('list').innerHTML = Array.from({ length: CELLS }, () => '<i></i>').join('');
+		const cells = [...out('list').querySelectorAll('i')];
+
+		function setup() {
+			if (ids) return;
+			ids = new Int32Array(N);
+			for (let i = 0; i < N; i++) ids[i] = 20200000 + i * 7; // أرقام جامعية مرتبة بلا تكرار
+		}
+		const target = (c: Case) => (CASES[c].pos < 0 ? 1 : ids![CASES[c].pos]); // 1 مش موجود
+		// المهمة نفسها: بحث خطي، وبترجع عدد المقارنات
+		function search(t: number) {
+			const a = ids!;
+			for (let i = 0; i < a.length; i++) if (a[i] === t) return i + 1;
+			return a.length;
+		}
+		function measure(c: Case) {
+			const t = target(c);
+			const t0 = performance.now();
+			const steps = search(t);
+			const ms = performance.now() - t0;
+			sink += steps;
+			return { steps, ms };
+		}
+
+		function table() {
+			const keys = Object.keys(CASES) as Case[];
+			const worst = Math.max(...keys.map((k) => results[k]?.steps ?? 0));
+			out('rows').innerHTML = keys
+				.map((k) => {
+					const r = results[k];
+					if (!r) return `<tr class="pending"><td>${CASES[k].name}</td><td>–</td><td>–</td></tr>`;
+					return `<tr class="${r.steps === worst && worst === N ? 'worst' : ''}"><td>${CASES[k].name}</td><td><bdi dir="ltr">${num(r.steps)}</bdi></td><td><bdi dir="ltr">${fmt(r.ms)}</bdi></td></tr>`;
+				})
+				.join('');
+			const done = keys.every((k) => results[k]);
+			const m = out('msg');
+			if (done) {
+				m.className = 'wl-msg wl-good';
+				m.textContent = '✔ المهمة نفسها، والكود نفسه، لكن الزمن يختلف كثيراً حسب المدخلات. وأسوأ حالة هي «غير موجود»: لا نعرف أن الرقم غير موجود حتى نقرأ القائمة كلها. وهذه هي التي نصمم عليها: C = أسوأ زمن.';
+			} else m.textContent = '';
+		}
+		function stats() {
+			if (!all.length) return;
+			const mx = Math.max(...all);
+			const b = (x: number) => `<bdi dir="ltr">${fmt(x)}</bdi>`;
+			out('min').innerHTML = b(Math.min(...all));
+			out('max').innerHTML = b(mx);
+			out('design').innerHTML = b(mx * 1.2);
+		}
+
+		function animate(c: Case, done: () => void) {
+			const pos = CASES[c].pos;
+			const end = pos < 0 ? CELLS : Math.floor(pos / (N / CELLS)) + 1;
+			cells.forEach((x) => (x.className = ''));
+			const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
+			let k = 0;
+			const stepCells = Math.max(1, Math.ceil(end / 40));
+			const tick = () => {
+				const to = Math.min(end, k + stepCells);
+				for (; k < to; k++) cells[k].className = 'seen';
+				out('now').innerHTML = `يقارن... الخطوات حتى الآن: <bdi dir="ltr">${num(Math.min(N, Math.round((k / CELLS) * N)) || 1)}</bdi>`;
+				if (k < end) setTimeout(tick, fast ? 0 : 30);
+				else {
+					if (pos >= 0) cells[end - 1].className = 'hit';
+					else cells.forEach((x) => (x.className = 'miss'));
+					done();
+				}
+			};
+			tick();
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-case]').forEach((b) =>
+			b.addEventListener('click', () => {
+				if (busy) return;
+				busy = true;
+				setup();
+				const c = b.dataset.case as Case;
+				root.querySelectorAll('[data-case]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				animate(c, () => {
+					// القياس الحقيقي بعد الرسمة: 9 مرات ومنآخد الوسيط، لحتى ما يقلب الضجيج الترتيب بين الحالات
+					// (ساعة المتصفح دقتها حوالي 0.1 ms، والمرة الأولى أبطأ بسبب التسخين)
+					measure(c);
+					const runs = Array.from({ length: 9 }, () => measure(c));
+					const ms = runs.map((x) => x.ms).sort((a, b) => a - b)[4];
+					const r = { steps: runs[0].steps, ms };
+					results[c] = r;
+					last = c;
+					out('now').innerHTML =
+						CASES[c].pos >= 0
+							? `✔ وجدناه بعد <bdi dir="ltr">${num(r.steps)}</bdi> مقارنة، في <bdi dir="ltr">${fmt(r.ms)}</bdi>.`
+							: `✘ قرأنا كل الأرقام (<bdi dir="ltr">${num(r.steps)}</bdi> مقارنة) لنتأكد أنه غير موجود، في <bdi dir="ltr">${fmt(r.ms)}</bdi>.`;
+					(root.querySelector('[data-act="repeat"]') as HTMLButtonElement).disabled = false;
+					table();
+					busy = false;
+				});
+			}),
+		);
+
+		root.querySelector('[data-act="repeat"]')!.addEventListener('click', (e) => {
+			if (!last || busy) return;
+			busy = true;
+			const btn = e.currentTarget as HTMLButtonElement;
+			btn.disabled = true;
+			const workers: Worker[] = [];
+			if ((root.querySelector('[data-in="load"]') as HTMLInputElement).checked) {
+				try {
+					const url = URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' }));
+					const k = Math.max(2, Math.min(8, navigator.hardwareConcurrency || 4));
+					for (let i = 0; i < k; i++) workers.push(new Worker(url));
+					URL.revokeObjectURL(url);
+				} catch {
+					/* بدون حِمل */
+				}
+			}
+			const times: number[] = [];
+			all = [];
+			out('bars').innerHTML = '';
+			const c = last;
+			// منستنى شوي لحتى تبلّش الـ workers، وبعدين منقيس وحدة وحدة لحتى ما تعلق الصفحة
+			const one = () => {
+				const r = measure(c);
+				times.push(r.ms);
+				all.push(r.ms);
+				const mx = Math.max(...times);
+				out('bars').innerHTML = times.map((t) => `<i class="${t === mx ? 'top' : ''}" style="height:${Math.max(4, (t / mx) * 100)}%" title="${fmt(t)}"></i>`).join('');
+				stats();
+				if (times.length < 20) setTimeout(one, 40);
+				else {
+					workers.forEach((w) => w.terminate());
+					const mn = Math.min(...times);
+					const m = out('msg');
+					m.className = 'wl-msg';
+					m.innerHTML = `الحالة نفسها «${CASES[c].name}» 20 مرة: من <bdi dir="ltr">${fmt(mn)}</bdi> إلى <bdi dir="ltr">${fmt(mx)}</bdi>، أي الأبطأ أكبر من الأسرع بـ <bdi dir="ltr">${(mx / mn).toFixed(1)}</bdi> مرة. الخطوات نفسها تماماً، لكن الجهاز يقوم بأشياء أخرى في الوقت نفسه. لذلك نأخذ أكبر ما رأينا ونضيف هامش أمان.`;
+					btn.disabled = false;
+					busy = false;
+				}
+			};
+			setTimeout(one, workers.length ? 300 : 0);
+		});
+		table();
+	});
+</script>
