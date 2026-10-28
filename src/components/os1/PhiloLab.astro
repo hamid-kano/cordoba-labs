@@ -1,0 +1,187 @@
+---
+// «الفلاسفة الخمسة» (الجلسة 6): طاولة مدوّرة، 5 فلاسفة و5 شوكات. المجدول (عشوائي، أو الطالب بالضغط على فيلسوف)
+// بيخلي كل واحد يتقدّم خطوة. 3 طرق: كل واحد اليسار أولاً (جمود)، والأخير اليمين أولاً (بتكسر الانتظار الدائري)،
+// والشوكتين سوا أو ولا وحدة (بتكسر «يمسك وينتظر»). وزر «اختبر 200 مرة» بيعدّ مرات الجمود. المنطق بـ os1.ts.
+const R = 112;
+const pos = (i: number, r: number, off = 0) => {
+	const a = -Math.PI / 2 + (i + off) * ((2 * Math.PI) / 5);
+	return { x: 150 + r * Math.cos(a), y: 150 + r * Math.sin(a) };
+};
+const ph = [0, 1, 2, 3, 4].map((i) => pos(i, R));
+const fk = [0, 1, 2, 3, 4].map((i) => pos(i, 62, 0.5));
+---
+
+<div class="not-content wl-box ph-lab" data-ph-lab>
+	<h4>🍝 الفلاسفة الخمسة</h4>
+	<p class="se-hint">كل فيلسوف يحتاج <strong>شوكتين</strong> ليأكل: التي على يساره والتي على يمينه. والشوكات 5 فقط. اختر الطريقة، ثم «▶ شغّل»، أو كن أنت المجدول واضغط على الفلاسفة.</p>
+	<div class="wl-row" role="group" aria-label="الطريقة">
+		<button type="button" class="wl-btn" data-strat="naive" aria-pressed="true">اليسرى ثم اليمنى</button>
+		<button type="button" class="wl-btn" data-strat="asym" aria-pressed="false">الأخير يبدأ باليمنى</button>
+		<button type="button" class="wl-btn" data-strat="both" aria-pressed="false">الشوكتان معاً أو لا شيء</button>
+	</div>
+
+	<div class="ph-wrap">
+		<svg viewBox="0 0 300 300" class="ph-svg" role="img" aria-label="طاولة مستديرة عليها خمسة فلاسفة وخمس شوكات">
+			<circle cx="150" cy="150" r="88" class="ph-table"></circle>
+			<text x="150" y="156" class="ph-bowl">🍝</text>
+			{fk.map((p, i) => (
+				<g data-fork={i}>
+					<line x1={p.x} y1={p.y} x2={p.x} y2={p.y} class="ph-fork"></line>
+					<text x={p.x} y={p.y + 4} class="ph-fnum">{i + 1}</text>
+				</g>
+			))}
+			{ph.map((p, i) => (
+				<g data-ph={i} class="ph-p" tabindex="0" role="button" aria-label={`الفيلسوف ${i + 1}`}>
+					<circle cx={p.x} cy={p.y} r="26" class="ph-seat"></circle>
+					<text x={p.x} y={p.y + 7} class="ph-face">🤔</text>
+					<text x={p.x} y={p.y + 41} class="ph-name">{`ف${i + 1}`}</text>
+				</g>
+			))}
+		</svg>
+		<div class="ph-dead" aria-hidden="true">🔒 جمود: كل فيلسوف يمسك شوكة وينتظر جاره</div>
+	</div>
+	<div class="ph-key"><span>🤔 يفكّر</span><span>😋 جائع</span><span>✋ معه شوكة واحدة</span><span>🍝 يأكل</span></div>
+
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="play">▶ شغّل</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من البداية</button>
+		<span class="se-note">الوجبات: <strong data-out="meals">0</strong> · الخطوات: <strong data-out="steps">0</strong></span>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<div class="ph-test">
+		<button type="button" class="wl-btn" data-act="test">🎲 اختبر 200 مرة</button>
+		<span class="se-note" data-out="test"></span>
+	</div>
+</div>
+
+<style is:global>
+	.ph-lab .ph-wrap { position: relative; max-width: 22rem; margin-inline: auto; width: 100%; }
+	.ph-lab .ph-svg { width: 100%; height: auto; display: block; direction: ltr; }
+	.ph-lab .ph-table { fill: var(--sl-color-gray-6); stroke: var(--sl-color-gray-4); stroke-width: 2; }
+	.ph-lab .ph-bowl { font-size: 30px; text-anchor: middle; }
+	.ph-lab .ph-fork { stroke: var(--sl-color-gray-3); stroke-width: 5; stroke-linecap: round; transition: all 0.35s; }
+	.ph-lab .ph-fork.held { stroke: #e0a030; }
+	.ph-lab .ph-fork.eat { stroke: #2fb36b; }
+	.ph-lab .ph-fnum { font: 700 9px sans-serif; text-anchor: middle; fill: var(--sl-color-white); paint-order: stroke; stroke: var(--sl-color-gray-6); stroke-width: 3px; }
+	.ph-lab .ph-p { cursor: pointer; outline: none; }
+	.ph-lab .ph-seat { fill: var(--sl-color-black); stroke: var(--sl-color-gray-4); stroke-width: 2.5; transition: all 0.3s; }
+	.ph-lab .ph-p:focus-visible .ph-seat, .ph-lab .ph-p:hover .ph-seat { stroke: var(--sl-color-accent); }
+	.ph-lab .ph-p.hungry .ph-seat { stroke: #e0a030; }
+	.ph-lab .ph-p.one .ph-seat { stroke: #e0a030; fill: #e0a03022; }
+	.ph-lab .ph-p.eat .ph-seat { stroke: #2fb36b; fill: #2fb36b33; }
+	.ph-lab .ph-p.stuck .ph-seat { stroke: #e5534b; fill: #e5534b33; }
+	.ph-lab .ph-face { font-size: 24px; text-anchor: middle; }
+	.ph-lab .ph-name { font: 700 11px var(--sl-font); text-anchor: middle; fill: var(--sl-color-white); }
+	.ph-lab .ph-dead { position: absolute; inset: 44% 8% auto; padding: 0.3rem; font-size: var(--sl-text-sm); text-align: center; font-weight: 700; color: #fff; background: rgba(229, 83, 75, 0.9); border-radius: 0.5rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+	.ph-lab .ph-wrap.dead .ph-dead { opacity: 1; }
+	.ph-lab .ph-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem 0.9rem; font-size: var(--sl-text-xs); color: var(--sl-color-gray-2); }
+	.ph-lab .ph-test { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); }
+</style>
+
+<script>
+	import { philoStart, philoStep, philoStuck, philoRun, type PhiloState, type PhiloStrat } from '../../scripts/os1';
+
+	const FACE = { think: '🤔', hungry: '😋', one: '✋', eat: '🍝' };
+	document.querySelectorAll<HTMLElement>('[data-ph-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const svg = root.querySelector<SVGSVGElement>('.ph-svg')!;
+		let strat: PhiloStrat = 'naive';
+		let s: PhiloState = philoStart();
+		let steps = 0;
+		let timer = 0;
+		// مكان كل فيلسوف وكل شوكة (من الرسم)
+		const seat = [...svg.querySelectorAll<SVGCircleElement>('.ph-seat')].map((c) => ({ x: +c.getAttribute('cx')!, y: +c.getAttribute('cy')! }));
+		const forkHome = [...svg.querySelectorAll<SVGLineElement>('.ph-fork')].map((l) => ({ x: +l.getAttribute('x1')!, y: +l.getAttribute('y1')! }));
+
+		function draw() {
+			const stuck = philoStuck(s, strat);
+			svg.querySelectorAll<SVGGElement>('[data-ph]').forEach((g) => {
+				const i = +g.dataset.ph!;
+				g.setAttribute('class', `ph-p ${s.st[i]}${stuck ? ' stuck' : ''}`);
+				g.querySelector('.ph-face')!.textContent = FACE[s.st[i]];
+			});
+			svg.querySelectorAll<SVGGElement>('[data-fork]').forEach((g) => {
+				const f = +g.dataset.fork!;
+				const owner = s.forks[f];
+				const home = forkHome[f];
+				// الشوكة المأخوذة بتقرب من صاحبها
+				const c = owner < 0 ? home : { x: home.x + (seat[owner].x - home.x) * 0.45, y: home.y + (seat[owner].y - home.y) * 0.45 };
+				const ang = Math.atan2(c.y - 150, c.x - 150);
+				const dx = Math.cos(ang) * 11, dy = Math.sin(ang) * 11;
+				const line = g.querySelector('line')!;
+				line.setAttribute('x1', String(c.x - dx)); line.setAttribute('y1', String(c.y - dy));
+				line.setAttribute('x2', String(c.x + dx)); line.setAttribute('y2', String(c.y + dy));
+				line.setAttribute('class', `ph-fork${owner >= 0 ? (s.st[owner] === 'eat' ? ' eat' : ' held') : ''}`);
+				const t = g.querySelector('text')!;
+				t.setAttribute('x', String(c.x)); t.setAttribute('y', String(c.y + 4));
+			});
+			root.querySelector('.ph-wrap')!.classList.toggle('dead', stuck);
+			out('meals').textContent = String(s.meals.reduce((a, b) => a + b, 0));
+			out('steps').textContent = String(steps);
+			if (stuck) {
+				stop();
+				const m = out('msg');
+				m.className = 'wl-msg wl-bad';
+				m.textContent = '✘ جمود! كل فيلسوف أخذ شوكة واحدة، وينتظر الشوكة التي مع جاره. والجار ينتظر جاره... في دائرة كاملة. لن يأكل أحد أبداً.';
+			}
+		}
+		function act(i: number) {
+			if (philoStuck(s, strat)) return;
+			const what = philoStep(s, i, strat);
+			steps++;
+			const m = out('msg');
+			m.className = 'wl-msg';
+			m.textContent = what ? `ف${i + 1}: ${what}.` : `ف${i + 1} ينتظر: الشوكة التي يحتاجها مع غيره.`;
+			draw();
+		}
+		function stop() {
+			clearInterval(timer);
+			timer = 0;
+			(root.querySelector('[data-act="play"]') as HTMLButtonElement).textContent = '▶ شغّل';
+		}
+		function reset() {
+			stop();
+			s = philoStart();
+			steps = 0;
+			out('msg').textContent = '';
+			draw();
+		}
+		root.querySelector('[data-act="play"]')!.addEventListener('click', (e) => {
+			if (timer) return stop();
+			if (philoStuck(s, strat)) reset();
+			(e.currentTarget as HTMLButtonElement).textContent = '⏸ أوقف';
+			const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
+			timer = window.setInterval(() => {
+				act(Math.floor(Math.random() * 5));
+				if (steps >= 150 && timer) {
+					stop();
+					const m = out('msg');
+					m.className = 'wl-msg wl-good';
+					m.textContent = `✔ 150 خطوة بلا جمود، وأكل الفلاسفة ${s.meals.reduce((a, b) => a + b, 0)} وجبة.`;
+				}
+			}, fast ? 30 : 220);
+		});
+		svg.querySelectorAll<SVGGElement>('[data-ph]').forEach((g) => {
+			const go = () => { stop(); act(+g.dataset.ph!); };
+			g.addEventListener('click', go);
+			g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', reset);
+		root.querySelectorAll<HTMLButtonElement>('[data-strat]').forEach((b) =>
+			b.addEventListener('click', () => {
+				strat = b.dataset.strat as PhiloStrat;
+				root.querySelectorAll('[data-strat]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				out('test').textContent = '';
+				reset();
+			}),
+		);
+		root.querySelector('[data-act="test"]')!.addEventListener('click', () => {
+			let dead = 0;
+			for (let k = 0; k < 200; k++) if (philoRun(strat, 300).dead) dead++;
+			out('test').textContent = dead
+				? `علق الفلاسفة في جمود ${dead} مرة من 200 (خلال 300 خطوة).`
+				: 'لم يحدث جمود ولا مرة في 200 تجربة. هذه الطريقة تكسر أحد شروط الجمود.';
+		});
+		draw();
+	});
+</script>

@@ -1,0 +1,146 @@
+---
+// «خوارزمية المصرفي» (الجلسة 6): مثال Silberschatz (5 عمليات، A = 10، B = 5، C = 7).
+// جداول Allocation و Max و Need و Available، وفحص الأمان خطوة خطوة (Work بيكبر)، ونموذج طلب: الطالب بيختار عملية وطلب،
+// والأداة بتقول: أكثر من حاجتها، أو تنتظر، أو غير آمن، أو يُعطى. والطلب يلي بينعطى بيتطبّق على الحالة (الطلبات بتتراكم). المنطق بـ os1.ts.
+---
+
+<div class="not-content wl-box bk-lab" data-bk-lab>
+	<h4>🏦 خوارزمية المصرفي</h4>
+	<p class="se-hint">5 عمليات، و3 أنواع من الموارد: <bdi dir="ltr">A = 10</bdi>، و <bdi dir="ltr">B = 5</bdi>، و <bdi dir="ltr">C = 7</bdi>. كل عملية أعلنت مسبقاً أقصى ما قد تحتاجه (<strong>Max</strong>).</p>
+	<div class="wl-scroll">
+		<table class="wl-table bk-t" dir="ltr" data-out="table"></table>
+	</div>
+	<div class="bk-avail">المتاح (Available): <strong dir="ltr" data-out="avail"></strong></div>
+
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="safe">🔍 افحص الأمان خطوة خطوة</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ الحالة الأصلية</button>
+	</div>
+	<ol class="bk-steps" data-out="steps"></ol>
+	<p class="wl-msg" data-out="safemsg"></p>
+
+	<div class="bk-req">
+		<b>📨 طلب جديد:</b>
+		<div class="wl-row">
+			<label>العملية <select class="wl-select" data-in="p">{[0, 1, 2, 3, 4].map((i) => <option value={i}>P{i}</option>)}</select></label>
+			<label>A <input class="wl-input" type="number" min="0" max="10" value="1" data-in="a" /></label>
+			<label>B <input class="wl-input" type="number" min="0" max="10" value="0" data-in="b" /></label>
+			<label>C <input class="wl-input" type="number" min="0" max="10" value="2" data-in="c" /></label>
+			<button type="button" class="wl-btn" data-act="req">اطلب</button>
+		</div>
+		<p class="wl-msg" data-out="reqmsg"></p>
+	</div>
+</div>
+
+<style is:global>
+	.bk-lab .bk-t td, .bk-lab .bk-t th { text-align: center; font-family: var(--sl-font-system-mono); font-size: 0.78rem; padding: 0.25rem 0.35rem; }
+	.bk-lab .bk-t th.g { background: var(--sl-color-gray-6); }
+	.bk-lab .bk-t tr.now td { background: var(--sl-color-accent-low); }
+	.bk-lab .bk-t tr.fin td:first-child::after { content: ' ✔'; color: #2fb36b; }
+	.bk-lab .bk-t td.need { color: #e0a030; font-weight: 700; }
+	.bk-lab .bk-avail { font-size: var(--sl-text-sm); }
+	.bk-lab .bk-avail strong { font-family: var(--sl-font-system-mono); }
+	.bk-lab .bk-steps { margin: 0; padding-inline-start: 1.3rem; font-size: var(--sl-text-sm); display: flex; flex-direction: column; gap: 0.15rem; }
+	.bk-lab .bk-steps li { animation: bk-in 0.35s ease-out; }
+	.bk-lab .bk-steps bdi { font-family: var(--sl-font-system-mono); }
+	@keyframes bk-in { from { opacity: 0; transform: translateY(-4px); } }
+	.bk-lab .bk-req { display: flex; flex-direction: column; gap: 0.4rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); }
+	.bk-lab .bk-req label { display: inline-flex; align-items: center; gap: 0.3rem; font-size: var(--sl-text-sm); }
+	.bk-lab .bk-req input { width: 3.2rem; text-align: center; }
+</style>
+
+<script>
+	import { BANKER, bankerSafe, bankerRequest, vecSub, type SafeStep } from '../../scripts/os1';
+
+	const v = (a: number[]) => `<bdi dir="ltr">(${a.join(', ')})</bdi>`;
+	document.querySelectorAll<HTMLElement>('[data-bk-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let alloc: number[][], max: number[][], avail: number[];
+		let steps: SafeStep[] = [];
+		let shown = 0;
+		let timer = 0;
+		const need = () => max.map((m, i) => vecSub(m, alloc[i]));
+
+		function reset() {
+			alloc = BANKER.alloc.map((r) => [...r]);
+			max = BANKER.max.map((r) => [...r]);
+			avail = vecSub(BANKER.total, alloc.reduce((a, r) => a.map((x, i) => x + r[i]), [0, 0, 0]));
+			clearSteps();
+			out('reqmsg').textContent = '';
+			table();
+		}
+		function clearSteps() {
+			clearInterval(timer);
+			steps = [];
+			shown = 0;
+			out('steps').innerHTML = '';
+			out('safemsg').textContent = '';
+		}
+		function table() {
+			const nd = need();
+			const fin = new Set(steps.slice(0, shown).map((s) => s.i));
+			const now = shown > 0 && shown <= steps.length ? steps[shown - 1].i : -1;
+			let h = '<thead><tr><th rowspan="2"></th><th colspan="3" class="g">Allocation</th><th colspan="3">Max</th><th colspan="3" class="g">Need</th></tr><tr>' + 'ABC'.repeat(3).split('').map((c, k) => `<th class="${Math.floor(k / 3) % 2 ? '' : 'g'}">${c}</th>`).join('') + '</tr></thead><tbody>';
+			alloc.forEach((r, i) => {
+				h += `<tr class="${fin.has(i) ? 'fin' : ''}${i === now ? ' now' : ''}"><td>P${i}</td>${r.map((x) => `<td>${x}</td>`).join('')}${max[i].map((x) => `<td>${x}</td>`).join('')}${nd[i].map((x) => `<td class="need">${x}</td>`).join('')}</tr>`;
+			});
+			out('table').innerHTML = h + '</tbody>';
+			out('avail').textContent = `(${avail.join(', ')})`;
+		}
+		function runSafe(after?: (safe: boolean, seq: number[]) => void) {
+			clearSteps();
+			const res = bankerSafe(avail, alloc, need());
+			steps = res.steps;
+			const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
+			const tick = () => {
+				if (shown < steps.length) {
+					const s = steps[shown];
+					shown++;
+					out('steps').insertAdjacentHTML('beforeend', `<li>Work = ${v(s.work)}. احتياج P${s.i} = ${v(need()[s.i])} ≤ Work، فتنتهي وتعيد ${v(alloc[s.i])}. Work = ${v(s.after)}.</li>`);
+					table();
+					return;
+				}
+				clearInterval(timer);
+				const m = out('safemsg');
+				if (res.safe) {
+					m.className = 'wl-msg wl-good';
+					m.innerHTML = `✔ الحالة <strong>آمنة</strong>. التسلسل الآمن: <bdi dir="ltr">&lt;${res.seq.map((i) => 'P' + i).join(', ')}&gt;</bdi>`;
+				} else {
+					m.className = 'wl-msg wl-bad';
+					const left = alloc.map((_, i) => i).filter((i) => !res.seq.includes(i));
+					m.innerHTML = `✘ الحالة <strong>غير آمنة</strong>: لا تجد ${left.map((i) => 'P' + i).join(' و ')} ما تحتاجه مهما انتظرت. قد يحدث جمود.`;
+				}
+				after?.(res.safe, res.seq);
+			};
+			timer = window.setInterval(tick, fast ? 30 : 700);
+			tick();
+		}
+		root.querySelector('[data-act="safe"]')!.addEventListener('click', () => runSafe());
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', reset);
+		root.querySelector('[data-act="req"]')!.addEventListener('click', () => {
+			clearSteps();
+			const p = +(root.querySelector('[data-in="p"]') as HTMLSelectElement).value;
+			const req = ['a', 'b', 'c'].map((k) => Math.max(0, Math.round(+(root.querySelector(`[data-in="${k}"]`) as HTMLInputElement).value || 0)));
+			const r = bankerRequest(avail, alloc, max, p, req);
+			const m = out('reqmsg');
+			const txt = `P${p} تطلب ${v(req)}`;
+			if (r.verdict === 'too-much') {
+				m.className = 'wl-msg wl-bad';
+				m.innerHTML = `✘ ${txt}: أكثر من احتياجها المعلن ${v(need()[p])}. هذا خطأ، فيُرفض.`;
+			} else if (r.verdict === 'wait') {
+				m.className = 'wl-msg';
+				m.innerHTML = `⏳ ${txt}: أكثر من المتاح ${v(avail)}. يجب أن تنتظر.`;
+			} else if (r.verdict === 'unsafe') {
+				m.className = 'wl-msg wl-bad';
+				m.innerHTML = `✘ ${txt}: الموارد متاحة، لكن لو أعطيناها تصبح الحالة <strong>غير آمنة</strong>. فتنتظر، رغم أن الموارد موجودة!`;
+			} else {
+				alloc = r.alloc!;
+				avail = r.avail!;
+				table();
+				m.className = 'wl-msg wl-good';
+				m.innerHTML = `✔ ${txt}: الحالة بعدها آمنة <bdi dir="ltr">&lt;${r.seq!.map((i) => 'P' + i).join(', ')}&gt;</bdi>، فأُعطيت. وتغيّر الجدول والمتاح.`;
+			}
+		});
+		reset();
+	});
+</script>

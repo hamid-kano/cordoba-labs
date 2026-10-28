@@ -535,3 +535,111 @@ export function prodCons(mode: PcMode, size: number, pEvery: number, cEvery: num
 	}
 	return out;
 }
+
+// ===== الجمود (الجلسة 6) =====
+// خوارزمية المصرفي: Need = Max − Allocation. فحص الأمان بيمشي على العمليات بالترتيب ويكمّل اللفة (مش من الأول بكل مرة)،
+// متل حل كتاب Silberschatz: <P1, P3, P4, P0, P2>.
+export const vecLe = (a: number[], b: number[]) => a.every((x, i) => x <= b[i]);
+export const vecAdd = (a: number[], b: number[]) => a.map((x, i) => x + b[i]);
+export const vecSub = (a: number[], b: number[]) => a.map((x, i) => x - b[i]);
+export interface SafeStep { i: number; work: number[]; after: number[] }
+export function bankerSafe(avail: number[], alloc: number[][], need: number[][]): { safe: boolean; seq: number[]; steps: SafeStep[] } {
+	const n = alloc.length;
+	let work = [...avail];
+	const finish = new Array(n).fill(false);
+	const seq: number[] = [], steps: SafeStep[] = [];
+	let progress = true;
+	while (progress) {
+		progress = false;
+		for (let i = 0; i < n; i++) {
+			if (!finish[i] && vecLe(need[i], work)) {
+				const after = vecAdd(work, alloc[i]);
+				steps.push({ i, work, after });
+				work = after;
+				finish[i] = true;
+				seq.push(i);
+				progress = true;
+			}
+		}
+	}
+	return { safe: finish.every(Boolean), seq, steps };
+}
+export type BankerVerdict = 'too-much' | 'wait' | 'unsafe' | 'grant';
+export function bankerRequest(avail: number[], alloc: number[][], max: number[][], p: number, req: number[]) {
+	const need = max.map((m, i) => vecSub(m, alloc[i]));
+	if (!vecLe(req, need[p])) return { verdict: 'too-much' as BankerVerdict };
+	if (!vecLe(req, avail)) return { verdict: 'wait' as BankerVerdict };
+	const a2 = vecSub(avail, req);
+	const al2 = alloc.map((r, i) => (i === p ? vecAdd(r, req) : [...r]));
+	const n2 = need.map((r, i) => (i === p ? vecSub(r, req) : [...r]));
+	const res = bankerSafe(a2, al2, n2);
+	return { verdict: (res.safe ? 'grant' : 'unsafe') as BankerVerdict, avail: a2, alloc: al2, need: n2, ...res };
+}
+/** مثال Silberschatz: 5 عمليات، والموارد A = 10 و B = 5 و C = 7 */
+export const BANKER = {
+	total: [10, 5, 7],
+	alloc: [[0, 1, 0], [2, 0, 0], [3, 0, 2], [2, 1, 1], [0, 0, 2]],
+	max: [[7, 5, 3], [3, 2, 2], [9, 0, 2], [2, 2, 2], [4, 3, 3]],
+};
+
+// كشف الجمود (موارد بعدة نسخ): Work = المتاح، والعملية يلي ما معها شي منتهية. بيرجع العمليات العالقة.
+export function detectDeadlock(avail: number[], alloc: number[][], request: number[][]): number[] {
+	let work = [...avail];
+	const finish = alloc.map((r) => r.every((x) => x === 0));
+	let progress = true;
+	while (progress) {
+		progress = false;
+		for (let i = 0; i < alloc.length; i++) {
+			if (!finish[i] && vecLe(request[i], work)) {
+				work = vecAdd(work, alloc[i]);
+				finish[i] = true;
+				progress = true;
+			}
+		}
+	}
+	return finish.map((f, i) => (f ? -1 : i)).filter((i) => i >= 0);
+}
+
+// الفلاسفة الخمسة: الفيلسوف i عنده الشوكة i عيساره و (i+1)%5 عيمينه. المجدول بيختار فيلسوف عشوائي بكل خطوة.
+// naive: كل واحد بياخد اليسار ثم اليمين. asym: الأخير بياخد اليمين أولاً. both: بياخد التنتين سوا أو ولا وحدة.
+export type PhiloStrat = 'naive' | 'asym' | 'both';
+export interface PhiloState { forks: number[]; st: ('think' | 'hungry' | 'one' | 'eat')[]; eatLeft: number[]; meals: number[]; dead: boolean }
+export const philoStart = (): PhiloState => ({ forks: [-1, -1, -1, -1, -1], st: ['think', 'think', 'think', 'think', 'think'], eatLeft: [0, 0, 0, 0, 0], meals: [0, 0, 0, 0, 0], dead: false });
+const firstFork = (i: number, strat: PhiloStrat) => (strat === 'asym' && i === 4 ? (i + 1) % 5 : i);
+const secondFork = (i: number, strat: PhiloStrat) => (strat === 'asym' && i === 4 ? i : (i + 1) % 5);
+/** خطوة للفيلسوف i. بترجع وصف قصير لشو صار (أو '' إذا ما قدر يعمل شي) */
+export function philoStep(s: PhiloState, i: number, strat: PhiloStrat): string {
+	const L = firstFork(i, strat), R = secondFork(i, strat);
+	switch (s.st[i]) {
+		case 'think':
+			s.st[i] = 'hungry';
+			return 'جاع';
+		case 'hungry':
+			if (strat === 'both') {
+				if (s.forks[L] < 0 && s.forks[R] < 0) { s.forks[L] = s.forks[R] = i; s.st[i] = 'eat'; s.eatLeft[i] = 2; return 'أخذ الشوكتين معاً'; }
+				return '';
+			}
+			if (s.forks[L] < 0) { s.forks[L] = i; s.st[i] = 'one'; return `أخذ الشوكة ${L + 1}`; }
+			return '';
+		case 'one':
+			if (s.forks[R] < 0) { s.forks[R] = i; s.st[i] = 'eat'; s.eatLeft[i] = 2; return `أخذ الشوكة ${R + 1} وبدأ يأكل`; }
+			return '';
+		case 'eat':
+			if (--s.eatLeft[i] > 0) return 'يأكل';
+			s.forks[L] = s.forks[R] = -1;
+			s.st[i] = 'think';
+			s.meals[i]++;
+			return 'شبع وأعاد الشوكتين';
+	}
+}
+export const philoStuck = (s: PhiloState, strat: PhiloStrat) =>
+	s.st.every((x, i) => (x === 'one' && s.forks[secondFork(i, strat)] >= 0) || (x === 'hungry' && (strat === 'both' ? s.forks[i] >= 0 || s.forks[(i + 1) % 5] >= 0 : s.forks[firstFork(i, strat)] >= 0)));
+/** تشغيل عشوائي لحد steps خطوة: بيرجع إذا صار جمود وكم وجبة */
+export function philoRun(strat: PhiloStrat, steps: number, rnd: () => number = Math.random) {
+	const s = philoStart();
+	for (let k = 0; k < steps; k++) {
+		philoStep(s, Math.floor(rnd() * 5), strat);
+		if (philoStuck(s, strat)) { s.dead = true; return { dead: true, at: k + 1, meals: s.meals.reduce((a, b) => a + b, 0) }; }
+	}
+	return { dead: false, at: steps, meals: s.meals.reduce((a, b) => a + b, 0) };
+}

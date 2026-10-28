@@ -1,0 +1,168 @@
+---
+// «رسم تخصيص الموارد» (الجلسة 6): 4 حالات جاهزة. العمليات دوائر، والموارد مربعات فيها نقطة لكل نسخة.
+// سهم من مورد لعملية = مخصّص لها، وسهم من عملية لمورد = تطلبه. الطالب بيتوقّع أولاً، وبعدين منكشف بخوارزمية الكشف (os1.ts: detectDeadlock).
+// الحالة 3 فيها دورة بلا جمود، لأنه للمورد نسختين.
+interface Node { id: string; x: number; y: number }
+interface Scn { key: string; title: string; procs: Node[]; res: (Node & { n: number })[]; alloc: number[][]; req: number[][] }
+const SCN: Scn[] = [
+	{
+		key: 'a', title: 'الحالة 1',
+		procs: [{ id: 'P1', x: 60, y: 150 }, { id: 'P2', x: 180, y: 150 }, { id: 'P3', x: 300, y: 150 }],
+		res: [{ id: 'R1', x: 120, y: 50, n: 1 }, { id: 'R3', x: 240, y: 50, n: 1 }, { id: 'R2', x: 180, y: 250, n: 2 }],
+		alloc: [[0, 0, 1], [1, 0, 1], [0, 1, 0]], req: [[1, 0, 0], [0, 1, 0], [0, 0, 0]],
+	},
+	{
+		key: 'b', title: 'الحالة 2',
+		procs: [{ id: 'P1', x: 60, y: 150 }, { id: 'P2', x: 180, y: 150 }, { id: 'P3', x: 300, y: 150 }],
+		res: [{ id: 'R1', x: 120, y: 50, n: 1 }, { id: 'R3', x: 240, y: 50, n: 1 }, { id: 'R2', x: 180, y: 250, n: 2 }],
+		alloc: [[0, 0, 1], [1, 0, 1], [0, 1, 0]], req: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+	},
+	{
+		key: 'c', title: 'الحالة 3',
+		procs: [{ id: 'P1', x: 60, y: 150 }, { id: 'P2', x: 180, y: 40 }, { id: 'P3', x: 300, y: 150 }, { id: 'P4', x: 180, y: 260 }],
+		res: [{ id: 'R1', x: 180, y: 110, n: 2 }, { id: 'R2', x: 180, y: 190, n: 2 }],
+		alloc: [[0, 1], [1, 0], [1, 0], [0, 1]], req: [[1, 0], [0, 0], [0, 1], [0, 0]],
+	},
+	{
+		key: 'd', title: 'الحالة 4',
+		procs: [{ id: 'P1', x: 70, y: 150 }, { id: 'P2', x: 290, y: 150 }],
+		res: [{ id: 'R1', x: 180, y: 60, n: 1 }, { id: 'R2', x: 180, y: 240, n: 1 }],
+		alloc: [[1, 0], [0, 1]], req: [[0, 1], [1, 0]],
+	},
+];
+---
+
+<div class="not-content wl-box rg-lab" data-rg-lab data-scn={JSON.stringify(SCN)}>
+	<h4>🕸️ هل يوجد جمود؟</h4>
+	<div class="wl-row" role="group" aria-label="الحالة">
+		{SCN.map((s, i) => <button type="button" class="wl-btn" data-scn={i} aria-pressed={i === 0 ? 'true' : 'false'}>{s.title}</button>)}
+	</div>
+	<div class="rg-key"><span><i class="as"></i>مخصّص لها</span><span><i class="rq"></i>تطلبه</span><span>● نسخة من المورد</span></div>
+	<svg viewBox="0 0 360 300" class="rg-svg" data-out="svg" role="img" aria-label="رسم تخصيص الموارد"></svg>
+	<div class="se-predict">
+		<p><strong>توقّع:</strong> هل في هذه الحالة جمود؟</p>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-guess="1">نعم، جمود</button>
+			<button type="button" class="wl-btn" data-guess="0">لا جمود</button>
+		</div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<ol class="rg-steps" data-out="steps"></ol>
+</div>
+
+<style is:global>
+	.rg-lab .rg-svg { width: 100%; max-width: 26rem; height: auto; margin-inline: auto; display: block; direction: ltr; font-family: var(--sl-font); }
+	.rg-lab .rg-key { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; justify-content: center; font-size: var(--sl-text-xs); color: var(--sl-color-gray-2); }
+	.rg-lab .rg-key i { display: inline-block; width: 1.6rem; height: 0; vertical-align: middle; margin-inline-end: 0.3rem; border-top: 2.5px solid var(--sl-color-gray-2); }
+	.rg-lab .rg-key i.rq { border-top-style: dashed; border-color: #e0a030; }
+	.rg-lab .rg-p { fill: var(--sl-color-black); stroke: var(--sl-color-accent); stroke-width: 2.5; }
+	.rg-lab .rg-p.dead { stroke: #e5534b; fill: #e5534b33; }
+	.rg-lab .rg-p.ok { stroke: #2fb36b; fill: #2fb36b22; }
+	.rg-lab .rg-r { fill: var(--sl-color-gray-6); stroke: var(--sl-color-gray-3); stroke-width: 2; }
+	.rg-lab .rg-dot { fill: var(--sl-color-white); }
+	.rg-lab .rg-t { font: 700 13px sans-serif; text-anchor: middle; fill: var(--sl-color-white); }
+	.rg-lab .rg-as { stroke: var(--sl-color-gray-2); stroke-width: 2.2; fill: none; }
+	.rg-lab .rg-rq { stroke: #e0a030; stroke-width: 2.2; stroke-dasharray: 6 4; fill: none; }
+	.rg-lab .rg-as.hot, .rg-lab .rg-rq.hot { stroke: #e5534b; stroke-width: 3.2; }
+	.rg-lab .rg-arr { fill: var(--sl-color-gray-2); }
+	.rg-lab .rg-arr2 { fill: #e0a030; }
+	.rg-lab .rg-steps { margin: 0; padding-inline-start: 1.2rem; font-size: var(--sl-text-sm); }
+</style>
+
+<script>
+	import { detectDeadlock, vecLe, vecAdd } from '../../scripts/os1';
+	type Node = { id: string; x: number; y: number };
+	type Scn = { key: string; title: string; procs: Node[]; res: (Node & { n: number })[]; alloc: number[][]; req: number[][] };
+
+	document.querySelectorAll<HTMLElement>('[data-rg-lab]').forEach((root) => {
+		const SCN: Scn[] = JSON.parse(root.dataset.scn!);
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let cur = 0;
+		let revealed = false;
+
+		function avail(s: Scn) {
+			return s.res.map((r, j) => r.n - s.alloc.reduce((a, row) => a + row[j], 0));
+		}
+		function draw() {
+			const s = SCN[cur];
+			const dead = revealed ? detectDeadlock(avail(s), s.alloc, s.req) : [];
+			const deadSet = new Set(dead);
+			let g = `<defs><marker id="rg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="rg-arr"/></marker><marker id="rg-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="rg-arr2"/></marker></defs>`;
+			// خط بين مركزين، مقصوص عند حافة الشكلين
+			const edge = (a: Node, ra: number, b: Node, rb: number, cls: string, mk: string, off: number) => {
+				const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+				const ux = dx / L, uy = dy / L;
+				const nx = -uy * off, ny = ux * off;
+				return `<line x1="${a.x + ux * ra + nx}" y1="${a.y + uy * ra + ny}" x2="${b.x - ux * rb + nx}" y2="${b.y - uy * rb + ny}" class="${cls}" marker-end="url(#${mk})"/>`;
+			};
+			s.procs.forEach((p, i) =>
+				s.res.forEach((r, j) => {
+					const hot = revealed && deadSet.has(i);
+					for (let k = 0; k < s.alloc[i][j]; k++) g += edge(r, 22, p, 22, `rg-as${hot ? ' hot' : ''}`, 'rg-a', s.alloc[i][j] > 1 ? (k - 0.5) * 8 : 0);
+					if (s.req[i][j]) g += edge(p, 22, r, 22, `rg-rq${hot ? ' hot' : ''}`, 'rg-b', s.alloc[i][j] ? 6 : 0);
+				}),
+			);
+			s.res.forEach((r) => {
+				g += `<rect x="${r.x - 26}" y="${r.y - 20}" width="52" height="40" rx="6" class="rg-r"/><text x="${r.x}" y="${r.y - 4}" class="rg-t">${r.id}</text>`;
+				for (let k = 0; k < r.n; k++) g += `<circle cx="${r.x + (k - (r.n - 1) / 2) * 12}" cy="${r.y + 10}" r="3.5" class="rg-dot"/>`;
+			});
+			s.procs.forEach((p, i) => {
+				const cls = revealed ? (deadSet.has(i) ? ' dead' : ' ok') : '';
+				g += `<circle cx="${p.x}" cy="${p.y}" r="22" class="rg-p${cls}"/><text x="${p.x}" y="${p.y + 5}" class="rg-t">${p.id}</text>`;
+			});
+			out('svg').innerHTML = g;
+			// خطوات الكشف: مين بيقدر يخلص بالترتيب
+			if (!revealed) {
+				out('steps').innerHTML = '';
+				return;
+			}
+			let work = avail(s);
+			const done = s.alloc.map((r) => r.every((x) => x === 0));
+			const lines: string[] = [`المتاح في البداية: ${s.res.map((r, j) => `<bdi dir="ltr">${r.id} = ${work[j]}</bdi>`).join('، ')}.`];
+			let prog = true;
+			while (prog) {
+				prog = false;
+				s.procs.forEach((p, i) => {
+					if (!done[i] && vecLe(s.req[i], work)) {
+						work = vecAdd(work, s.alloc[i]);
+						done[i] = true;
+						prog = true;
+						lines.push(`${p.id} يجد ما يطلبه، فينتهي ويعيد ما معه.`);
+					}
+				});
+			}
+			if (dead.length) lines.push(`${dead.map((i) => s.procs[i].id).join(' و ')}: لا أحد منها يجد ما يطلبه، وكل منها ينتظر ما مع الآخر.`);
+			out('steps').innerHTML = lines.map((l) => `<li>${l}</li>`).join('');
+		}
+		root.querySelectorAll<HTMLButtonElement>('[data-scn]').forEach((b) =>
+			b.addEventListener('click', () => {
+				cur = +b.dataset.scn!;
+				revealed = false;
+				root.querySelectorAll('[data-scn]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				root.querySelectorAll('[data-guess]').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+				out('msg').textContent = '';
+				draw();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-guess]').forEach((b) =>
+			b.addEventListener('click', () => {
+				revealed = true;
+				root.querySelectorAll('[data-guess]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				const s = SCN[cur];
+				const dead = detectDeadlock(avail(s), s.alloc, s.req).length > 0;
+				const right = (b.dataset.guess === '1') === dead;
+				const m = out('msg');
+				m.className = right ? 'wl-msg wl-good' : 'wl-msg wl-bad';
+				const extra =
+					s.key === 'c'
+						? ' لاحظ: في الرسم دورة <bdi dir="ltr">P1 → R1 → P3 → R2 → P1</bdi>، لكن لكل مورد نسختان، و P2 و P4 تنتهيان وتعيدان نسختيهما. فالدورة وحدها لا تكفي عندما يكون للمورد أكثر من نسخة.'
+						: dead
+							? ' العمليات الحمراء عالقة في دورة انتظار.'
+							: '';
+				m.innerHTML = (right ? '✔ صحيح! ' : '✘ ليس تماماً. ') + (dead ? 'يوجد جمود.' : 'لا يوجد جمود.') + extra;
+				draw();
+			}),
+		);
+		draw();
+	});
+</script>
