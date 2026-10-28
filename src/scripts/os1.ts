@@ -347,10 +347,6 @@ export function threadSim(requests: number, cpu: number, io: number, threads: nu
 	return { cells, cores: coreRows, end: t, busy, util: busy / (t * cores), doneAt };
 }
 
-/** قانون أمدال: كم مرة أسرع بـ n نواة، إذا كان الجزء p (من 0 لـ 1) بيتقسّم */
-export const amdahl = (p: number, n: number) => 1 / (1 - p + p / n);
-/** الزمن الجديد لبرنامج زمنه total ثانية */
-export const amdahlTime = (total: number, p: number, n: number) => total * (1 - p) + (total * p) / n;
 
 // ===== جدولة المعالج (الجلسة 4) =====
 // كل عملية: اسم، ووقت الوصول، وزمن التنفيذ، والأولوية (الرقم الأصغر = الأولوية الأعلى).
