@@ -1,0 +1,47 @@
+---
+// خطوات خطأ الصفحة (الجلسة 8): 6 مربعات بترتيب القراءة العربية (يمين ← يسار، ثم السطر التاني من اليسار ← يمين متل الأفعى).
+const steps = [
+	{ e: '📖', t: 'البرنامج يقرأ', s: 'عنواناً في الصفحة 5' },
+	{ e: '❌', t: 'غير موجودة!', s: 'في جدول الصفحات' },
+	{ e: '🚨', t: 'مقاطعة للنظام', s: 'خطأ صفحة' },
+	{ e: '💾', t: 'جلب من القرص', s: 'إلى إطار فارغ' },
+	{ e: '📝', t: 'تحديث الجدول', s: 'الصفحة صالحة الآن' },
+	{ e: '🔁', t: 'إعادة التعليمة', s: 'وكأن شيئاً لم يحدث' },
+];
+// مكان كل مربع: السطر الأول من اليمين لليسار، والتاني من اليسار لليمين
+const pos = steps.map((_, i) => (i < 3 ? { x: 250 - i * 120, y: 20 } : { x: 10 + (i - 3) * 120, y: 150 }));
+---
+
+<figure class="wl-fig pf-fig">
+	<svg class="d-big" viewBox="0 0 360 260" role="img" aria-label="خطوات خطأ الصفحة: البرنامج يقرأ عنواناً، الجدول يقول إن الصفحة غير موجودة، مقاطعة إلى النظام، جلب الصفحة من القرص إلى إطار، تحديث الجدول، إعادة التعليمة">
+		<defs>
+			<marker id="pf-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path></marker>
+		</defs>
+		<line x1="248" y1="60" x2="232" y2="60" class="d-line" marker-end="url(#pf-a)"></line>
+		<line x1="128" y1="60" x2="112" y2="60" class="d-line" marker-end="url(#pf-a)"></line>
+		<path d="M 60 104 L 60 148" class="d-line" marker-end="url(#pf-a)"></path>
+		<line x1="112" y1="190" x2="128" y2="190" class="d-line" marker-end="url(#pf-a)"></line>
+		<line x1="232" y1="190" x2="248" y2="190" class="d-line" marker-end="url(#pf-a)"></line>
+		<path d="M 300 148 L 300 104" class="d-line d-dash" marker-end="url(#pf-a)"></path>
+		{steps.map((s, i) => (
+			<g>
+				<rect x={pos[i].x} y={pos[i].y} width="100" height="82" rx="10" class={i === 2 || i === 3 ? 'pf-hot' : 'd-box2'}></rect>
+				<circle cx={pos[i].x + 12} cy={pos[i].y + 12} r="10" class="pf-num"></circle>
+				<text x={pos[i].x + 12} y={pos[i].y + 16} class="pf-n">{i + 1}</text>
+				<text x={pos[i].x + 50} y={pos[i].y + 34} class="pf-e">{s.e}</text>
+				<text x={pos[i].x + 50} y={pos[i].y + 56} class="pf-t">{s.t}</text>
+				<text x={pos[i].x + 50} y={pos[i].y + 72} class="pf-s">{s.s}</text>
+			</g>
+		))}
+	</svg>
+	<figcaption>خطأ الصفحة ليس خطأً في البرنامج: هو طلب لصفحة لم تُحمَّل بعد. والخطوة 4 (القرص) هي الأبطأ بآلاف المرات من أي شيء آخر.</figcaption>
+</figure>
+
+<style>
+	.pf-fig .pf-hot { fill: #e0a03022; stroke: #e0a030; stroke-width: 2; }
+	.pf-fig .pf-num { fill: var(--sl-color-accent); }
+	.pf-fig .pf-n { font: 700 11px sans-serif; text-anchor: middle; fill: #111; }
+	.pf-fig .pf-e { font-size: 20px; text-anchor: middle; }
+	.pf-fig .pf-t { font-size: 11px; font-weight: 700; text-anchor: middle; fill: var(--sl-color-white); }
+	.pf-fig .pf-s { font-size: 8.5px; text-anchor: middle; fill: var(--sl-color-gray-2); }
+</style>

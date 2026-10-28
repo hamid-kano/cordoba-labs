@@ -23,7 +23,7 @@ const counterScript = umamiId && {
 };
 
 export default defineConfig({
-	// sql.js (محرر SQL بجلسة نظم التشغيل 5) مكتوبة بصيغة قديمة (CommonJS)، فمنخلّي Vite يجهّزها
+	// sql.js (محرر SQL بجلسة قواعد البيانات المؤرشفة بنظم التشغيل) مكتوبة بصيغة قديمة (CommonJS)، فمنخلّي Vite يجهّزها
 	// من أول ما يشتغل السيرفر، وإلا أول فتحة للصفحة بتعلق بخطأ «Outdated Optimize Dep».
 	vite: { optimizeDeps: { include: ['sql.js/dist/sql-wasm.js'] } },
 	site,

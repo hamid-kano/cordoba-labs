@@ -1,0 +1,32 @@
+---
+// جدول استبدال صفحات ثابت بينحسب وقت البناء من os1.ts (replace)، للمسائل المحلولة: نفس شكل جدول ReplaceLab.
+import { replace, type ReplAlgo } from '../../scripts/os1';
+interface Props { refs: string; frames: number; algo: ReplAlgo }
+const { refs, frames, algo } = Astro.props;
+const list = refs.split(/\s+/).map(Number);
+const { steps, faults } = replace(list, frames, algo);
+const word = (k: number) => (k >= 3 && k <= 10 ? 'أخطاء' : 'خطأ');
+---
+
+<div class="rt-wrap wl-scroll" dir="ltr">
+	<table class="rt-grid">
+		<tr><td class="lbl"></td>{list.map((r) => <th>{r}</th>)}</tr>
+		{Array.from({ length: frames }, (_, f) => (
+			<tr><td class="lbl">F{f + 1}</td>{steps.map((s) => <td class={s.fault && s.slot === f ? 'new' : ''}>{s.frames[f] ?? ''}</td>)}</tr>
+		))}
+		<tr class="f"><td class="lbl"></td>{steps.map((s) => <td>{s.fault ? '✱' : ''}</td>)}</tr>
+	</table>
+	<p class="rt-sum">{algo.toUpperCase()}، {frames} إطارات: <strong>{faults}</strong> {word(faults)}.</p>
+</div>
+
+<style>
+	.rt-wrap { margin-block: 0.75rem; }
+	.rt-grid { border-collapse: separate; border-spacing: 2px; margin: 0 auto; font-family: var(--sl-font-system-mono); font-size: 0.78rem; }
+	.rt-grid th, .rt-grid td { width: 1.55rem; min-width: 1.55rem; height: 1.55rem; padding: 0; text-align: center; border-radius: 0.2rem; border: 0; }
+	.rt-grid th { background: var(--sl-color-gray-5); }
+	.rt-grid td { background: var(--sl-color-gray-6); }
+	.rt-grid td.new { background: #e0a030; color: #111; font-weight: 700; }
+	.rt-grid tr.f td { background: none; color: #e5534b; font-weight: 700; }
+	.rt-grid td.lbl { background: none; font-family: var(--sl-font); font-size: 0.62rem; color: var(--sl-color-gray-3); width: auto; }
+	.rt-sum { direction: rtl; text-align: center; font-size: var(--sl-text-sm); margin: 0.3rem 0 0; }
+</style>

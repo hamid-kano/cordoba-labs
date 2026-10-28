@@ -1,0 +1,209 @@
+---
+// «سباق خوارزميات الاستبدال» (الجلسة 8): سلسلة طلبات صفحات، وعدد إطارات، و FIFO أو LRU أو OPT.
+// جدول متل جداول الامتحان: عمود لكل طلب، وسطر لكل إطار، و ✱ تحت خطأ الصفحة، والمطرودة مكتوبة. بيتعبّى خطوة خطوة.
+// وتحت: مقارنة الأخطاء للخوارزميات التلاتة، ورسم «الأخطاء مقابل عدد الإطارات» (بيبيّن شذوذ Belady بـ FIFO).
+// المنطق بـ os1.ts (replace، REF_BOOK، REF_BELADY).
+---
+
+<div class="not-content wl-box rp-lab" data-rp-lab>
+	<h4>🏎️ سباق خوارزميات الاستبدال</h4>
+	<div class="wl-row" role="group" aria-label="أمثلة">
+		<span class="se-note">السلسلة:</span>
+		<button type="button" class="wl-btn" data-ref="book" aria-pressed="true">📘 مثال الكتاب</button>
+		<button type="button" class="wl-btn" data-ref="belady" aria-pressed="false">🎭 شذوذ Belady</button>
+	</div>
+	<label class="wl-label"><span>الصفحات المطلوبة بالترتيب (أرقام من 0 إلى 9، يمكنك تعديلها)</span>
+		<input class="wl-input" data-in="refs" value="7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1" />
+	</label>
+	<div class="wl-row">
+		<label class="rp-fr">عدد الإطارات
+			<select class="wl-select" data-in="frames"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select>
+		</label>
+		<span role="group" aria-label="الخوارزمية" class="wl-row">
+			<button type="button" class="wl-btn" data-algo="fifo" aria-pressed="true">FIFO</button>
+			<button type="button" class="wl-btn" data-algo="lru" aria-pressed="false">LRU</button>
+			<button type="button" class="wl-btn" data-algo="opt" aria-pressed="false">OPT</button>
+		</span>
+	</div>
+	<p class="wl-msg rp-desc" data-out="desc"></p>
+
+	<div class="wl-scroll" dir="ltr">
+		<table class="rp-grid" data-out="grid"></table>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="play">▶ شغّل</button>
+		<button type="button" class="wl-btn" data-act="step">الخطوة التالية ←</button>
+		<button type="button" class="wl-btn" data-act="all">⏭ الكل</button>
+		<span class="se-note">أخطاء الصفحات: <strong data-out="faults">0</strong></span>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+
+	<div class="rp-cmp">
+		<b>الأخطاء بكل خوارزمية (للسلسلة والإطارات نفسها):</b>
+		<div data-out="cmp"></div>
+	</div>
+	<figure class="rp-chart">
+		<svg data-out="chart" viewBox="0 0 360 190" role="img" aria-label="عدد أخطاء الصفحات حسب عدد الإطارات"></svg>
+		<figcaption><span class="k f"></span>FIFO <span class="k l"></span>LRU <span class="k o"></span>OPT · الأخطاء حسب عدد الإطارات</figcaption>
+	</figure>
+</div>
+
+<style is:global>
+	.rp-lab .rp-fr { display: inline-flex; align-items: center; gap: 0.35rem; font-size: var(--sl-text-sm); }
+	.rp-lab .rp-desc { font-weight: 400; font-size: var(--sl-text-sm); }
+	.rp-lab .rp-grid { border-collapse: separate; border-spacing: 2px; margin-inline: auto; font-family: var(--sl-font-system-mono); font-size: 0.78rem; }
+	.rp-lab .rp-grid th, .rp-lab .rp-grid td { width: 1.55rem; min-width: 1.55rem; height: 1.55rem; padding: 0; text-align: center; border-radius: 0.2rem; }
+	.rp-lab .rp-grid th { background: var(--sl-color-gray-5); }
+	.rp-lab .rp-grid td { background: var(--sl-color-gray-6); transition: opacity 0.25s; }
+	.rp-lab .rp-grid td.new { background: #e0a030; color: #111; font-weight: 700; }
+	.rp-lab .rp-grid td.hit { box-shadow: inset 0 0 0 2px #2fb36b; }
+	.rp-lab .rp-grid td.later, .rp-lab .rp-grid th.later { opacity: 0.12; }
+	.rp-lab .rp-grid tr.f td { background: none; color: #e5534b; font-weight: 700; }
+	.rp-lab .rp-grid tr.v td { background: none; color: var(--sl-color-gray-3); font-size: 0.65rem; text-decoration: line-through; }
+	.rp-lab .rp-grid tr.v td.lbl { text-decoration: none; }
+	.rp-lab .rp-grid td.lbl { background: none; font-family: var(--sl-font); font-size: 0.62rem; color: var(--sl-color-gray-3); width: auto; padding-inline: 0.2rem; white-space: nowrap; }
+	.rp-lab .rp-cmp { display: flex; flex-direction: column; gap: 0.3rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); font-size: var(--sl-text-sm); }
+	.rp-lab .rp-row { display: grid; grid-template-columns: 3.5rem 1fr 2rem; gap: 0.4rem; align-items: center; font-size: var(--sl-text-xs); }
+	.rp-lab .rp-row i { display: block; height: 1rem; border-radius: 0.25rem; transition: width 0.4s; }
+	.rp-lab .rp-row b { font-family: sans-serif; }
+	.rp-lab .rp-row span:last-child { font-family: var(--sl-font-system-mono); text-align: center; }
+	.rp-lab .rp-chart { margin: 0; }
+	.rp-lab .rp-chart svg { width: 100%; height: auto; display: block; direction: ltr; }
+	.rp-lab .rp-chart figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
+	.rp-lab .k { display: inline-block; width: 1rem; height: 0.3rem; border-radius: 2px; }
+	.rp-lab .k.f { background: #e5534b; } .rp-lab .k.l { background: #3a9ec2; } .rp-lab .k.o { background: #2fb36b; }
+	.rp-lab .rp-g { stroke: var(--sl-color-gray-6); }
+	.rp-lab .rp-tk { fill: var(--sl-color-gray-3); font: 10px sans-serif; }
+	.rp-lab .rp-ln { fill: none; stroke-width: 2.5; }
+	.rp-lab .rp-dot { stroke: var(--sl-color-black); stroke-width: 1.5; }
+	.rp-lab .rp-cur { stroke: var(--sl-color-white); stroke-dasharray: 3 3; }
+</style>
+
+<script>
+	import { replace, REF_BOOK, REF_BELADY, type ReplAlgo, type ReplStep } from '../../scripts/os1';
+
+	const DESC: Record<ReplAlgo, string> = {
+		fifo: 'FIFO: نطرد الصفحة التي دخلت أولاً (الأقدم في الذاكرة)، حتى لو كنا نستخدمها كثيراً.',
+		lru: 'LRU: نطرد الصفحة التي لم نستخدمها منذ أطول وقت. نتوقع المستقبل من الماضي.',
+		opt: 'OPT: نطرد الصفحة التي لن نحتاجها إلا بعد أطول وقت. هي الأفضل، لكنها تحتاج معرفة المستقبل، فنستخدمها للمقارنة فقط.',
+	};
+	const COLORS: Record<ReplAlgo, string> = { fifo: '#e5534b', lru: '#3a9ec2', opt: '#2fb36b' };
+	const ALGOS: ReplAlgo[] = ['fifo', 'lru', 'opt'];
+
+	document.querySelectorAll<HTMLElement>('[data-rp-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const refsIn = root.querySelector<HTMLInputElement>('[data-in="refs"]')!;
+		const frIn = root.querySelector<HTMLSelectElement>('[data-in="frames"]')!;
+		let algo: ReplAlgo = 'fifo';
+		let refs: number[] = [...REF_BOOK];
+		let steps: ReplStep[] = [];
+		let pos = 0;
+		let timer = 0;
+
+		const parse = () => refsIn.value.split(/[\s,،]+/).map((x) => parseInt(x, 10)).filter((x) => x >= 0 && x <= 9).slice(0, 30);
+
+		function compute() {
+			stop();
+			refs = parse();
+			if (!refs.length) return;
+			steps = replace(refs, +frIn.value, algo).steps;
+			pos = steps.length;
+			out('desc').textContent = DESC[algo];
+			draw();
+			compare();
+		}
+		function draw() {
+			const nF = +frIn.value;
+			const later = (t: number) => (t >= pos ? ' later' : '');
+			let h = '<tr><td class="lbl"></td>' + refs.map((r, t) => `<th class="${later(t)}">${r}</th>`).join('') + '</tr>';
+			for (let f = 0; f < nF; f++) {
+				h += `<tr><td class="lbl">F${f + 1}</td>` + steps.map((s, t) => {
+					const v = s.frames[f];
+					const cls = s.fault && s.slot === f ? 'new' : !s.fault && s.slot === f ? 'hit' : '';
+					return `<td class="${cls}${later(t)}">${v ?? ''}</td>`;
+				}).join('') + '</tr>';
+			}
+			h += '<tr class="f"><td class="lbl"></td>' + steps.map((s, t) => `<td class="${later(t)}">${s.fault ? '✱' : ''}</td>`).join('') + '</tr>';
+			h += '<tr class="v"><td class="lbl">طُردت</td>' + steps.map((s, t) => `<td class="${later(t)}">${s.victim ?? ''}</td>`).join('') + '</tr>';
+			out('grid').innerHTML = h;
+			const faults = steps.slice(0, pos).filter((s) => s.fault).length;
+			out('faults').textContent = String(faults);
+			const done = pos >= steps.length;
+			(root.querySelector('[data-act="step"]') as HTMLButtonElement).disabled = done;
+			const m = out('msg');
+			m.className = 'wl-msg';
+			if (!done && pos > 0) {
+				const s = steps[pos - 1];
+				m.textContent = s.fault
+					? `الصفحة ${s.page} ليست في الذاكرة: خطأ صفحة.${s.victim !== null ? ` طُردت الصفحة ${s.victim}.` : ' ووُضعت في إطار فارغ.'}`
+					: `الصفحة ${s.page} موجودة: لا خطأ.`;
+			} else if (done) m.textContent = `انتهت السلسلة: ${faults} ${faults >= 3 && faults <= 10 ? "أخطاء" : "خطأ"} من ${refs.length} طلباً.`;
+			else m.textContent = '';
+		}
+		function compare() {
+			const nF = +frIn.value;
+			const res = ALGOS.map((a) => ({ a, f: replace(refs, nF, a).faults }));
+			const max = Math.max(...res.map((x) => x.f), 1);
+			out('cmp').innerHTML = res.map((x) => `<div class="rp-row"><b>${x.a.toUpperCase()}</b><span><i style="width:${(x.f / max) * 100}%;background:${COLORS[x.a]};opacity:${x.a === algo ? 1 : 0.45}"></i></span><span>${x.f}</span></div>`).join('');
+			// رسم الأخطاء مقابل الإطارات من 1 لـ 7
+			const L = 26, R = 350, T = 10, B = 165;
+			const data = ALGOS.map((a) => ({ a, ys: Array.from({ length: 7 }, (_, k) => replace(refs, k + 1, a).faults) }));
+			const maxY = Math.max(...data.flatMap((d) => d.ys), 1);
+			const X = (k: number) => L + ((k - 1) / 6) * (R - L);
+			const Y = (v: number) => B - (v / maxY) * (B - T);
+			let g = '';
+			for (let i = 0; i <= 4; i++) { const v = Math.round((maxY / 4) * i); g += `<line class="rp-g" x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="rp-tk" x="${L - 4}" y="${Y(v) + 3}" text-anchor="end">${v}</text>`; }
+			for (let k = 1; k <= 7; k++) g += `<text class="rp-tk" x="${X(k)}" y="${B + 14}" text-anchor="middle">${k}</text>`;
+			g += `<line class="rp-cur" x1="${X(nF)}" x2="${X(nF)}" y1="${T}" y2="${B}"/>`;
+			data.forEach((d) => {
+				g += `<path class="rp-ln" stroke="${COLORS[d.a]}" d="${d.ys.map((y, k) => `${k ? 'L' : 'M'} ${X(k + 1)} ${Y(y)}`).join(' ')}"/>`;
+				d.ys.forEach((y, k) => (g += `<circle class="rp-dot" r="3.2" fill="${COLORS[d.a]}" cx="${X(k + 1)}" cy="${Y(y)}"/>`));
+			});
+			out('chart').innerHTML = g;
+		}
+		function stop() {
+			clearInterval(timer);
+			timer = 0;
+			(root.querySelector('[data-act="play"]') as HTMLButtonElement).textContent = '▶ شغّل';
+		}
+		root.querySelector('[data-act="play"]')!.addEventListener('click', (e) => {
+			if (timer) return stop();
+			if (pos >= steps.length) pos = 0;
+			(e.currentTarget as HTMLButtonElement).textContent = '⏸ أوقف';
+			const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
+			timer = window.setInterval(() => {
+				pos++;
+				if (pos >= steps.length) stop();
+				draw();
+			}, fast ? 40 : 450);
+			pos = Math.max(pos, 0);
+			draw();
+		});
+		root.querySelector('[data-act="step"]')!.addEventListener('click', () => {
+			stop();
+			if (pos >= steps.length) pos = 0;
+			pos++;
+			draw();
+		});
+		root.querySelector('[data-act="all"]')!.addEventListener('click', () => { stop(); pos = steps.length; draw(); });
+		root.querySelectorAll<HTMLButtonElement>('[data-algo]').forEach((b) =>
+			b.addEventListener('click', () => {
+				algo = b.dataset.algo as ReplAlgo;
+				root.querySelectorAll('[data-algo]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				compute();
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-ref]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const r = b.dataset.ref === 'belady' ? REF_BELADY : REF_BOOK;
+				refsIn.value = r.join(' ');
+				frIn.value = b.dataset.ref === 'belady' ? '3' : '3';
+				root.querySelectorAll('[data-ref]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				compute();
+			}),
+		);
+		refsIn.addEventListener('change', () => { root.querySelectorAll('[data-ref]').forEach((x) => x.setAttribute('aria-pressed', 'false')); compute(); });
+		frIn.addEventListener('change', compute);
+		compute();
+	});
+</script>

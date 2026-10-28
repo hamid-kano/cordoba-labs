@@ -700,3 +700,54 @@ export function tlbRun(pages: number[], size: number) {
 }
 /** متوسط زمن الوصول: hit بياخد وصول واحد للذاكرة، و miss وصولين (جدول الصفحات ثم البيانات). وزمن TLB مهمل */
 export const eat = (hit: number, mem: number) => hit * mem + (1 - hit) * 2 * mem;
+
+// ===== الذاكرة الافتراضية (الجلسة 8) =====
+// استبدال الصفحات: FIFO و LRU و OPT (الأمثل: منطرد يلي رح يُطلب بعد أطول وقت، وعند التساوي/ما رح يُطلب أبداً: الأقدم دخولاً).
+// كل خطوة: محتوى الإطارات بترتيب ثابت (الصفحة الجديدة بتاخد مكان المطرودة)، وإذا صار خطأ صفحة، ومين انطرد.
+export type ReplAlgo = 'fifo' | 'lru' | 'opt';
+export interface ReplStep { page: number; frames: (number | null)[]; fault: boolean; victim: number | null; slot: number }
+export function replace(refs: number[], nFrames: number, algo: ReplAlgo): { steps: ReplStep[]; faults: number } {
+	const frames: (number | null)[] = new Array(nFrames).fill(null);
+	const loaded = new Array(nFrames).fill(-1); // متى دخلت الصفحة يلي بكل إطار
+	const used = new Array(nFrames).fill(-1); // آخر استخدام
+	const steps: ReplStep[] = [];
+	let faults = 0;
+	refs.forEach((page, t) => {
+		let slot = frames.indexOf(page);
+		if (slot >= 0) {
+			used[slot] = t;
+			steps.push({ page, frames: [...frames], fault: false, victim: null, slot });
+			return;
+		}
+		faults++;
+		let victim: number | null = null;
+		slot = frames.indexOf(null);
+		if (slot < 0) {
+			const idx = frames.map((_, i) => i);
+			if (algo === 'fifo') slot = idx.sort((a, b) => loaded[a] - loaded[b])[0];
+			else if (algo === 'lru') slot = idx.sort((a, b) => used[a] - used[b])[0];
+			else {
+				const nextUse = (i: number) => { const k = refs.indexOf(frames[i]!, t + 1); return k < 0 ? Infinity : k; };
+				slot = idx.sort((a, b) => nextUse(b) - nextUse(a) || loaded[a] - loaded[b])[0];
+			}
+			victim = frames[slot];
+		}
+		frames[slot] = page;
+		loaded[slot] = t;
+		used[slot] = t;
+		steps.push({ page, frames: [...frames], fault: true, victim, slot });
+	});
+	return { steps, faults };
+}
+export const REF_BOOK = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2, 1, 2, 0, 1, 7, 0, 1];
+export const REF_BELADY = [1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5];
+/** متوسط زمن الوصول مع أخطاء الصفحات: ذاكرة mem ns، وخطأ الصفحة fault ms، واحتمال الخطأ p */
+export const eatFault = (p: number, memNs: number, faultMs: number) => (1 - p) * memNs + p * faultMs * 1e6;
+
+// التخبّط: نموذج بسيط. كل عملية بتشغّل المعالج نسبة u0 من الوقت إذا أخذت مجموعة عملها W إطار كاملة.
+// إذا مجموع W أكبر من الإطارات F، كل عملية بتاخد F/N وبتصير أخطاء الصفحات كتير، فبتنزل نسبة الشغل بقوة.
+export function thrash(N: number, W: number, F: number, u0 = 0.2) {
+	const share = Math.min(1, F / (N * W));
+	const perProc = u0 * Math.pow(share, 6);
+	return { util: Math.min(1, N * perProc), share };
+}

@@ -1,0 +1,113 @@
+---
+// «التخبّط» (الجلسة 8): 100 إطار، وكل عملية مجموعة عملها 20 صفحة. الطالب بيزيد عدد العمليات،
+// وبيشوف كم إطار بياخد كل واحد، واستغلال المعالج: بيطلع لحد 5 عمليات، وبعدها بينهار. نموذج مبسّط بـ os1.ts (thrash).
+// وتحت: كلفة خطأ الصفحة (الذاكرة 200 ns، والخطأ 8 ms) حسب احتمال الخطأ (eatFault).
+---
+
+<div class="not-content wl-box tr-lab" data-tr-lab>
+	<h4>🌀 التخبّط</h4>
+	<p class="se-hint">في الذاكرة <strong>100 إطار</strong>. وكل برنامج يحتاج قرابة <strong>20 صفحة</strong> ليعمل براحة (مجموعة عمله). أضف برامج، وراقب المعالج.</p>
+	<label class="wl-label"><span>عدد البرامج العاملة: <strong data-out="nv">3</strong></span>
+		<input type="range" min="1" max="12" value="3" data-in="n" class="tr-range" />
+	</label>
+	<div class="tr-frames" data-out="frames" dir="ltr"></div>
+	<div class="wl-grid">
+		<div class="wl-out"><span>إطارات لكل برنامج</span><strong data-out="per"></strong></div>
+		<div class="wl-out"><span>استغلال المعالج</span><strong data-out="util"></strong></div>
+	</div>
+	<figure class="tr-chart">
+		<svg data-out="chart" viewBox="0 0 360 170" role="img" aria-label="استغلال المعالج حسب عدد البرامج"></svg>
+		<figcaption>استغلال المعالج حسب عدد البرامج. بعد القمة: انهيار.</figcaption>
+	</figure>
+	<p class="wl-msg" data-out="msg"></p>
+
+	<div class="tr-cost">
+		<b>💸 كم يكلّف خطأ الصفحة؟</b>
+		<p class="se-note">الوصول إلى الذاكرة <bdi dir="ltr">200 ns</bdi>، وخطأ الصفحة (قراءة من القرص) <bdi dir="ltr">8 ms</bdi> = <bdi dir="ltr">8,000,000 ns</bdi>.</p>
+		<div class="wl-row" role="group" aria-label="احتمال الخطأ">
+			<span class="se-note">خطأ واحد كل:</span>
+			<button type="button" class="wl-btn" data-p="0" aria-pressed="false">لا أخطاء</button>
+			<button type="button" class="wl-btn" data-p="1000" aria-pressed="true">1,000 وصول</button>
+			<button type="button" class="wl-btn" data-p="100000" aria-pressed="false">100,000</button>
+			<button type="button" class="wl-btn" data-p="400000" aria-pressed="false">400,000</button>
+		</div>
+		<div class="wl-grid">
+			<div class="wl-out"><span>متوسط زمن الوصول</span><strong data-out="eat"></strong></div>
+			<div class="wl-out"><span>أبطأ من الذاكرة بـ</span><strong data-out="slow"></strong></div>
+		</div>
+	</div>
+</div>
+
+<style is:global>
+	.tr-lab .tr-range { width: 100%; accent-color: var(--sl-color-accent); }
+	.tr-lab .tr-frames { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 2px; }
+	.tr-lab .tr-frames i { display: block; aspect-ratio: 1; border-radius: 2px; background: var(--sl-color-gray-5); transition: background 0.3s; }
+	.tr-lab .tr-chart { margin: 0; }
+	.tr-lab .tr-chart svg { width: 100%; height: auto; display: block; direction: ltr; }
+	.tr-lab .tr-chart figcaption { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
+	.tr-lab .tr-g { stroke: var(--sl-color-gray-6); }
+	.tr-lab .tr-tk { fill: var(--sl-color-gray-3); font: 10px sans-serif; }
+	.tr-lab .tr-ln { fill: none; stroke: #2fb36b; stroke-width: 3; }
+	.tr-lab .tr-dot { fill: #e0a030; stroke: var(--sl-color-black); stroke-width: 2; }
+	.tr-lab .tr-cost { display: flex; flex-direction: column; gap: 0.4rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); font-size: var(--sl-text-sm); }
+</style>
+
+<script>
+	import { thrash, eatFault } from '../../scripts/os1';
+
+	const F = 100, W = 20;
+	const PAL = ['#6cc3e0', '#f0c070', '#7ed6a0', '#c3a6f5', '#f39a8f', '#e8d36a', '#5ab0a0', '#d16ba5', '#9aa7ff', '#ffb38a', '#a3d977', '#e0a0e0'];
+	document.querySelectorAll<HTMLElement>('[data-tr-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const nIn = root.querySelector<HTMLInputElement>('[data-in="n"]')!;
+
+		function run() {
+			const N = +nIn.value;
+			out('nv').textContent = String(N);
+			const per = Math.min(W, Math.floor(F / N));
+			// توزيع الإطارات: كل برنامج بياخد per إطار، والباقي فاضي
+			const cells: string[] = [];
+			for (let i = 0; i < F; i++) {
+				const owner = Math.floor(i / per);
+				cells.push(owner < N ? `<i style="background:${PAL[owner % PAL.length]}"></i>` : '<i></i>');
+			}
+			out('frames').innerHTML = cells.join('');
+			const r = thrash(N, W, F);
+			out('per').textContent = `${per} من ${W}`;
+			out('util').textContent = `${Math.round(r.util * 100)}%`;
+			// المنحني
+			const L = 30, R = 350, T = 10, B = 145;
+			const X = (k: number) => L + ((k - 1) / 11) * (R - L);
+			const Y = (u: number) => B - u * (B - T);
+			let g = '';
+			for (const u of [0, 0.5, 1]) g += `<line class="tr-g" x1="${L}" x2="${R}" y1="${Y(u)}" y2="${Y(u)}"/><text class="tr-tk" x="${L - 4}" y="${Y(u) + 3}" text-anchor="end">${u * 100}%</text>`;
+			for (let k = 1; k <= 12; k++) g += `<text class="tr-tk" x="${X(k)}" y="${B + 14}" text-anchor="middle">${k}</text>`;
+			g += `<path class="tr-ln" d="${Array.from({ length: 12 }, (_, k) => `${k ? 'L' : 'M'} ${X(k + 1)} ${Y(thrash(k + 1, W, F).util)}`).join(' ')}"/>`;
+			g += `<circle class="tr-dot" r="6" cx="${X(N)}" cy="${Y(r.util)}"/>`;
+			out('chart').innerHTML = g;
+			const m = out('msg');
+			if (N * W <= F) {
+				m.className = 'wl-msg wl-good';
+				m.textContent = N * W === F ? '✔ القمة: كل برنامج معه مجموعة عمله كاملة، والإطارات كلها مستخدمة.' : '✔ كل برنامج معه ما يحتاجه. وأضف برامج لتستغل المعالج أكثر.';
+			} else {
+				m.className = 'wl-msg wl-bad';
+				m.textContent = `✘ تخبّط: كل برنامج معه ${per} إطاراً فقط من ${W}. فيطرد صفحات زميله ويحتاجها بعد قليل، والكل ينتظر القرص، والمعالج شبه فارغ.`;
+			}
+		}
+		function cost(every: number) {
+			const p = every ? 1 / every : 0;
+			const e = eatFault(p, 200, 8);
+			out('eat').textContent = e >= 1000 ? `${(e / 1000).toFixed(1)} µs` : `${e.toFixed(0)} ns`;
+			out('slow').textContent = `${(e / 200).toFixed(e / 200 < 2 ? 2 : 0)} مرة`;
+		}
+		nIn.addEventListener('input', run);
+		root.querySelectorAll<HTMLButtonElement>('[data-p]').forEach((b) =>
+			b.addEventListener('click', () => {
+				root.querySelectorAll('[data-p]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				cost(+b.dataset.p!);
+			}),
+		);
+		run();
+		cost(1000);
+	});
+</script>
