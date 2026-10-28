@@ -1,0 +1,198 @@
+---
+// «المنتج والمستهلك» (الجلسة 5): مخزن 4 خانات. 3 طرق: بلا حماية (عناصر بتضيع، وقراءة من الفاضي)،
+// وبالإشارات الصحيحة (empty و full و mutex)، والترتيب الغلط (المنتج بيقفل mutex قبل ما يستنى empty، فبيصير جمود لما يمتلئ).
+// المحاكاة لحظة لحظة من os1.ts (prodCons)، والسرعات: مين بيتحرك كل لحظة ومين كل لحظتين.
+---
+
+<div class="not-content wl-box pcx-lab" data-pcx-lab>
+	<h4>🏭 المنتج والمستهلك</h4>
+	<p class="se-hint">المنتج يضع أرقاماً في مخزن من <strong>4 خانات</strong>، والمستهلك يأخذها بالترتيب. اختر الطريقة والسرعة، ثم «▶ شغّل».</p>
+
+	<div class="wl-row" role="group" aria-label="الطريقة">
+		<button type="button" class="wl-btn" data-mode="none" aria-pressed="true">بلا حماية</button>
+		<button type="button" class="wl-btn" data-mode="sem" aria-pressed="false">✔ بالإشارات الصحيحة</button>
+		<button type="button" class="wl-btn" data-mode="wrong" aria-pressed="false">⚠ ترتيب خاطئ</button>
+	</div>
+	<label class="wl-label pcx-speed"><span>السرعة</span>
+		<select class="wl-select" data-in="speed">
+			<option value="1,2" selected>المنتج أسرع: يضع كل لحظة، والمستهلك يأخذ كل لحظتين</option>
+			<option value="2,1">المستهلك أسرع</option>
+			<option value="1,1">متساويان</option>
+		</select>
+	</label>
+
+	<div class="pcx-code">
+		<div><b>🏭 المنتج</b><ol data-out="pcode"></ol></div>
+		<div><b>🛒 المستهلك</b><ol data-out="ccode"></ol></div>
+	</div>
+
+	<div class="pcx-stage" data-out="stage">
+		<div class="pcx-actor"><span>🏭</span><small data-out="pstate"></small></div>
+		<div class="pcx-buf" data-out="buf" dir="ltr"></div>
+		<div class="pcx-actor"><span>🛒</span><small data-out="cstate"></small></div>
+		<div class="pcx-dead" aria-hidden="true">🔒 جمود</div>
+	</div>
+	<div class="pcx-sems" data-out="sems"></div>
+
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="play">▶ شغّل</button>
+		<button type="button" class="wl-btn" data-act="step">الخطوة التالية ←</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من البداية</button>
+		<span class="se-note">اللحظة: <strong data-out="t">0</strong></span>
+	</div>
+	<div class="wl-grid pcx-count">
+		<div class="wl-out"><span>أُنتج</span><strong data-out="made">0</strong></div>
+		<div class="wl-out"><span>استُهلك</span><strong data-out="eaten">0</strong></div>
+		<div class="wl-out"><span>ضاع (كُتب فوقه)</span><strong data-out="lost">0</strong></div>
+		<div class="wl-out"><span>قراءة من فارغ</span><strong data-out="junk">0</strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.pcx-lab .pcx-speed { max-width: 26rem; }
+	.pcx-lab .pcx-code { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.4rem; }
+	.pcx-lab .pcx-code > div { padding: 0.4rem 0.5rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); font-size: var(--sl-text-xs); }
+	.pcx-lab .pcx-code ol { margin: 0.2rem 0 0; padding: 0; list-style: none; direction: ltr; text-align: left; font-family: var(--sl-font-system-mono); }
+	.pcx-lab .pcx-code li { padding: 0.05rem 0.3rem; border-radius: 0.2rem; }
+	.pcx-lab .pcx-code li.k { color: #e0a030; }
+	.pcx-lab .pcx-code li.bad { color: #e5534b; }
+	.pcx-lab .pcx-code li .c { color: var(--sl-color-gray-3); font-family: var(--sl-font); }
+	.pcx-lab .pcx-stage { position: relative; display: grid; grid-template-columns: auto 1fr auto; gap: 0.5rem; align-items: center; padding: 0.6rem; border-radius: 0.6rem; background: var(--sl-color-gray-6); overflow: hidden; }
+	.pcx-lab .pcx-actor { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; width: 5.2rem; text-align: center; }
+	.pcx-lab .pcx-actor span { font-size: 1.8rem; line-height: 1; }
+	.pcx-lab .pcx-actor small { font-size: 0.68rem; line-height: 1.2; min-height: 2.4em; }
+	.pcx-lab .pcx-actor.wait small { color: #e0a030; font-weight: 700; }
+	.pcx-lab .pcx-buf { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.35rem; }
+	.pcx-lab .pcx-slot { position: relative; height: 3.2rem; border-radius: 0.45rem; border: 2px solid var(--sl-color-gray-4); background: var(--sl-color-black); display: grid; place-items: center; font: 700 1.1rem/1 var(--sl-font-system-mono); min-width: 0; }
+	.pcx-lab .pcx-slot.full { border-color: #3a9ec2; background: #3a9ec22e; }
+	.pcx-lab .pcx-slot.boom { border-color: #e5534b; background: #e5534b33; animation: pcx-shake 0.45s; }
+	.pcx-lab .pcx-slot i { position: absolute; font-style: normal; font: 600 0.62rem/1 var(--sl-font); color: var(--sl-color-gray-2); }
+	.pcx-lab .pcx-slot i.in { top: -0.95rem; } .pcx-lab .pcx-slot i.out { bottom: -0.95rem; }
+	@keyframes pcx-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+	.pcx-lab .pcx-dead { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.4rem; font-weight: 700; color: #fff; background: rgba(229, 83, 75, 0.75); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+	.pcx-lab .pcx-stage.dead .pcx-dead { opacity: 1; }
+	.pcx-lab .pcx-sems { display: flex; flex-wrap: wrap; gap: 0.4rem; font-size: var(--sl-text-sm); }
+	.pcx-lab .pcx-sems span { padding: 0.15rem 0.55rem; border-radius: 0.35rem; border: 1px solid var(--sl-color-gray-4); direction: ltr; font-family: var(--sl-font-system-mono); }
+	.pcx-lab .pcx-sems span.zero { border-color: #e0a030; color: #e0a030; }
+	.pcx-lab .pcx-count { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+	.pcx-lab .pcx-count .wl-out strong { font-size: 1.1rem; }
+</style>
+
+<script>
+	import { prodCons, type PcMode, type PcSnap } from '../../scripts/os1';
+
+	const CODE: Record<PcMode, { p: [string, string][]; c: [string, string][] }> = {
+		none: {
+			p: [['buffer[in] = item', ''], ['in = (in + 1) % 4', '']],
+			c: [['item = buffer[out]', ''], ['out = (out + 1) % 4', '']],
+		},
+		sem: {
+			p: [['wait(empty)', 'k'], ['wait(mutex)', 'k'], ['buffer[in] = item', ''], ['in = (in + 1) % 4', ''], ['signal(mutex)', 'k'], ['signal(full)', 'k']],
+			c: [['wait(full)', 'k'], ['wait(mutex)', 'k'], ['item = buffer[out]', ''], ['out = (out + 1) % 4', ''], ['signal(mutex)', 'k'], ['signal(empty)', 'k']],
+		},
+		wrong: {
+			p: [['wait(mutex)', 'bad'], ['wait(empty)', 'bad'], ['buffer[in] = item', ''], ['in = (in + 1) % 4', ''], ['signal(mutex)', 'k'], ['signal(full)', 'k']],
+			c: [['wait(full)', 'k'], ['wait(mutex)', 'k'], ['item = buffer[out]', ''], ['out = (out + 1) % 4', ''], ['signal(mutex)', 'k'], ['signal(empty)', 'k']],
+		},
+	};
+	const TICKS = 24;
+
+	document.querySelectorAll<HTMLElement>('[data-pcx-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let mode: PcMode = 'none';
+		let snaps: PcSnap[] = [];
+		let pos = 0;
+		let timer = 0;
+
+		function compute() {
+			stop();
+			const [p, c] = (root.querySelector('[data-in="speed"]') as HTMLSelectElement).value.split(',').map(Number);
+			snaps = prodCons(mode, 4, p, c, TICKS);
+			pos = 0;
+			const code = CODE[mode];
+			out('pcode').innerHTML = code.p.map(([l, k]) => `<li class="${k}">${l}</li>`).join('');
+			out('ccode').innerHTML = code.c.map(([l, k]) => `<li class="${k}">${l}</li>`).join('');
+			draw();
+		}
+
+		function draw() {
+			const s = snaps[pos];
+			const prev = snaps[Math.max(0, pos - 1)];
+			const boom = pos > 0 && s.lost > prev.lost;
+			out('buf').innerHTML = s.buf
+				.map((v, i) => {
+					const marks = (i === s.inP ? '<i class="in">⬇ in</i>' : '') + (i === s.outP ? '<i class="out">⬆ out</i>' : '');
+					const isBoom = boom && i === (s.inP + 3) % 4;
+					return `<div class="pcx-slot${v !== null ? ' full' : ''}${isBoom ? ' boom' : ''}">${v ?? ''}${marks}</div>`;
+				})
+				.join('');
+			out('pstate').textContent = s.pState;
+			out('cstate').textContent = s.cState;
+			root.querySelectorAll('.pcx-actor')[0].classList.toggle('wait', s.pState !== 'يعمل');
+			root.querySelectorAll('.pcx-actor')[1].classList.toggle('wait', s.cState !== 'يعمل');
+			out('stage').classList.toggle('dead', s.dead);
+			out('sems').innerHTML =
+				mode === 'none'
+					? '<span class="se-note" style="border:0;font-family:inherit;direction:rtl">لا توجد إشارات ولا قفل.</span>'
+					: (['empty', 'full', 'mutex'] as const).map((k) => `<span class="${s[k] === 0 ? 'zero' : ''}">${k} = ${s[k]}</span>`).join('');
+			out('t').textContent = String(s.t);
+			out('made').textContent = String(s.made);
+			out('eaten').textContent = String(s.eaten);
+			out('lost').textContent = String(s.lost);
+			out('junk').textContent = String(s.junk);
+			const m = out('msg');
+			const end = pos >= snaps.length - 1;
+			(root.querySelector('[data-act="step"]') as HTMLButtonElement).disabled = end;
+			if (s.dead) {
+				m.className = 'wl-msg wl-bad';
+				m.textContent = `🔒 ${s.note}`;
+			} else if (s.note && !end) {
+				m.className = 'wl-msg wl-bad';
+				m.textContent = `✘ ${s.note}`;
+			} else if (end) {
+				const bad = s.lost + s.junk;
+				m.className = bad ? 'wl-msg wl-bad' : 'wl-msg wl-good';
+				m.textContent = bad
+					? `✘ بعد ${s.t} لحظة: ضاع ${s.lost}، وقُرئ من فارغ ${s.junk} مرة. لا شيء يمنع المنتج من الكتابة فوق الممتلئ، ولا المستهلك من القراءة من الفارغ.`
+					: `✔ بعد ${s.t} لحظة: لم يضع شيء. ينتظر الأسرع عندما يمتلئ المخزن أو يفرغ، بفضل empty و full، و mutex يمنع أن يلمسا المخزن معاً.`;
+			} else m.textContent = '';
+		}
+
+		function stop() {
+			clearInterval(timer);
+			timer = 0;
+			(root.querySelector('[data-act="play"]') as HTMLButtonElement).textContent = '▶ شغّل';
+		}
+		root.querySelector('[data-act="play"]')!.addEventListener('click', (e) => {
+			if (timer) return stop();
+			if (pos >= snaps.length - 1) pos = 0;
+			(e.currentTarget as HTMLButtonElement).textContent = '⏸ أوقف';
+			const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
+			timer = window.setInterval(() => {
+				pos++;
+				if (pos >= snaps.length - 1) stop();
+				draw();
+			}, fast ? 60 : 500);
+		});
+		root.querySelector('[data-act="step"]')!.addEventListener('click', () => {
+			stop();
+			pos = Math.min(snaps.length - 1, pos + 1);
+			draw();
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', () => {
+			stop();
+			pos = 0;
+			draw();
+		});
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+			b.addEventListener('click', () => {
+				mode = b.dataset.mode as PcMode;
+				root.querySelectorAll('[data-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				compute();
+			}),
+		);
+		root.querySelector('[data-in="speed"]')!.addEventListener('change', compute);
+		compute();
+	});
+</script>

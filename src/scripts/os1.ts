@@ -450,3 +450,88 @@ export const SCHED_SETS = {
 	solved: mk([[0, 5, 2], [1, 3, 1], [2, 1, 3], [3, 2, 2]]),
 };
 export const SCHED_NAMES: Record<SchedAlgo, string> = { fcfs: 'FCFS', sjf: 'SJF', srtf: 'SRTF', rr: 'RR', prio: 'أولوية', pprio: 'أولوية مع مقاطعة' };
+
+// ===== التزامن (الجلسة 5) =====
+// خيطان، كل واحد بيعمل x = x + 1 عدد n من المرات، وكل زيادة 3 خطوات: يقرأ، يجمع، يكتب.
+// مع القفل: قبل القراءة «يقفل» وبعد الكتابة «يفتح» (5 خطوات)، والقفل المسكّر بيخلي الخطوة «انتظار» بدون تقدّم.
+export type RaceOp = 'lock' | 'read' | 'add' | 'write' | 'unlock';
+export const raceProgram = (n: number, locked: boolean): RaceOp[] =>
+	Array.from({ length: n }, () => (locked ? ['lock', 'read', 'add', 'write', 'unlock'] : ['read', 'add', 'write']) as RaceOp[]).flat();
+export interface RaceState { x: number; pc: [number, number]; reg: [number, number]; lock: number } // lock: 0 فاضي، 1 أو 2 مع مين
+export const raceStart = (): RaceState => ({ x: 0, pc: [0, 0], reg: [0, 0], lock: 0 });
+/** خطوة لخيط t (0 أو 1). بترجع false إذا الخيط انتظر (القفل مع غيره) أو خلص */
+export function raceStep(s: RaceState, prog: RaceOp[], t: 0 | 1): boolean {
+	if (s.pc[t] >= prog.length) return false;
+	const op = prog[s.pc[t]];
+	if (op === 'lock') {
+		if (s.lock && s.lock !== t + 1) return false;
+		s.lock = t + 1;
+	} else if (op === 'read') s.reg[t] = s.x;
+	else if (op === 'add') s.reg[t] += 1;
+	else if (op === 'write') s.x = s.reg[t];
+	else s.lock = 0;
+	s.pc[t]++;
+	return true;
+}
+/** تشغيل عشوائي: بكل خطوة منختار خيط عشوائي من يلي بيقدروا يتقدموا. بيرجع x النهائية */
+export function raceRandom(n: number, locked: boolean, rnd: () => number = Math.random): number {
+	const prog = raceProgram(n, locked);
+	const s = raceStart();
+	for (let guard = 0; guard < 10000; guard++) {
+		const can = ([0, 1] as const).filter((t) => s.pc[t] < prog.length && !(prog[s.pc[t]] === 'lock' && s.lock && s.lock !== t + 1));
+		if (!can.length) break;
+		raceStep(s, prog, can[Math.floor(rnd() * can.length)]);
+	}
+	return s.x;
+}
+
+// المنتج والمستهلك على مخزن فيه size خانات. كل لحظة: المنتج بيتحرك كل pEvery لحظة، والمستهلك كل cEvery لحظة.
+// mode: 'none' بلا حماية (بيكتب فوق الممتلئ وبيقرأ من الفاضي)، 'sem' بالإشارات الصحيحة، 'wrong' المنتج بيقفل mutex قبل empty (جمود لما يمتلئ).
+export type PcMode = 'none' | 'sem' | 'wrong';
+export interface PcSnap { t: number; buf: (number | null)[]; inP: number; outP: number; empty: number; full: number; mutex: number; made: number; eaten: number; lost: number; junk: number; pState: string; cState: string; dead: boolean; note: string }
+export function prodCons(mode: PcMode, size: number, pEvery: number, cEvery: number, ticks: number): PcSnap[] {
+	const buf: (number | null)[] = new Array(size).fill(null);
+	let inP = 0, outP = 0, empty = size, full = 0, mutex = 1, made = 0, eaten = 0, lost = 0, junk = 0;
+	// المنتج: 0 ينتج، 1 بيستنى empty (أو mutex بالترتيب الغلط)، ... منستخدم مراحل بسيطة
+	let pStage = 0, cStage = 0;
+	let pState = 'يعمل', cState = 'يعمل', dead = false;
+	const out: PcSnap[] = [];
+	const snap = (t: number, note: string) => out.push({ t, buf: [...buf], inP, outP, empty, full, mutex, made, eaten, lost, junk, pState, cState, dead, note });
+	snap(0, 'البداية: المخزن فارغ.');
+	for (let t = 1; t <= ticks && !dead; t++) {
+		let note = '';
+		if (t % pEvery === 0 || pStage > 0) {
+			if (mode === 'none') {
+				if (buf[inP] !== null) { lost++; note = `المنتج كتب فوق عنصر لم يُستهلك بعد (ضاع رقم ${buf[inP]})`; }
+				buf[inP] = ++made; inP = (inP + 1) % size; pState = 'يعمل';
+			} else if (mode === 'sem') {
+				if (empty === 0) { pState = 'ينتظر خانة فارغة'; pStage = 1; }
+				else { empty--; buf[inP] = ++made; inP = (inP + 1) % size; full++; pState = 'يعمل'; pStage = 0; }
+			} else {
+				// الترتيب الغلط: wait(mutex) ثم wait(empty)
+				if (pStage === 0) { if (mutex === 1) { mutex = 0; pStage = 1; } }
+				if (pStage === 1) {
+					if (empty === 0) { pState = 'يحمل القفل وينتظر خانة فارغة'; }
+					else { empty--; buf[inP] = ++made; inP = (inP + 1) % size; full++; mutex = 1; pStage = 0; pState = 'يعمل'; }
+				}
+			}
+		}
+		if (t % cEvery === 0 || cStage > 0) {
+			if (mode === 'none') {
+				if (buf[outP] === null) { junk++; note = 'المستهلك قرأ من خانة فارغة (قيمة لا معنى لها)'; }
+				else { buf[outP] = null; eaten++; }
+				outP = (outP + 1) % size; cState = 'يعمل';
+			} else {
+				if (full === 0) { cState = 'ينتظر عنصراً'; cStage = 1; }
+				else if (mutex === 0) { cState = 'ينتظر القفل'; cStage = 1; }
+				else { full--; buf[outP] = null; outP = (outP + 1) % size; eaten++; empty++; cState = 'يعمل'; cStage = 0; }
+			}
+		}
+		if (mode === 'wrong' && mutex === 0 && empty === 0 && pStage === 1 && cStage === 1 && cState === 'ينتظر القفل') {
+			dead = true;
+			note = 'جمود: المنتج يحمل القفل وينتظر خانة فارغة، والمستهلك ينتظر القفل ليفرغ خانة. لن يتحرك أحد أبداً.';
+		}
+		snap(t, note);
+	}
+	return out;
+}

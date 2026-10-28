@@ -1,0 +1,108 @@
+---
+// «موقف السيارات» (الجلسة 5): إشارة عدّادة S = 3 (عدد الأماكن). وصول سيارة = wait(S)، ومغادرتها = signal(S).
+// wait: إذا S > 0 بتنقص وبتدخل، وإلا بتوقف بالطابور. signal: إذا في سيارة بالطابور بتدخل مكانها (و S ما بتتغيّر)، وإلا S بتزيد.
+// سجل العمليات بيطلع جدول متل جداول المسائل المحلولة.
+---
+
+<div class="not-content wl-box pk-lab" data-pk-lab>
+	<h4>🅿️ موقف السيارات: إشارة عدّادة</h4>
+	<p class="se-hint">في الموقف <strong>3 أماكن</strong>، والإشارة <code>S</code> تعدّ الأماكن الفارغة. اضغط «تصل سيارة» لتنفّذ <code>wait(S)</code>، واضغط على سيارة في الموقف لتغادر وتنفّذ <code>signal(S)</code>.</p>
+	<div class="pk-top">
+		<div class="pk-s">S = <strong data-out="s">3</strong></div>
+		<button type="button" class="wl-btn primary" data-act="arrive">🚗 تصل سيارة</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من البداية</button>
+	</div>
+	<div class="pk-lot" data-out="lot"></div>
+	<div class="pk-queue"><span>⏳ الطابور (محجوبة):</span><div data-out="queue"></div></div>
+	<p class="wl-msg" data-out="msg"></p>
+	<div class="wl-scroll">
+		<table class="wl-table pk-log"><thead><tr><th>#</th><th>العملية</th><th>S بعدها</th><th>ماذا حدث؟</th></tr></thead><tbody data-out="log"></tbody></table>
+	</div>
+</div>
+
+<style is:global>
+	.pk-lab .pk-top { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+	.pk-lab .pk-s { font: 700 1.2rem/1 var(--sl-font-system-mono); direction: ltr; padding: 0.4rem 0.8rem; border-radius: 0.5rem; border: 2px solid var(--sl-color-accent); }
+	.pk-lab .pk-lot { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+	.pk-lab .pk-spot { all: unset; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; height: 4.5rem; border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
+	.pk-lab .pk-spot.busy { cursor: pointer; border-style: solid; border-color: #2fb36b; background: #2fb36b22; color: var(--sl-color-white); animation: pk-in 0.4s ease-out; }
+	.pk-lab .pk-spot.busy:hover { background: #e5534b22; border-color: #e5534b; }
+	.pk-lab .pk-spot .e { font-size: 1.6rem; line-height: 1; }
+	@keyframes pk-in { from { transform: translateY(-10px); opacity: 0; } }
+	.pk-lab .pk-queue { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; font-size: var(--sl-text-sm); min-height: 2rem; }
+	.pk-lab .pk-queue div { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+	.pk-lab .pk-queue i { font-style: normal; padding: 0.15rem 0.5rem; border-radius: 99px; background: #e0a03033; border: 1px solid #e0a030; animation: pk-in 0.4s ease-out; }
+	.pk-lab .pk-log td { text-align: center; font-size: var(--sl-text-sm); }
+	.pk-lab .pk-log td:last-child { text-align: start; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-pk-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let S = 3;
+		let spots: (number | null)[] = [null, null, null];
+		let queue: number[] = [];
+		let next = 1;
+		let log: string[] = [];
+
+		function add(op: string, what: string) {
+			log.push(`<tr><td>${log.length + 1}</td><td><code dir="ltr">${op}</code></td><td>${S}</td><td>${what}</td></tr>`);
+		}
+		function draw() {
+			out('s').textContent = String(S);
+			out('lot').innerHTML = spots
+				.map((c, i) => (c === null ? `<div class="pk-spot"><span>مكان ${i + 1}</span><span>فارغ</span></div>` : `<button type="button" class="pk-spot busy" data-spot="${i}" title="اضغط لتغادر"><span class="e">🚗</span><span>سيارة ${c}</span></button>`))
+				.join('');
+			out('queue').innerHTML = queue.length ? queue.map((c) => `<i>سيارة ${c}</i>`).join('') : '<span class="se-note">فارغ</span>';
+			out('log').innerHTML = log.join('');
+		}
+		function reset() {
+			S = 3;
+			spots = [null, null, null];
+			queue = [];
+			next = 1;
+			log = [];
+			out('msg').textContent = '';
+			draw();
+		}
+		root.querySelector('[data-act="arrive"]')!.addEventListener('click', () => {
+			if (next > 9) return;
+			const c = next++;
+			const m = out('msg');
+			m.className = 'wl-msg';
+			if (S > 0) {
+				S--;
+				spots[spots.indexOf(null)] = c;
+				add(`wait(S)`, `سيارة ${c} دخلت`);
+				m.textContent = `wait(S): كانت S أكبر من 0، فنقصت إلى ${S} ودخلت سيارة ${c}.`;
+			} else {
+				queue.push(c);
+				add(`wait(S)`, `سيارة ${c} حُجبت في الطابور`);
+				m.textContent = `wait(S): S = 0، فلا مكان. سيارة ${c} حُجبت في الطابور، ولا تستهلك شيئاً وهي تنتظر.`;
+			}
+			draw();
+		});
+		root.addEventListener('click', (e) => {
+			const b = (e.target as HTMLElement).closest<HTMLElement>('[data-spot]');
+			if (!b) return;
+			const i = +b.dataset.spot!;
+			const c = spots[i]!;
+			const m = out('msg');
+			m.className = 'wl-msg';
+			if (queue.length) {
+				const w = queue.shift()!;
+				spots[i] = w;
+				add(`signal(S)`, `سيارة ${c} غادرت، وأيقظت سيارة ${w} فدخلت`);
+				m.textContent = `signal(S): غادرت سيارة ${c}. وبما أن في الطابور من ينتظر، دخلت سيارة ${w} مكانها مباشرة، وبقيت S = ${S}.`;
+			} else {
+				spots[i] = null;
+				S++;
+				add(`signal(S)`, `سيارة ${c} غادرت`);
+				m.textContent = `signal(S): غادرت سيارة ${c}، ولا أحد ينتظر، فزادت S إلى ${S}.`;
+			}
+			draw();
+		});
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', reset);
+		reset();
+	});
+</script>

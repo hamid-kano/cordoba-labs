@@ -1,0 +1,178 @@
+---
+// «أنت المجدول» (الجلسة 5، التزامن): خيطان، كل واحد بيزيد x تلات مرات (يقرأ، يجمع، يكتب).
+// الطالب بيختار مين يتقدّم بكل خطوة، فبيقدر يصنع حالة السباق بإيده، ومع القفل بيشوف إنه ما في طريقة يخرّبها.
+// وفي زر «شغّل 1000 مرة» بترتيب عشوائي ورسم توزيع النتائج. المنطق بـ os1.ts (raceProgram، raceStep، raceRandom).
+---
+
+<div class="not-content wl-box rc-lab" data-rc-lab>
+	<h4>🏁 أنت المجدول: اصنع حالة سباق</h4>
+	<p class="se-hint">المتغير المشترك <code>x = 0</code>. كل خيط ينفّذ <code>x = x + 1</code> <strong>3 مرات</strong>، فيجب أن تكون النتيجة <strong>6</strong>. وكل زيادة 3 خطوات: يقرأ x إلى مسجّله، ثم يجمع، ثم يكتب. أنت تختار من يتقدّم في كل خطوة.</p>
+
+	<div class="wl-row" role="group" aria-label="الحماية">
+		<button type="button" class="wl-btn" data-mode="0" aria-pressed="true">بدون قفل</button>
+		<button type="button" class="wl-btn" data-mode="1" aria-pressed="false">🔒 مع قفل</button>
+	</div>
+
+	<div class="rc-stage">
+		<div class="rc-th" data-th="0">
+			<b>🧵 الخيط 1</b>
+			<ol class="rc-code" data-out="code0"></ol>
+			<span class="rc-reg">المسجّل: <strong data-out="reg0">0</strong></span>
+			<button type="button" class="wl-btn primary" data-step="0">تقدّم خطوة ▶</button>
+		</div>
+		<div class="rc-mid">
+			<span class="se-note">الذاكرة المشتركة</span>
+			<div class="rc-x" data-out="x">x = 0</div>
+			<span class="rc-lock" data-out="lock"></span>
+		</div>
+		<div class="rc-th" data-th="1">
+			<b>🧵 الخيط 2</b>
+			<ol class="rc-code" data-out="code1"></ol>
+			<span class="rc-reg">المسجّل: <strong data-out="reg1">0</strong></span>
+			<button type="button" class="wl-btn primary" data-step="1">تقدّم خطوة ▶</button>
+		</div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-act="reset">↺ من البداية</button>
+		<span class="se-note">التحدّي: اجعل x النهائية <strong>أصغر ما يمكن</strong>. أقل نتيجة وصلت إليها: <strong data-out="best">–</strong></span>
+	</div>
+
+	<div class="rc-hist">
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-act="many">🎲 شغّل 1000 مرة بترتيب عشوائي</button>
+			<span class="se-note" data-out="manynote"></span>
+		</div>
+		<div class="rc-bars" data-out="hist" dir="ltr"></div>
+	</div>
+</div>
+
+<style is:global>
+	.rc-lab .rc-stage { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: start; }
+	.rc-lab .rc-th { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.5rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); min-width: 0; }
+	.rc-lab .rc-th.wait { box-shadow: inset 0 0 0 2px #e0a030; }
+	.rc-lab .rc-code { position: relative; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.72rem; max-height: 13rem; overflow-y: auto; }
+	.rc-lab .rc-code li { flex-shrink: 0; padding: 0.12rem 0.35rem; border-radius: 0.25rem; color: var(--sl-color-gray-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.rc-lab .rc-code li.done { color: var(--sl-color-gray-4); text-decoration: line-through; }
+	.rc-lab .rc-code li.next { background: var(--sl-color-accent-low); color: var(--sl-color-white); font-weight: 700; }
+	.rc-lab .rc-code li.lk { color: #e0a030; }
+	.rc-lab .rc-reg { font-size: var(--sl-text-sm); }
+	.rc-lab .rc-th .wl-btn { font-size: var(--sl-text-sm); padding-inline: 0.4rem; }
+	.rc-lab .rc-mid { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; padding-top: 1.5rem; }
+	.rc-lab .rc-x { font: 700 1.25rem/1 var(--sl-font-system-mono); direction: ltr; padding: 0.5rem 0.6rem; border-radius: 0.5rem; border: 2px solid var(--sl-color-accent); background: var(--sl-color-black); white-space: nowrap; }
+	.rc-lab .rc-x.pop { animation: rc-pop 0.4s ease-out; }
+	@keyframes rc-pop { from { transform: scale(1.25); background: var(--sl-color-accent-low); } }
+	.rc-lab .rc-lock { font-size: 1.3rem; min-height: 1.5rem; }
+	.rc-lab .rc-hist { display: flex; flex-direction: column; gap: 0.4rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); }
+	.rc-lab .rc-bars { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.4rem; align-items: end; height: 8rem; }
+	.rc-lab .rc-bars:empty { display: none; }
+	.rc-lab .rc-bar { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; font: 0.7rem/1.1 sans-serif; }
+	.rc-lab .rc-bar i { display: block; width: 100%; border-radius: 0.3rem 0.3rem 0 0; background: #e5534b; transition: height 0.5s; min-height: 2px; }
+	.rc-lab .rc-bar.ok i { background: #2fb36b; }
+	.rc-lab .rc-bar b { margin-top: 0.15rem; }
+	@media (max-width: 30rem) {
+		.rc-lab .rc-stage { grid-template-columns: 1fr 1fr; }
+		.rc-lab .rc-mid { grid-column: 1 / -1; grid-row: 1; flex-direction: row; justify-content: center; padding-top: 0; }
+	}
+</style>
+
+<script>
+	import { raceProgram, raceStart, raceStep, raceRandom, type RaceOp, type RaceState } from '../../scripts/os1';
+
+	const TXT: Record<RaceOp, string> = { lock: '🔒 اطلب القفل', read: 'اقرأ x', add: 'اجمع 1', write: 'اكتب x', unlock: '🔓 أعد القفل' };
+	document.querySelectorAll<HTMLElement>('[data-rc-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let locked = false;
+		let prog: RaceOp[] = raceProgram(3, false);
+		let s: RaceState = raceStart();
+		let best = Infinity;
+
+		function draw(popX = false) {
+			for (const t of [0, 1] as const) {
+				out(`code${t}`).innerHTML = prog
+					.map((op, i) => `<li class="${i < s.pc[t] ? 'done' : i === s.pc[t] ? 'next' : ''}${op === 'lock' || op === 'unlock' ? ' lk' : ''}">${TXT[op]}</li>`)
+					.join('');
+				out(`reg${t}`).textContent = String(s.reg[t]);
+				const fin = s.pc[t] >= prog.length;
+				const btn = root.querySelector<HTMLButtonElement>(`[data-step="${t}"]`)!;
+				btn.disabled = fin;
+				btn.textContent = fin ? '✔ انتهى' : 'تقدّم خطوة ▶';
+				const waiting = !fin && prog[s.pc[t]] === 'lock' && s.lock && s.lock !== t + 1;
+				root.querySelector(`[data-th="${t}"]`)!.classList.toggle('wait', !!waiting);
+				const next = out(`code${t}`).querySelector('.next');
+				// منحرّك القائمة لحالها بس (scrollIntoView كان بيحرّك الصفحة كلها)
+				if (next) out(`code${t}`).scrollTop = Math.max(0, (next as HTMLElement).offsetTop - 40);
+			}
+			const x = out('x');
+			x.textContent = `x = ${s.x}`;
+			if (popX) {
+				x.classList.remove('pop');
+				void x.offsetWidth;
+				x.classList.add('pop');
+			}
+			out('lock').textContent = s.lock ? `🔒 مع الخيط ${s.lock}` : locked ? '🔓 مفتوح' : '';
+			const done = s.pc[0] >= prog.length && s.pc[1] >= prog.length;
+			const m = out('msg');
+			if (!done) return;
+			best = Math.min(best, s.x);
+			out('best').textContent = String(best);
+			if (s.x === 6) {
+				m.className = 'wl-msg wl-good';
+				m.textContent = locked ? '✔ x = 6 دائماً مع القفل: جرّب أي ترتيب، لن تستطيع أن تُضيع زيادة.' : '✔ x = 6: هذه المرة لم يتداخل الخيطان في وقت خطر. جرّب ترتيباً آخر.';
+			} else {
+				m.className = 'wl-msg wl-bad';
+				m.textContent = `✘ x = ${s.x} بدل 6! ضاعت ${6 - s.x} ${6 - s.x === 1 ? 'زيادة' : 'زيادات'}: قرأ خيطٌ قيمة قديمة، ثم كتب فوق ما كتبه الآخر.${s.x === 2 ? ' وهذه أصغر نتيجة ممكنة!' : ''}`;
+			}
+		}
+
+		function reset() {
+			prog = raceProgram(3, locked);
+			s = raceStart();
+			out('msg').textContent = 'اضغط «تقدّم خطوة» للخيط الذي تريده.';
+			out('msg').className = 'wl-msg';
+			draw();
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-step]').forEach((b) =>
+			b.addEventListener('click', () => {
+				const t = +b.dataset.step! as 0 | 1;
+				const op = prog[s.pc[t]];
+				const ok = raceStep(s, prog, t);
+				if (!ok) {
+					const m = out('msg');
+					m.className = 'wl-msg';
+					m.textContent = `⏳ الخيط ${t + 1} ينتظر: القفل مع الخيط ${s.lock}. يجب أن يكمل ذاك ويعيد القفل أولاً.`;
+					draw();
+					return;
+				}
+				out('msg').className = 'wl-msg';
+				out('msg').textContent = op === 'read' ? `الخيط ${t + 1} قرأ ${s.reg[t]}.` : op === 'write' ? `الخيط ${t + 1} كتب ${s.x}.` : '';
+				draw(op === 'write');
+			}),
+		);
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+			b.addEventListener('click', () => {
+				locked = b.dataset.mode === '1';
+				root.querySelectorAll('[data-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				best = Infinity;
+				out('best').textContent = '–';
+				out('hist').innerHTML = '';
+				out('manynote').textContent = '';
+				reset();
+			}),
+		);
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', reset);
+		root.querySelector('[data-act="many"]')!.addEventListener('click', () => {
+			const h = [0, 0, 0, 0, 0, 0, 0];
+			for (let i = 0; i < 1000; i++) h[raceRandom(3, locked)]++;
+			const max = Math.max(...h);
+			out('hist').innerHTML = [2, 3, 4, 5, 6]
+				.map((v) => `<div class="rc-bar${v === 6 ? ' ok' : ''}"><span>${h[v]}</span><i style="height:${(h[v] / max) * 80}%"></i><b>x = ${v}</b></div>`)
+				.join('');
+			out('manynote').textContent = locked
+				? `مع القفل: ${h[6]} من 1000 كانت 6.`
+				: `بدون قفل: ${h[6]} فقط من 1000 كانت صحيحة (6). والباقي خطأ. وكل ضغطة تعطي أرقاماً مختلفة قليلاً.`;
+		});
+		reset();
+	});
+</script>
