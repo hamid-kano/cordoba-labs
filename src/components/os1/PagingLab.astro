@@ -1,0 +1,142 @@
+---
+// «مترجم العناوين» (الجلسة 7): الصفحة 1024 بايت، والبرنامج 8 صفحات (العناوين 0 لـ 8191)، والذاكرة 16 إطار.
+// الطالب بيكتب عنوان منطقي، وبتطلع خطوات الترجمة: البتات (3 للصفحة و 10 للإزاحة)، و p و d، وسطر جدول الصفحات، والعنوان الفيزيائي.
+// وتحت: TLB بـ 4 خانات (LRU)، كل ترجمة hit أو miss، ومتوسط زمن الوصول من النسبة الحقيقية (الذاكرة 10 ns).
+// المنطق بـ os1.ts (translate، PAGE_TABLE، tlbRun، eat).
+---
+
+<div class="not-content wl-box pg-lab" data-pg-lab>
+	<h4>🔢 مترجم العناوين</h4>
+	<p class="se-hint">حجم الصفحة <bdi dir="ltr">1024</bdi> بايت. البرنامج <strong>8 صفحات</strong> (العناوين من 0 إلى 8191)، والذاكرة الحقيقية <strong>16 إطاراً</strong>.</p>
+	<div class="wl-row">
+		<label class="pg-in">العنوان المنطقي <input class="wl-input" type="number" min="0" max="9999" value="3000" data-in="addr" /></label>
+		<button type="button" class="wl-btn primary" data-act="go">ترجم ←</button>
+		<button type="button" class="wl-btn" data-ex="5000">5000</button>
+		<button type="button" class="wl-btn" data-ex="1024">1024</button>
+		<button type="button" class="wl-btn" data-ex="9000">9000</button>
+	</div>
+
+	<div class="pg-bits" data-out="bits" dir="ltr"></div>
+	<ol class="pg-steps" data-out="steps"></ol>
+
+	<div class="pg-map" dir="ltr">
+		<div><b>الصفحات</b><div class="pg-col" data-out="pages"></div></div>
+		<div><b>جدول الصفحات</b><div class="pg-col" data-out="table"></div></div>
+		<div><b>الإطارات</b><div class="pg-col pg-frames" data-out="frames"></div></div>
+	</div>
+
+	<div class="pg-tlb">
+		<b>⚡ الذاكرة السريعة للترجمات: 4 خانات</b>
+		<div class="pg-tlbrow" data-out="tlb" dir="ltr"></div>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-act="seq">🔁 16 عنواناً متتالياً</button>
+			<button type="button" class="wl-btn" data-act="jump">🔀 قفزات بين 8 صفحات</button>
+			<button type="button" class="wl-btn" data-act="clear">↺ صفّر</button>
+		</div>
+		<div class="pg-hist" data-out="hist" dir="ltr"></div>
+		<div class="wl-grid">
+			<div class="wl-out"><span>نسبة الإصابة</span><strong data-out="rate">–</strong></div>
+			<div class="wl-out"><span>متوسط زمن الوصول</span><strong data-out="eat">–</strong></div>
+		</div>
+	</div>
+</div>
+
+<style is:global>
+	.pg-lab .pg-in { display: inline-flex; align-items: center; gap: 0.4rem; font-size: var(--sl-text-sm); }
+	.pg-lab .pg-in input { width: 6rem; }
+	.pg-lab .pg-bits { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; font: 700 1rem/1 var(--sl-font-system-mono); }
+	.pg-lab .pg-bits span { display: grid; place-items: center; width: 1.25rem; height: 1.7rem; border-radius: 0.2rem; }
+	.pg-lab .pg-bits .p { background: #e0a030; color: #111; }
+	.pg-lab .pg-bits .d { background: #3a9ec2; color: #111; }
+	.pg-lab .pg-bits .gap { width: 0.4rem; background: none; }
+	.pg-lab .pg-bits small { width: 100%; text-align: center; font: 0.68rem/1.2 var(--sl-font); color: var(--sl-color-gray-3); }
+	.pg-lab .pg-steps { margin: 0; padding-inline-start: 1.3rem; font-size: var(--sl-text-sm); display: flex; flex-direction: column; gap: 0.2rem; }
+	.pg-lab .pg-steps li { animation: pg-in 0.35s ease-out both; }
+	.pg-lab .pg-steps li:nth-child(2) { animation-delay: 0.25s; } .pg-lab .pg-steps li:nth-child(3) { animation-delay: 0.5s; } .pg-lab .pg-steps li:nth-child(4) { animation-delay: 0.75s; }
+	@keyframes pg-in { from { opacity: 0; transform: translateY(-4px); } }
+	.pg-lab .pg-map { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 0.5rem; font-size: 0.7rem; }
+	.pg-lab .pg-map b { display: block; text-align: center; margin-bottom: 0.25rem; direction: rtl; }
+	.pg-lab .pg-col { display: flex; flex-direction: column; gap: 2px; }
+	.pg-lab .pg-frames { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+	.pg-lab .pg-col span { padding: 0.2rem 0.3rem; border-radius: 0.25rem; background: var(--sl-color-gray-6); font-family: var(--sl-font-system-mono); text-align: center; white-space: nowrap; transition: background 0.3s; }
+	.pg-lab .pg-col span.used { background: var(--sl-color-gray-5); }
+	.pg-lab .pg-col span.on { background: #e0a030; color: #111; font-weight: 700; }
+	.pg-lab .pg-col span.onf { background: #2fb36b; color: #111; font-weight: 700; }
+	.pg-lab .pg-tlb { display: flex; flex-direction: column; gap: 0.4rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); font-size: var(--sl-text-sm); }
+	.pg-lab .pg-tlbrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.3rem; }
+	.pg-lab .pg-tlbrow span { padding: 0.3rem; border-radius: 0.3rem; border: 1px dashed var(--sl-color-gray-4); text-align: center; font-family: var(--sl-font-system-mono); font-size: 0.75rem; }
+	.pg-lab .pg-tlbrow span.full { border-style: solid; border-color: #c3a6f5; background: #c3a6f522; }
+	.pg-lab .pg-hist { display: flex; flex-wrap: wrap; gap: 3px; }
+	.pg-lab .pg-hist i { font-style: normal; display: grid; place-items: center; min-width: 1.6rem; height: 1.6rem; border-radius: 0.25rem; font: 700 0.7rem/1 var(--sl-font-system-mono); color: #111; background: #e5534b; animation: pg-in 0.3s ease-out; }
+	.pg-lab .pg-hist i.hit { background: #2fb36b; }
+</style>
+
+<script>
+	import { translate, PAGE_TABLE, tlbRun, eat } from '../../scripts/os1';
+
+	const SIZE = 1024;
+	const n = (x: number | string) => `<bdi dir="ltr">${x}</bdi>`;
+	document.querySelectorAll<HTMLElement>('[data-pg-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		const inp = root.querySelector<HTMLInputElement>('[data-in="addr"]')!;
+		let hist: number[] = []; // أرقام الصفحات يلي انترجمت (للـ TLB)
+
+		function map(p: number, f: number) {
+			out('pages').innerHTML = PAGE_TABLE.map((_, i) => `<span class="${i === p ? 'on' : ''}">صفحة ${i}</span>`).join('');
+			out('table').innerHTML = PAGE_TABLE.map((fr, i) => `<span class="${i === p ? 'on' : ''}">${i} → ${fr}</span>`).join('');
+			out('frames').innerHTML = Array.from({ length: 16 }, (_, k) => `<span class="${k === f ? 'onf' : PAGE_TABLE.includes(k) ? 'used' : ''}">${k}</span>`).join('');
+		}
+		function tlb() {
+			const run = tlbRun(hist, 4);
+			const last = run[run.length - 1];
+			const cur = last ? last.tlb : [];
+			out('tlb').innerHTML = Array.from({ length: 4 }, (_, i) => (cur[i] !== undefined ? `<span class="full">p${cur[i]} → f${PAGE_TABLE[cur[i]]}</span>` : '<span>–</span>')).join('');
+			out('hist').innerHTML = run.map((r) => `<i class="${r.hit ? 'hit' : ''}" title="${r.hit ? 'hit' : 'miss'}">p${r.p}</i>`).join('');
+			if (!run.length) {
+				out('rate').textContent = '–';
+				out('eat').textContent = '–';
+				return;
+			}
+			const h = run.filter((r) => r.hit).length / run.length;
+			out('rate').textContent = `${Math.round(h * 100)}% (${run.filter((r) => r.hit).length} من ${run.length})`;
+			out('eat').textContent = `${Math.round(eat(h, 10) * 100) / 100} ns`;
+		}
+		function go(addr: number, record = true) {
+			const t = translate(addr, SIZE, PAGE_TABLE);
+			const bits = Math.min(addr, 8191).toString(2).padStart(13, '0');
+			out('bits').innerHTML =
+				t.bad
+					? '<small>العنوان خارج البرنامج (أكبر من 8191)</small>'
+					: bits.split('').map((b, i) => `<span class="${i < 3 ? 'p' : 'd'}">${b}</span>${i === 2 ? '<span class="gap"></span>' : ''}`).join('') + '<small>3 بتات لرقم الصفحة (برتقالي)، و 10 بتات للإزاحة (أزرق)، لأن <bdi dir="ltr">2¹⁰ = 1024</bdi></small>';
+			if (t.bad) {
+				out('steps').innerHTML = `<li>${n(`p = ${addr} ÷ 1024 = ${t.p}`)}.</li><li>✘ لا توجد صفحة ${t.p} في جدول البرنامج (الصفحات من 0 إلى 7). يكتشف ذلك العتاد ويوقف البرنامج: <strong>خطأ وصول</strong>. هكذا تحمي الصفحات البرامج من بعضها.</li>`;
+				map(-1, -1);
+				return;
+			}
+			out('steps').innerHTML =
+				`<li>رقم الصفحة: ${n(`p = ⌊${addr} ÷ 1024⌋ = ${t.p}`)}</li>` +
+				`<li>الإزاحة: ${n(`d = ${addr} mod 1024 = ${t.d}`)}</li>` +
+				`<li>جدول الصفحات: الصفحة ${n(t.p)} في الإطار ${n(`f = ${t.f}`)}</li>` +
+				`<li>العنوان الفيزيائي: ${n(`${t.f} × 1024 + ${t.d} = ${t.phys}`)}</li>`;
+			map(t.p, t.f);
+			if (record) {
+				hist.push(t.p);
+				tlb();
+			}
+		}
+		root.querySelector('[data-act="go"]')!.addEventListener('click', () => go(Math.max(0, Math.round(+inp.value || 0))));
+		inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(Math.max(0, Math.round(+inp.value || 0))); });
+		root.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) => b.addEventListener('click', () => { inp.value = b.dataset.ex!; go(+b.dataset.ex!); }));
+		root.querySelector('[data-act="seq"]')!.addEventListener('click', () => {
+			hist = [];
+			for (let i = 0; i < 16; i++) go(i * 250);
+		});
+		root.querySelector('[data-act="jump"]')!.addEventListener('click', () => {
+			hist = [];
+			for (const p of [0, 5, 1, 6, 2, 7, 3, 4, 0, 5, 1, 6, 2, 7, 3, 4]) go(p * 1024 + 100);
+		});
+		root.querySelector('[data-act="clear"]')!.addEventListener('click', () => { hist = []; tlb(); });
+		go(3000, false);
+		tlb();
+	});
+</script>

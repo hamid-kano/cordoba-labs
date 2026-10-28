@@ -643,3 +643,60 @@ export function philoRun(strat: PhiloStrat, steps: number, rnd: () => number = M
 	}
 	return { dead: false, at: steps, meals: s.meals.reduce((a, b) => a + b, 0) };
 }
+
+// ===== إدارة الذاكرة (الجلسة 7) =====
+// التخصيص المتصل: الذاكرة قطع (مستخدمة أو فراغ). العملية بتاخد أول الفراغ، والباقي بيضل فراغ بعدها.
+export type FitAlgo = 'first' | 'best' | 'worst';
+export interface MemBlock { start: number; size: number; owner: string | null } // owner = null فراغ
+export interface FitStep { name: string; size: number; hole: number; ok: boolean; mem: MemBlock[] } // hole = ترتيب الفراغ يلي انختار بين الفراغات (من 0)، أو −1
+export function fitAlloc(mem0: MemBlock[], reqs: { name: string; size: number }[], algo: FitAlgo): FitStep[] {
+	let mem = mem0.map((b) => ({ ...b }));
+	const steps: FitStep[] = [];
+	for (const r of reqs) {
+		const holes = mem.map((b, i) => ({ b, i })).filter((x) => x.b.owner === null && x.b.size >= r.size);
+		let pick: { b: MemBlock; i: number } | undefined;
+		if (algo === 'first') pick = holes[0];
+		else if (algo === 'best') pick = holes.sort((a, b) => a.b.size - b.b.size || a.i - b.i)[0];
+		else pick = holes.sort((a, b) => b.b.size - a.b.size || a.i - b.i)[0];
+		if (!pick) {
+			steps.push({ name: r.name, size: r.size, hole: -1, ok: false, mem: mem.map((b) => ({ ...b })) });
+			continue;
+		}
+		const holeOrder = mem.slice(0, pick.i).filter((b) => b.owner === null).length;
+		const used: MemBlock = { start: pick.b.start, size: r.size, owner: r.name };
+		const rest: MemBlock = { start: pick.b.start + r.size, size: pick.b.size - r.size, owner: null };
+		mem = [...mem.slice(0, pick.i), used, ...(rest.size ? [rest] : []), ...mem.slice(pick.i + 1)];
+		steps.push({ name: r.name, size: r.size, hole: holeOrder, ok: true, mem: mem.map((b) => ({ ...b })) });
+	}
+	return steps;
+}
+/** مثال Silberschatz: فراغات 100 و 500 و 200 و 300 و 600 KB، والطلبات 212 و 417 و 112 و 426 */
+export const FIT_MEM: MemBlock[] = (() => {
+	const parts: [string | null, number][] = [['OS', 200], [null, 100], ['A', 100], [null, 500], ['B', 100], [null, 200], ['C', 100], [null, 300], ['D', 100], [null, 600]];
+	let s = 0;
+	return parts.map(([owner, size]) => { const b = { start: s, size, owner }; s += size; return b; });
+})();
+export const FIT_REQS = [{ name: 'P1', size: 212 }, { name: 'P2', size: 417 }, { name: 'P3', size: 112 }, { name: 'P4', size: 426 }];
+
+// الصفحات: العنوان المنطقي ← رقم الصفحة p والإزاحة d ← الإطار f ← العنوان الفيزيائي f × size + d
+export function translate(addr: number, pageSize: number, table: number[]) {
+	const p = Math.floor(addr / pageSize), d = addr % pageSize;
+	if (p >= table.length) return { p, d, f: -1, phys: -1, bad: true };
+	const f = table[p];
+	return { p, d, f, phys: f * pageSize + d, bad: false };
+}
+export const PAGE_TABLE = [5, 2, 7, 0, 3, 9, 1, 6];
+/** محاكي TLB صغير بـ LRU: بيرجع لكل وصول إذا كان hit */
+export function tlbRun(pages: number[], size: number) {
+	const tlb: number[] = [];
+	return pages.map((p) => {
+		const i = tlb.indexOf(p);
+		const hit = i >= 0;
+		if (hit) tlb.splice(i, 1);
+		else if (tlb.length >= size) tlb.shift();
+		tlb.push(p);
+		return { p, hit, tlb: [...tlb] };
+	});
+}
+/** متوسط زمن الوصول: hit بياخد وصول واحد للذاكرة، و miss وصولين (جدول الصفحات ثم البيانات). وزمن TLB مهمل */
+export const eat = (hit: number, mem: number) => hit * mem + (1 - hit) * 2 * mem;

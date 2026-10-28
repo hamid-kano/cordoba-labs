@@ -1,0 +1,47 @@
+---
+// الصفحات (الجلسة 7): ذاكرة البرنامج 4 صفحات متتالية ← جدول الصفحات ← إطارات متفرقة بالذاكرة الحقيقية (مثل Silberschatz: 1، 4، 3، 7).
+// الزمن ما إله دخل، فالترتيب من اليمين لليسار متل القراءة: البرنامج يمين، والذاكرة الحقيقية يسار.
+const table = [1, 4, 3, 7];
+const COL = ['#6cc3e0', '#f0c070', '#7ed6a0', '#c3a6f5'];
+---
+
+<figure class="wl-fig pd-fig">
+	<svg class="d-big" viewBox="0 0 420 330" role="img" aria-label="أربع صفحات متتالية في البرنامج، وجدول الصفحات يضع الصفحة 0 في الإطار 1، والصفحة 1 في الإطار 4، والصفحة 2 في الإطار 3، والصفحة 3 في الإطار 7">
+		<defs>
+			<marker id="pd-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="d-arrow"></path></marker>
+		</defs>
+		<text x="360" y="24" class="d-s d-b">البرنامج</text>
+		{table.map((_, i) => (
+			<g>
+				<rect x="315" y={40 + i * 44} width="90" height="40" rx="4" style={`fill:${COL[i]}`}></rect>
+				<text x="360" y={65 + i * 44} class="d-s pd-dark">صفحة {i}</text>
+			</g>
+		))}
+		<text x="210" y="24" class="d-s d-b">جدول الصفحات</text>
+		{table.map((f, i) => (
+			<g>
+				<rect x="175" y={40 + i * 44} width="70" height="40" rx="4" class="d-box2"></rect>
+				<text x="210" y={65 + i * 44} class="d-s d-ltr">{i} → {f}</text>
+				<line x1="313" y1={60 + i * 44} x2="249" y2={60 + i * 44} class="d-line" marker-end="url(#pd-a)"></line>
+			</g>
+		))}
+		<text x="60" y="24" class="d-s d-b">الذاكرة الحقيقية</text>
+		{Array.from({ length: 8 }, (_, k) => {
+			const pg = table.indexOf(k);
+			return (
+				<g>
+					<rect x="15" y={36 + k * 36} width="90" height="32" rx="3" class={pg < 0 ? 'd-box2' : ''} style={pg >= 0 ? `fill:${COL[pg]}` : ''}></rect>
+					<text x="60" y={57 + k * 36} class={`d-s ${pg >= 0 ? 'pd-dark' : ''}`}>{pg >= 0 ? `إطار ${k}: ص${pg}` : `إطار ${k}`}</text>
+				</g>
+			);
+		})}
+		{table.map((f, i) => (
+			<path d={`M 173 ${60 + i * 44} C 140 ${60 + i * 44}, 140 ${52 + f * 36}, 108 ${52 + f * 36}`} class="d-line d-dash" marker-end="url(#pd-a)"></path>
+		))}
+	</svg>
+	<figcaption>الصفحات <strong>متتالية</strong> كما يراها البرنامج، لكنها في الذاكرة الحقيقية <strong>متفرقة</strong> في أي إطار فارغ. وجدول الصفحات يربط بينهما، فلا يوجد تجزؤ خارجي.</figcaption>
+</figure>
+
+<style>
+	.pd-fig .pd-dark { fill: #111; }
+</style>

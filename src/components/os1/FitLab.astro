@@ -1,0 +1,111 @@
+---
+// «أين أضع العملية؟» (الجلسة 7): ذاكرة 2300 KB فيها فراغات (100، 500، 200، 300، 600)، والطلبات 212 و 417 و 112 و 426 (Silberschatz).
+// First / Best / Worst fit خطوة خطوة، مع شريط الذاكرة، ومجموع الفراغ مقابل أكبر فراغ (التجزؤ الخارجي). المنطق بـ os1.ts (fitAlloc).
+---
+
+<div class="not-content wl-box ft-lab" data-ft-lab>
+	<h4>🧩 أين أضع العملية؟</h4>
+	<p class="se-hint">في الذاكرة <strong>5 فراغات</strong> (الرمادي مستخدم). تصل 4 عمليات بالترتيب: <bdi dir="ltr">P1 = 212</bdi>، و <bdi dir="ltr">P2 = 417</bdi>، و <bdi dir="ltr">P3 = 112</bdi>، و <bdi dir="ltr">P4 = 426</bdi> (بالـ KB).</p>
+	<div class="wl-row" role="group" aria-label="الطريقة">
+		<button type="button" class="wl-btn" data-algo="first" aria-pressed="true">أول فراغ يكفي</button>
+		<button type="button" class="wl-btn" data-algo="best" aria-pressed="false">أصغر فراغ يكفي</button>
+		<button type="button" class="wl-btn" data-algo="worst" aria-pressed="false">أكبر فراغ</button>
+	</div>
+	<p class="wl-msg ft-desc" data-out="desc"></p>
+	<div class="ft-mem" data-out="mem" dir="ltr"></div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-act="next">العملية التالية ←</button>
+		<button type="button" class="wl-btn" data-act="all">⏭ الكل</button>
+		<button type="button" class="wl-btn" data-act="reset">↺ من البداية</button>
+	</div>
+	<ol class="ft-log" data-out="log"></ol>
+	<div class="wl-grid">
+		<div class="wl-out"><span>مجموع الفراغ</span><strong data-out="free"></strong></div>
+		<div class="wl-out"><span>أكبر فراغ</span><strong data-out="big"></strong></div>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+</div>
+
+<style is:global>
+	.ft-lab .ft-desc { font-weight: 400; font-size: var(--sl-text-sm); }
+	.ft-lab .ft-mem { display: flex; height: 4.2rem; border-radius: 0.4rem; overflow: hidden; border: 1px solid var(--sl-color-gray-4); }
+	.ft-lab .ft-mem > div { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; overflow: hidden; border-inline-end: 1px solid var(--sl-color-black); font: 700 0.62rem/1.15 sans-serif; text-align: center; transition: flex-grow 0.4s; }
+	.ft-lab .ft-mem .u { background: var(--sl-color-gray-5); color: var(--sl-color-gray-2); }
+	.ft-lab .ft-mem .h { background: repeating-linear-gradient(135deg, transparent 0 5px, var(--sl-color-gray-6) 5px 10px); color: var(--sl-color-gray-2); }
+	.ft-lab .ft-mem .p { color: #111; animation: ft-in 0.45s ease-out; }
+	.ft-lab .ft-mem .p0 { background: #6cc3e0; } .ft-lab .ft-mem .p1 { background: #f0c070; } .ft-lab .ft-mem .p2 { background: #7ed6a0; } .ft-lab .ft-mem .p3 { background: #c3a6f5; }
+	@keyframes ft-in { from { opacity: 0; transform: translateY(-8px); } }
+	.ft-lab .ft-log { margin: 0; padding-inline-start: 1.3rem; font-size: var(--sl-text-sm); }
+	.ft-lab .ft-log li.bad { color: #e5534b; font-weight: 700; }
+</style>
+
+<script>
+	import { fitAlloc, FIT_MEM, FIT_REQS, type FitAlgo, type FitStep, type MemBlock } from '../../scripts/os1';
+
+	const DESC: Record<FitAlgo, string> = {
+		first: 'أول فراغ يكفي: نبحث من البداية، ونأخذ أول فراغ يتسع للعملية. سريع.',
+		best: 'أصغر فراغ يكفي: نبحث في كل الفراغات، ونأخذ أصغرها مما يتسع. يترك بقايا صغيرة.',
+		worst: 'أكبر فراغ: نأخذ أكبر فراغ، حتى تبقى بقيته كبيرة وصالحة لغيره.',
+	};
+	document.querySelectorAll<HTMLElement>('[data-ft-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let algo: FitAlgo = 'first';
+		let steps: FitStep[] = [];
+		let pos = 0;
+
+		function drawMem(mem: MemBlock[]) {
+			out('mem').innerHTML = mem
+				.map((b) => {
+					const pi = FIT_REQS.findIndex((r) => r.name === b.owner);
+					const cls = b.owner === null ? 'h' : pi >= 0 ? `p p${pi}` : 'u';
+					const label = b.owner === null ? `${b.size}` : pi >= 0 ? `${b.owner}<br>${b.size}` : b.owner;
+					return `<div class="${cls}" style="flex-grow:${b.size}" title="${b.owner ?? 'فراغ'} ${b.size} KB">${label}</div>`;
+				})
+				.join('');
+			const free = mem.filter((b) => b.owner === null).map((b) => b.size);
+			out('free').textContent = `${free.reduce((a, b) => a + b, 0)} KB`;
+			out('big').textContent = `${Math.max(...free, 0)} KB`;
+		}
+		function draw() {
+			const mem = pos ? steps[pos - 1].mem : FIT_MEM;
+			drawMem(mem);
+			out('log').innerHTML = steps
+				.slice(0, pos)
+				.map((s) => (s.ok ? `<li>${s.name} (${s.size}) ← الفراغ رقم ${s.hole + 1} من اليسار.</li>` : `<li class="bad">${s.name} (${s.size}) ← لا يوجد فراغ يكفي، فتنتظر!</li>`))
+				.join('');
+			const done = pos >= steps.length;
+			(root.querySelector('[data-act="next"]') as HTMLButtonElement).disabled = done;
+			const m = out('msg');
+			if (!done) {
+				m.textContent = '';
+				return;
+			}
+			const fail = steps.find((s) => !s.ok);
+			const free = mem.filter((b) => b.owner === null).reduce((a, b) => a + b.size, 0);
+			if (fail) {
+				m.className = 'wl-msg wl-bad';
+				m.textContent = `✘ ${fail.name} تحتاج ${fail.size}، ومجموع الفراغ ${free} KB، أي أكثر من حاجتها! لكنه مقطّع إلى قطع صغيرة. هذا هو التجزؤ الخارجي.`;
+			} else {
+				m.className = 'wl-msg wl-good';
+				m.textContent = '✔ وجدت كل العمليات مكاناً في هذا المثال.';
+			}
+		}
+		function compute() {
+			steps = fitAlloc(FIT_MEM, FIT_REQS, algo);
+			pos = 0;
+			out('desc').textContent = DESC[algo];
+			draw();
+		}
+		root.querySelectorAll<HTMLButtonElement>('[data-algo]').forEach((b) =>
+			b.addEventListener('click', () => {
+				algo = b.dataset.algo as FitAlgo;
+				root.querySelectorAll('[data-algo]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				compute();
+			}),
+		);
+		root.querySelector('[data-act="next"]')!.addEventListener('click', () => { pos = Math.min(steps.length, pos + 1); draw(); });
+		root.querySelector('[data-act="all"]')!.addEventListener('click', () => { pos = steps.length; draw(); });
+		root.querySelector('[data-act="reset"]')!.addEventListener('click', () => { pos = 0; draw(); });
+		compute();
+	});
+</script>
