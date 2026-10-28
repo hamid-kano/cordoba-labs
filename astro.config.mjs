@@ -32,6 +32,11 @@ export default defineConfig({
 	redirects: {
 		// الوجهة لازم فيها الـ base (Astro بيضيفه للمصدر بس)
 		'/os1/lab-03-backup-recovery/': withBase('os1-archive/backup-recovery/'),
+		'/os1/lab-04-databases/': withBase('os1-archive/databases/'),
+		'/os1/lab-05-processor-design/': withBase('os1-archive/processor-design/'),
+		'/os1/lab-06-multiprocessors/': withBase('os1-archive/multiprocessors/'),
+		'/os1/lab-07-distributed-web/': withBase('os1-archive/distributed-web/'),
+		'/os1/lab-08-security/': withBase('os1-archive/security/'),
 	},
 	markdown: { remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] },
 	integrations: [

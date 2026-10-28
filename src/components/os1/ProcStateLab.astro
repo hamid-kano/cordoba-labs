@@ -1,0 +1,226 @@
+---
+// «أنت نظام التشغيل» (الجلسة 3، العمليات): 3 عمليات ومعالج واحد. الطالب بينقل كل عملية بين الحالات بالأحداث،
+// والانتقال الممنوع بيترفض مع السبب. كل عملية إلها PCB (رقمها، حالتها، التعليمة التالية، مسجّل).
+// لما يتبدّل المعالج من عملية لعملية بينعدّ «تبديل سياق» وبيبين شو انحفظ وشو انحمّل.
+// وفي 3 مهمات بتنعلّم لحالها.
+---
+
+<div class="not-content wl-box ps-lab" data-ps-lab>
+	<h4>🧑‍✈️ أنت نظام التشغيل</h4>
+	<p class="se-hint">في الذاكرة 3 برامج، والمعالج <strong>نواة واحدة</strong>. اختر عملية (اضغط عليها)، ثم اختر الحدث. وراقب <strong>بطاقة التحكم</strong> لكل عملية.</p>
+
+	<div class="ps-board" data-out="board"></div>
+
+	<div class="wl-row ps-acts" role="group" aria-label="الأحداث">
+		<button type="button" class="wl-btn" data-ev="admit">📥 اقبلها في الذاكرة</button>
+		<button type="button" class="wl-btn" data-ev="dispatch">▶ أعطها المعالج</button>
+		<button type="button" class="wl-btn" data-ev="tick">⏱ نفّذ تعليمة</button>
+		<button type="button" class="wl-btn" data-ev="timeout">⏰ انتهى دورها</button>
+		<button type="button" class="wl-btn" data-ev="io">💾 تطلب القرص</button>
+		<button type="button" class="wl-btn" data-ev="iodone">✅ وصل القرص</button>
+		<button type="button" class="wl-btn" data-ev="exit">⏹ أنهِها</button>
+	</div>
+	<p class="wl-msg" data-out="msg"></p>
+	<p class="ps-switch" data-out="switch"></p>
+
+	<div class="ps-pcbs" data-out="pcbs"></div>
+
+	<div class="ps-goals">
+		<b>المهمات:</b>
+		<ol data-out="goals"></ol>
+		<div class="wl-row">
+			<span class="se-note">تبديلات السياق: <strong data-out="cs">0</strong></span>
+			<button type="button" class="wl-btn" data-act="reset">↺ من البداية</button>
+		</div>
+	</div>
+</div>
+
+<style is:global>
+	.ps-lab .ps-board { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.35rem; }
+	.ps-lab .ps-col { min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; padding: 0.35rem; border-radius: 0.5rem; background: var(--sl-color-gray-6); min-height: 6.5rem; }
+	.ps-lab .ps-col > b { font-size: 0.72rem; text-align: center; padding: 0.1rem; border-radius: 0.3rem; }
+	.ps-lab .ps-col.new > b, .ps-lab .ps-col.done > b { background: var(--sl-color-gray-5); }
+	.ps-lab .ps-col.ready > b { background: #e0a030; color: #111; }
+	.ps-lab .ps-col.run > b { background: #2fb36b; color: #111; }
+	.ps-lab .ps-col.blocked > b { background: #3a9ec2; color: #111; }
+	.ps-lab .ps-col.run { box-shadow: inset 0 0 0 2px #2fb36b; }
+	.ps-lab .ps-chip { all: unset; cursor: pointer; box-sizing: border-box; display: block; text-align: center; padding: 0.35rem 0.1rem; border-radius: 0.4rem; font-weight: 700; font-size: 0.8rem; border: 2px solid var(--sl-color-gray-4); background: var(--sl-color-black); animation: ps-in 0.35s ease-out; }
+	.ps-lab .ps-chip[aria-pressed='true'] { border-color: var(--sl-color-accent); box-shadow: 0 0 0 3px var(--sl-color-accent-low); }
+	.ps-lab .ps-chip:focus-visible { outline: 2px solid var(--sl-color-accent); }
+	@keyframes ps-in { from { transform: scale(0.7); opacity: 0.3; } to { transform: none; opacity: 1; } }
+	.ps-lab .ps-acts .wl-btn { font-size: var(--sl-text-sm); padding-inline: 0.5rem; }
+	.ps-lab .ps-switch { margin: 0; min-height: 1.4em; font-size: var(--sl-text-sm); }
+	.ps-lab .ps-switch span { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 0.35rem; background: var(--sl-color-accent-low); animation: ps-in 0.4s ease-out; }
+	.ps-lab .ps-pcbs { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.4rem; }
+	.ps-lab .ps-pcb { border-radius: 0.5rem; border: 1px solid var(--sl-color-gray-5); background: var(--sl-color-black); font-size: var(--sl-text-xs); overflow: hidden; }
+	.ps-lab .ps-pcb > b { display: block; padding: 0.25rem 0.5rem; background: var(--sl-color-gray-6); }
+	.ps-lab .ps-pcb dl { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.5rem; margin: 0; padding: 0.35rem 0.5rem; }
+	.ps-lab .ps-pcb dt { color: var(--sl-color-gray-3); }
+	.ps-lab .ps-pcb dd { margin: 0; font-weight: 700; }
+	.ps-lab .ps-pcb.flash { animation: ps-flash 0.8s ease-out; }
+	@keyframes ps-flash { from { box-shadow: 0 0 0 4px #e0a030; } to { box-shadow: none; } }
+	.ps-lab .ps-goals { display: flex; flex-direction: column; gap: 0.3rem; padding-top: 0.5rem; border-top: 1px dashed var(--sl-color-gray-5); font-size: var(--sl-text-sm); }
+	.ps-lab .ps-goals ol { margin: 0; padding-inline-start: 1.2rem; }
+	.ps-lab .ps-goals li.ok { color: #2fb36b; }
+	.ps-lab .ps-goals li.ok::marker { content: '✔ '; }
+	@media (max-width: 30rem) {
+		.ps-lab .ps-col > b { font-size: 0.62rem; }
+		.ps-lab .ps-chip { font-size: 0.72rem; }
+	}
+</style>
+
+<script>
+	type St = 'new' | 'ready' | 'run' | 'blocked' | 'done';
+	type P = { name: string; pid: number; st: St; pc: number; r: number; waited: boolean };
+	const COLS: { st: St; t: string }[] = [
+		{ st: 'new', t: 'جديد' },
+		{ st: 'ready', t: 'جاهز' },
+		{ st: 'run', t: 'يعمل' },
+		{ st: 'blocked', t: 'محجوب' },
+		{ st: 'done', t: 'منتهٍ' },
+	];
+	const ST_NAME: Record<St, string> = { new: 'جديد', ready: 'جاهز', run: 'يعمل', blocked: 'محجوب', done: 'منتهٍ' };
+	const GOALS = [
+		'شغّل P1، ثم اجعله يطلب القرص، وشغّل P2 مكانه.',
+		'بعد أن يصل القرص، أعد P1 إلى المعالج: هل يكمل من التعليمة نفسها؟',
+		'أنهِ العمليات الثلاث.',
+	];
+	const n = (x: number | string) => `<bdi dir="ltr">${x}</bdi>`;
+
+	document.querySelectorAll<HTMLElement>('[data-ps-lab]').forEach((root) => {
+		const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+		let ps: P[] = [];
+		let sel = 0;
+		let lastOnCpu = -1; // آخر عملية اشتغلت على المعالج (لحتى نعرف إذا صار تبديل)
+		let cs = 0;
+		const goals = [false, false, false];
+		let flash = -1;
+
+		function reset() {
+			ps = [1, 2, 3].map((i) => ({ name: `P${i}`, pid: 100 + i, st: 'new' as St, pc: 0, r: 0, waited: false }));
+			sel = 0;
+			lastOnCpu = -1;
+			cs = 0;
+			goals.fill(false);
+			out('msg').textContent = 'ابدأ: اختر P1 ثم «📥 اقبلها في الذاكرة».';
+			out('msg').className = 'wl-msg';
+			out('switch').innerHTML = '';
+			draw();
+		}
+
+		function draw() {
+			out('board').innerHTML = COLS.map(
+				(c) =>
+					`<div class="ps-col ${c.st}"><b>${c.t}</b>` +
+					ps.map((p, i) => (p.st === c.st ? `<button type="button" class="ps-chip" data-p="${i}" aria-pressed="${i === sel}">${p.name}</button>` : '')).join('') +
+					'</div>',
+			).join('');
+			out('pcbs').innerHTML = ps
+				.map(
+					(p, i) =>
+						`<div class="ps-pcb${i === flash ? ' flash' : ''}"><b>📋 بطاقة ${p.name}</b><dl>` +
+						`<dt>رقم العملية</dt><dd>${n(p.pid)}</dd>` +
+						`<dt>الحالة</dt><dd>${ST_NAME[p.st]}</dd>` +
+						`<dt>التعليمة التالية</dt><dd>${n(p.pc)}</dd>` +
+						`<dt>المسجّل R</dt><dd>${n(p.r)}</dd></dl></div>`,
+				)
+				.join('');
+			flash = -1;
+			out('goals').innerHTML = GOALS.map((g, i) => `<li class="${goals[i] ? 'ok' : ''}">${g}</li>`).join('');
+			out('cs').textContent = String(cs);
+		}
+
+		function say(text: string, ok: boolean | null) {
+			const m = out('msg');
+			m.innerHTML = text;
+			m.className = ok === null ? 'wl-msg' : ok ? 'wl-msg wl-good' : 'wl-msg wl-bad';
+		}
+
+		function event(ev: string) {
+			const p = ps[sel];
+			const running = ps.findIndex((x) => x.st === 'run');
+			out('switch').innerHTML = '';
+			const need = (st: St, why: string) => {
+				if (p.st !== st) {
+					say(`✘ لا يمكن: ${p.name} الآن «${ST_NAME[p.st]}». ${why}`, false);
+					return false;
+				}
+				return true;
+			};
+			switch (ev) {
+				case 'admit':
+					if (!need('new', 'هذا الحدث للعمليات الجديدة فقط.')) return;
+					p.st = 'ready';
+					say(`${p.name} أصبحت «جاهز»: في الذاكرة، وتنتظر دورها على المعالج.`, null);
+					break;
+				case 'dispatch':
+					if (!need('ready', 'المعالج يُعطى للعمليات الجاهزة فقط.')) return;
+					if (running >= 0) {
+						say(`✘ لا يمكن: المعالج مشغول بـ ${ps[running].name}، والنواة واحدة. أوقفها أولاً، أو انتظر حتى يتوقف.`, false);
+						return;
+					}
+					p.st = 'run';
+					if (lastOnCpu >= 0 && lastOnCpu !== sel) {
+						cs++;
+						out('switch').innerHTML = `<span>🔄 تبديل سياق: حُفظت بطاقة ${ps[lastOnCpu].name} (التعليمة ${n(ps[lastOnCpu].pc)})، وحُمّلت بطاقة ${p.name} (التعليمة ${n(p.pc)}).</span>`;
+					}
+					lastOnCpu = sel;
+					flash = sel;
+					say(`${p.name} تعمل الآن، وتكمل من التعليمة ${n(p.pc)}.`, true);
+					if (goals[0] && p.name === 'P1' && p.waited) goals[1] = true;
+					break;
+				case 'tick':
+					if (running < 0) {
+						say('✘ لا توجد عملية تعمل. المعالج فارغ.', false);
+						return;
+					}
+					ps[running].pc++;
+					ps[running].r += 5;
+					sel = running;
+					say(`${ps[running].name} نفّذت تعليمة: التعليمة التالية ${n(ps[running].pc)}، و R = ${n(ps[running].r)}.`, null);
+					break;
+				case 'timeout':
+					if (!need('run', 'فقط العملية التي تعمل يمكن أن ينتهي دورها.')) return;
+					p.st = 'ready';
+					say(`${p.name} عادت إلى «جاهز». لم تنتهِ، لكن جاء دور غيرها. وبطاقتها محفوظة.`, null);
+					break;
+				case 'io':
+					if (!need('run', 'العملية تطلب القرص وهي تعمل فقط.')) return;
+					p.st = 'blocked';
+					p.waited = true;
+					say(`${p.name} أصبحت «محجوب»: تنتظر القرص، ولا تحتاج المعالج. أعطه لعملية أخرى!`, null);
+					break;
+				case 'iodone':
+					if (!need('blocked', 'هذا الحدث للعمليات التي تنتظر القرص فقط.')) return;
+					p.st = 'ready';
+					say(`وصل ما تنتظره ${p.name}، فعادت إلى «جاهز». لاحظ: لم تعد إلى «يعمل» مباشرة.`, null);
+					break;
+				case 'exit':
+					if (!need('run', 'العملية تنتهي وهي تعمل (عند آخر تعليمة فيها).')) return;
+					p.st = 'done';
+					say(`${p.name} انتهت، ويحذف النظام بطاقتها ويستعيد ذاكرتها.`, null);
+					break;
+			}
+			const p1 = ps[0], p2 = ps[1];
+			if (p1.st === 'blocked' && p2.st === 'run') goals[0] = true;
+			if (ps.every((x) => x.st === 'done')) {
+				goals[2] = true;
+				say(`✔ انتهت كل العمليات بـ ${n(cs)} تبديلات سياق. وفي الحاسوب الحقيقي يحدث هذا آلاف المرات في الثانية.`, true);
+			}
+			draw();
+		}
+
+		root.addEventListener('click', (e) => {
+			const chip = (e.target as HTMLElement).closest<HTMLElement>('[data-p]');
+			if (chip) {
+				sel = +chip.dataset.p!;
+				draw();
+				return;
+			}
+			const b = (e.target as HTMLElement).closest<HTMLElement>('[data-ev]');
+			if (b) event(b.dataset.ev!);
+			if ((e.target as HTMLElement).closest('[data-act="reset"]')) reset();
+		});
+		reset();
+	});
+</script>
