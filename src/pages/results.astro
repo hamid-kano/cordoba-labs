@@ -13,6 +13,39 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 		</div>
 		<p class="wl-msg" data-out="msg"></p>
 		<div data-panel hidden>
+			<div class="wl-row rs-tabs" role="tablist">
+				<button type="button" class="wl-btn primary" data-sec-btn="quiz">📝 الاختبارات</button>
+				<button type="button" class="wl-btn" data-sec-btn="project">🛠️ مشروع نظم التشغيل</button>
+			</div>
+			<div class="pa" data-sec="project" hidden>
+				<p class="wl-msg" data-pa="msg"></p>
+				<details class="pa-settings" open>
+					<summary>⚙️ المواعيد والإعدادات</summary>
+					<p class="pa-state" data-pa="state"></p>
+					<div class="rs-filters">
+						<label>التسجيل <select data-pa="regMode"><option value="closed">مغلق</option><option value="auto">تلقائي حسب المواعيد</option><option value="open">مفتوح الآن (يدوياً)</option></select></label>
+						<label>فتح التسجيل <input type="datetime-local" data-pa="regFrom" /></label>
+						<label>إغلاق التسجيل <input type="datetime-local" data-pa="regTo" /></label>
+						<label>التسليم <select data-pa="subMode"><option value="closed">مغلق</option><option value="auto">تلقائي حتى الموعد</option><option value="open">مفتوح الآن (يدوياً)</option></select></label>
+						<label>آخر موعد للتسليم <input type="datetime-local" data-pa="subTo" /></label>
+						<label>مجموعات لكل خوارزمية <input type="number" min="1" max="100" data-pa="cap" /></label>
+					</div>
+					<p class="se-note">«تلقائي» يفتح ويغلق حسب المواعيد. «مفتوح الآن» و«مغلق» يتجاوزان المواعيد (مثلاً لتمديد يوم إضافي). صفحة المشروع مخفية عن الطلاب حالياً، ورابطها: <a href="../os1/project/">/os1/project/</a></p>
+					<button type="button" class="wl-btn primary" data-pa="save">💾 احفظ الإعدادات</button>
+				</details>
+				<div class="wl-grid" data-pa="counts"></div>
+				<div class="rs-filters">
+					<label>الخوارزمية <select data-pa="algo"><option value="">الكل</option><option value="sjf">SJF</option><option value="srtf">SRTF</option><option value="rr">Round Robin</option><option value="prio">الأولوية</option><option value="pprio">الأولوية مع المقاطعة</option></select></label>
+					<label>التسليم <select data-pa="sub"><option value="">الكل</option><option value="yes">سلّمت</option><option value="no">لم تسلّم</option></select></label>
+					<label>بحث <input type="search" data-pa="q" placeholder="اسم أو رقم جامعي أو رمز" /></label>
+				</div>
+				<div class="wl-row">
+					<button type="button" class="wl-btn" data-pa="reload">↻ تحديث</button>
+					<button type="button" class="wl-btn" data-pa="csv">⬇ تنزيل Excel (سطر لكل طالب)</button>
+				</div>
+				<div class="wl-scroll"><table class="wl-table rs-t" data-pa="table"></table></div>
+			</div>
+			<div data-sec="quiz">
 			<div class="rs-filters">
 				<label>المادة <select data-f="course"><option value="">الكل</option><option value="ai2">الذكاء الصنعي 2</option><option value="wireless">الشبكات اللاسلكية</option><option value="os1">نظم التشغيل 1</option><option value="rts">نظم الزمن الحقيقي</option></select></label>
 				<label>الاختبار <select data-f="quiz"><option value="">الكل</option></select></label>
@@ -31,6 +64,7 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 				<div class="wl-out"><span>متوسط العلامة</span><strong data-out="avg">—</strong></div>
 			</div>
 			<div class="wl-scroll"><table class="wl-table rs-t" data-out="table"></table></div>
+			</div>
 		</div>
 	</div>
 </StarlightPage>
@@ -44,6 +78,19 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 	.rs-t td.mk { white-space: nowrap; }
 	.rs-t td.num { direction: ltr; text-align: right; white-space: nowrap; }
 	.rs-t td.lo { color: #e5534b; font-weight: 700; } .rs-t td.hi { color: #2fb36b; font-weight: 700; }
+	.rs-tabs { border-bottom: 1px solid var(--sl-color-gray-5); padding-bottom: 0.6rem; }
+	.pa > * + * { margin-top: 0.75rem; }
+	.pa-settings { border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem; padding: 0.6rem 0.8rem; }
+	.pa-settings > * + * { margin-top: 0.6rem; }
+	.pa-settings summary { cursor: pointer; font-weight: 700; }
+	.pa-state { font-weight: 600; line-height: 1.8; }
+	.rs-t td.pa-mem { text-align: right; white-space: nowrap; }
+	.rs-t td.pa-link { max-width: 16rem; overflow-wrap: anywhere; direction: ltr; }
+	.rs-t td.pa-act { white-space: nowrap; }
+	.pa-exp-box { text-align: right; }
+	.pa-exp-box h5 { margin: 0.4rem 0; }
+	.pa-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; }
+	.pa .pj-file { direction: ltr; text-align: left; white-space: pre; font-family: var(--sl-font-mono); font-size: var(--sl-text-xs); background: var(--sl-color-gray-6); border-radius: 0.4rem; padding: 0.5rem 0.7rem; overflow-x: auto; margin: 0 0 0.4rem; }
 </style>
 
 <script>
@@ -51,6 +98,7 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 	import { getFirestore, collection, getDocs, query, orderBy, limit, Timestamp, deleteDoc, doc } from 'firebase/firestore/lite';
 	import { app } from '../scripts/quizStore';
 	import { firebaseReady, TEACHER_EMAIL } from '../data/firebase-config';
+	import { mountProjectAdmin } from '../scripts/os1ProjectAdmin';
 
 	interface Row { id: string; quiz: string; course: string; name: string; sid: string; score: number; total: number; at: Date | null; client: string; left?: number; secs?: number }
 	const COURSE: Record<string, string> = { ai2: 'الذكاء الصنعي 2', wireless: 'الشبكات اللاسلكية', os1: 'نظم التشغيل 1', rts: 'نظم الزمن الحقيقي' };
@@ -159,6 +207,22 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 		URL.revokeObjectURL(a.href);
 	};
 
+	// تبويب «مشروع نظم التشغيل» (os1ProjectAdmin.ts): بيتحمّل أول مرة بينفتح. ‎#project بالرابط بيفتحه مباشرة
+	let sec: 'quiz' | 'project' = location.hash === '#project' ? 'project' : 'quiz';
+	let pa: ReturnType<typeof mountProjectAdmin> | null = null;
+	const project = () => (pa ??= mountProjectAdmin(root.querySelector<HTMLElement>('[data-sec="project"]')!));
+	const showSec = () => {
+		root.querySelectorAll<HTMLElement>('[data-sec]').forEach((s) => (s.hidden = s.dataset.sec !== sec));
+		root.querySelectorAll<HTMLElement>('[data-sec-btn]').forEach((b) => b.classList.toggle('primary', b.dataset.secBtn === sec));
+	};
+	root.querySelectorAll<HTMLButtonElement>('[data-sec-btn]').forEach((b) => b.addEventListener('click', () => {
+		sec = b.dataset.secBtn as 'quiz' | 'project';
+		history.replaceState(null, '', sec === 'project' ? '#project' : location.pathname);
+		showSec();
+		if (sec === 'project') project().load();
+	}));
+	showSec();
+
 	if (!firebaseReady()) {
 		loginBtn.disabled = true;
 		say('الحفظ غير مفعّل بعد: عبّئ إعدادات Firebase في src/data/firebase-config.ts.', 'wl-bad');
@@ -171,6 +235,7 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 			if (!u) { say('سجّل الدخول بحساب المدرّس لترى النتائج.'); return; }
 			if (TEACHER_EMAIL && u.email !== TEACHER_EMAIL) { panel.hidden = true; say('هذا الحساب ليس حساب المدرّس.', 'wl-bad'); return; }
 			load();
+			if (sec === 'project') project().load();
 		});
 		loginBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => say('فشل تسجيل الدخول: ' + e.code, 'wl-bad')));
 		logoutBtn.addEventListener('click', () => signOut(auth));
