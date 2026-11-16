@@ -16,7 +16,7 @@ head:
 
 import { Aside, Steps } from '@astrojs/starlight/components';
 import Term from '../../../components/Term.astro';
-import ProjectHub from '../../../components/os1/ProjectHub.astro';
+import ProjectHub from '../../../components/ProjectHub.astro';
 
 <div class="lab-meta">
 	<span><strong>العلامة:</strong> 10</span>
@@ -24,7 +24,7 @@ import ProjectHub from '../../../components/os1/ProjectHub.astro';
 	<span><strong>اللغة:</strong> أي لغة برمجة</span>
 </div>
 
-<ProjectHub part="status" />
+<ProjectHub course="os1" part="status" />
 
 <Aside type="tip" title="الفكرة ببساطة">
 في [الجلسة 4](../lab-04-cpu-scheduling/) جرّبتم المحاكي ورسمتم مخطط Gantt بأيديكم. الآن **ستكتبون المحاكي بأنفسكم**: برنامج يقرأ العمليات من ملف، ويجدولها بخوارزميتين، ويرسم مخطط Gantt، ويحسب النتائج، ثم يقارن بين الخوارزميتين.
@@ -119,13 +119,13 @@ Waiting:    FCFS is better (3.00 vs 4.33)
 
 ## التسجيل
 
-<ProjectHub part="register" />
+<ProjectHub course="os1" part="register" />
 
 ## بيانات مجموعتي
 
 اكتبوا رمز المجموعة لتظهر عملياتكم وملف الإدخال الخاص بكم.
 
-<ProjectHub part="data" />
+<ProjectHub course="os1" part="data" />
 
 ## التسجيل في GitHub ورفع المشروع
 
@@ -164,7 +164,7 @@ Waiting:    FCFS is better (3.00 vs 4.33)
 
 ## التسليم
 
-<ProjectHub part="submit" />
+<ProjectHub course="os1" part="submit" />
 
 <Aside type="note" title="المناقشة">
 يناقَش **كل عضو** في المجموعة، وقد يُطلب منه تعديل صغير في الكود أمام المدرّس (مثلاً: تغيير الشريحة q، أو تغيير قاعدة التعادل). من لا يفهم الكود الذي سلّمه يخسر علامات المناقشة، حتى لو كان البرنامج صحيحاً.

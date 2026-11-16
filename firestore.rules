@@ -28,18 +28,25 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // ===== مشروع نظم التشغيل 1 (src/scripts/os1Project.ts) =====
-    // الإعدادات: الكل بيقرا (لحتى الصفحة تعرف إذا مفتوح)، والمدرّس بس بيكتب. إذا الملف مش موجود، كل شي مقفول.
-    function cfg() {
-      return get(/databases/$(database)/documents/settings/os1project).data;
+    // ===== مشاريع المواد (src/scripts/projects.ts) =====
+    // كل مادة إلها فرعها proj/{course}، والمستند proj/{course} نفسه هو الإعدادات (المواعيد والحد).
+    // إذا الإعدادات مش موجودة، كل شي مقفول. الخيارات وأقل عدد بالمجموعة لازم يطابقوا COURSES بـ projects.ts.
+    function cfg(course) {
+      return get(/databases/$(database)/documents/proj/$(course)).data;
     }
-    function regOpen() {
-      let s = cfg();
+    function regOpen(course) {
+      let s = cfg(course);
       return s.regMode == 'open' || (s.regMode == 'auto' && request.time >= s.regFrom && request.time < s.regTo);
     }
-    function subOpen() {
-      let s = cfg();
+    function subOpen(course) {
+      let s = cfg(course);
       return s.subMode == 'open' || (s.subMode == 'auto' && request.time < s.subTo);
+    }
+    function optsOf(course) {
+      return {'os1': ['sjf', 'srtf', 'rr', 'prio', 'pprio'], 'rts': ['line', 'drone', 'parking', 'patient', 'traffic']}[course];
+    }
+    function minSize(course) {
+      return {'os1': 2, 'rts': 1}[course];
     }
     function validName(n) {
       return n is string && n.size() >= 2 && n.size() <= 60;
@@ -48,67 +55,72 @@ service cloud.firestore {
       return s is string && s.matches('^[0-9A-Za-z-]{3,20}$');
     }
     // الرقم الجامعي انحجز بنفس الدفعة لهي المجموعة
-    function sidOk(s, gid) {
-      return getAfter(/databases/$(database)/documents/sids/$(s)).data.g == gid;
+    function sidOk(course, s, gid) {
+      return getAfter(/databases/$(database)/documents/proj/$(course)/sids/$(s)).data.g == gid;
     }
-    function group(gid) {
-      return getAfter(/databases/$(database)/documents/groups/$(gid)).data;
+    // العضو رقم i: موجود (اسم ورقم صحيحين ومحجوز) إذا i ≤ size، وإلا فاضي
+    function member(course, d, i, n, s, gid) {
+      return (d.size >= i && validName(n) && validSid(s) && sidOk(course, s, gid)) || (d.size < i && n == '' && s == '');
     }
-    match /settings/{id} {
+    function group(course, gid) {
+      return getAfter(/databases/$(database)/documents/proj/$(course)/groups/$(gid)).data;
+    }
+    match /proj/{course} {
       allow get: if true;
       allow write: if isTeacher();
-    }
-    // المجموعة + أرقامها الجامعية (sids) + مقعدها (slots) بينكتبوا بدفعة وحدة (batch)، وكل وحدة بتتأكد من التانية.
-    // التسجيل create بس: إذا الرمز أو الرقم الجامعي أو المقعد موجود، الكتابة بتصير update وبتنرفض.
-    match /groups/{gid} {
-      allow create: if regOpen()
-        && gid.matches('^[A-HJ-NP-Z2-9]{4}$')
-        && request.resource.data.keys().hasOnly(['algo', 'slot', 'size', 'n1', 's1', 'n2', 's2', 'n3', 's3', 'pin', 'at'])
-        && request.resource.data.keys().hasAll(['algo', 'slot', 'size', 'n1', 's1', 'n2', 's2', 'n3', 's3', 'pin', 'at'])
-        && request.resource.data.algo in ['sjf', 'srtf', 'rr', 'prio', 'pprio']
-        && request.resource.data.slot is int && request.resource.data.slot >= 1 && request.resource.data.slot <= cfg().cap
-        && validName(request.resource.data.n1) && validSid(request.resource.data.s1) && sidOk(request.resource.data.s1, gid)
-        && validName(request.resource.data.n2) && validSid(request.resource.data.s2) && sidOk(request.resource.data.s2, gid)
-        && request.resource.data.s1 != request.resource.data.s2
-        && ((request.resource.data.size == 2 && request.resource.data.n3 == '' && request.resource.data.s3 == '')
-          || (request.resource.data.size == 3 && validName(request.resource.data.n3) && validSid(request.resource.data.s3) && sidOk(request.resource.data.s3, gid)
-            && request.resource.data.s3 != request.resource.data.s1 && request.resource.data.s3 != request.resource.data.s2))
-        && request.resource.data.pin is string && request.resource.data.pin.matches('^[0-9]{6}$')
-        && request.resource.data.at == request.time
-        && getAfter(/databases/$(database)/documents/slots/$(request.resource.data.algo + '_' + string(request.resource.data.slot))).data.g == gid;
-      allow read, write: if isTeacher();
-    }
-    // الرقم الجامعي المحجوز: get للكل (لحتى الصفحة تقول «مسجّل مسبقاً»)، بدون list (ما حدا بيقدر يجيب كل الأرقام)
-    match /sids/{sid} {
-      allow create: if regOpen()
-        && request.resource.data.keys().hasOnly(['g', 'at'])
-        && request.resource.data.g is string
-        && request.resource.data.at == request.time
-        && sid in [group(request.resource.data.g).s1, group(request.resource.data.g).s2, group(request.resource.data.g).s3];
-      allow get: if true;
-      allow read, write: if isTeacher();
-    }
-    // المقاعد: slots/{algo}_{n} و n ≤ cap. list للكل لحتى الصفحة تعدّ الأماكن الباقية (فيها رمز المجموعة بس، مش أسماء)
-    match /slots/{slot} {
-      allow create: if regOpen()
-        && request.resource.data.keys().hasOnly(['g', 'algo'])
-        && request.resource.data.g is string
-        && group(request.resource.data.g).algo == request.resource.data.algo
-        && slot == request.resource.data.algo + '_' + string(group(request.resource.data.g).slot);
-      allow read: if true;
-      allow write: if isTeacher();
-    }
-    // التسليم: بالرقم السري تبع المجموعة، وبيتعدّل لحتى الموعد. القراءة للمدرّس بس (لأن فيه الرقم السري)
-    match /subs/{gid} {
-      allow create, update: if subOpen()
-        && request.resource.data.keys().hasOnly(['pin', 'url', 'kind', 'at'])
-        && request.resource.data.pin == get(/databases/$(database)/documents/groups/$(gid)).data.pin
-        && request.resource.data.url is string && request.resource.data.url.size() <= 300
-        && request.resource.data.url.matches('^https?://[^ ]+[.][^ ]+$')
-        && ((request.resource.data.kind == 'github' && request.resource.data.url.matches('^https://(www[.])?github[.]com/[^ ]+$'))
-          || (request.resource.data.kind == 'link' && !request.resource.data.url.matches('^https://(www[.])?github[.]com/[^ ]+$')))
-        && request.resource.data.at == request.time;
-      allow read, delete: if isTeacher();
+
+      // المجموعة + أرقامها الجامعية (sids) + مقعدها (slots) بينكتبوا بدفعة وحدة (batch)، وكل وحدة بتتأكد من التانية.
+      // التسجيل create بس: إذا الرمز أو الرقم الجامعي أو المقعد موجود، الكتابة بتصير update وبتنرفض.
+      match /groups/{gid} {
+        allow create: if regOpen(course)
+          && gid.matches('^[A-HJ-NP-Z2-9]{4}$')
+          && request.resource.data.keys().hasOnly(['opt', 'slot', 'size', 'n1', 's1', 'n2', 's2', 'n3', 's3', 'pin', 'at'])
+          && request.resource.data.keys().hasAll(['opt', 'slot', 'size', 'n1', 's1', 'n2', 's2', 'n3', 's3', 'pin', 'at'])
+          && request.resource.data.opt in optsOf(course)
+          && request.resource.data.slot is int && request.resource.data.slot >= 1 && request.resource.data.slot <= cfg(course).cap
+          && request.resource.data.size is int && request.resource.data.size >= minSize(course) && request.resource.data.size <= 3
+          && member(course, request.resource.data, 1, request.resource.data.n1, request.resource.data.s1, gid)
+          && member(course, request.resource.data, 2, request.resource.data.n2, request.resource.data.s2, gid)
+          && member(course, request.resource.data, 3, request.resource.data.n3, request.resource.data.s3, gid)
+          && (request.resource.data.size < 2 || request.resource.data.s2 != request.resource.data.s1)
+          && (request.resource.data.size < 3 || (request.resource.data.s3 != request.resource.data.s1 && request.resource.data.s3 != request.resource.data.s2))
+          && request.resource.data.pin is string && request.resource.data.pin.matches('^[0-9]{6}$')
+          && request.resource.data.at == request.time
+          && getAfter(/databases/$(database)/documents/proj/$(course)/slots/$(request.resource.data.opt + '_' + string(request.resource.data.slot))).data.g == gid;
+        allow read, write: if isTeacher();
+      }
+      // الرقم الجامعي المحجوز: get للكل (لحتى الصفحة تقول «مسجّل مسبقاً»)، بدون list (ما حدا بيقدر يجيب كل الأرقام)
+      match /sids/{sid} {
+        allow create: if regOpen(course)
+          && request.resource.data.keys().hasOnly(['g', 'at'])
+          && request.resource.data.g is string
+          && request.resource.data.at == request.time
+          && sid in [group(course, request.resource.data.g).s1, group(course, request.resource.data.g).s2, group(course, request.resource.data.g).s3];
+        allow get: if true;
+        allow read, write: if isTeacher();
+      }
+      // المقاعد: {opt}_{n} و n ≤ cap. list للكل لحتى الصفحة تعدّ الأماكن الباقية (فيها رمز المجموعة بس، مش أسماء)
+      match /slots/{slot} {
+        allow create: if regOpen(course)
+          && request.resource.data.keys().hasOnly(['g', 'opt'])
+          && request.resource.data.g is string
+          && group(course, request.resource.data.g).opt == request.resource.data.opt
+          && slot == request.resource.data.opt + '_' + string(group(course, request.resource.data.g).slot);
+        allow read: if true;
+        allow write: if isTeacher();
+      }
+      // التسليم: بالرقم السري تبع المجموعة، وبيتعدّل لحتى الموعد. القراءة للمدرّس بس (لأن فيه الرقم السري)
+      match /subs/{gid} {
+        allow create, update: if subOpen(course)
+          && request.resource.data.keys().hasOnly(['pin', 'url', 'kind', 'at'])
+          && request.resource.data.pin == get(/databases/$(database)/documents/proj/$(course)/groups/$(gid)).data.pin
+          && request.resource.data.url is string && request.resource.data.url.size() <= 300
+          && request.resource.data.url.matches('^https?://[^ ]+[.][^ ]+$')
+          && ((request.resource.data.kind == 'github' && request.resource.data.url.matches('^https://(www[.])?github[.]com/[^ ]+$'))
+            || (request.resource.data.kind == 'link' && !request.resource.data.url.matches('^https://(www[.])?github[.]com/[^ ]+$')))
+          && request.resource.data.at == request.time;
+        allow read, delete: if isTeacher();
+      }
     }
   }
 }

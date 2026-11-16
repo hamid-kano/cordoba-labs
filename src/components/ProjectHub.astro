@@ -1,14 +1,18 @@
 ---
-// مشروع نظم التشغيل 1: التسجيل بمجموعات، وبيانات المجموعة، والتسليم. المنطق والـ Firestore بـ src/scripts/os1Project.ts.
-// part: status (حالة المواعيد) | register (التسجيل) | data (بيانات مجموعتي) | submit (التسليم).
-// كل الأجزاء بيشتغلوا بسكربت واحد، وبيقروا الإعدادات من Firestore (مش موجودة = مقفول).
-import { ALGOS, ALGO_NAME } from '../../scripts/os1Project';
-interface Props { part: 'status' | 'register' | 'data' | 'submit' }
-const { part } = Astro.props;
+// مشروع المادة: التسجيل بمجموعات، وبيانات المجموعة، والتسليم. المنطق والـ Firestore بـ src/scripts/projects.ts.
+// course: os1 | rts. part: status (حالة المواعيد) | register (التسجيل) | data (بيانات مجموعتي) | submit (التسليم).
+// كل الأجزاء بالصفحة بيشتغلوا بسكربت واحد، وبيقروا الإعدادات من Firestore (مش موجودة = مقفول).
+import { COURSES, type Course } from '../scripts/projects';
+interface Props { course: Course; part: 'status' | 'register' | 'data' | 'submit' }
+const { course, part } = Astro.props;
+const cp = COURSES[course];
+const sizes = [1, 2, 3].filter((n) => n >= cp.minSize && n <= cp.maxSize);
+const sizeLabel = (n: number) => (n === 1 ? 'طالب واحد' : n === 2 ? 'طالبان' : `${n} طلاب`);
+const optHint = course === 'os1' ? 'اختاروا خوارزمية (إضافة إلى FCFS التي تنفّذها كل المجموعات):' : 'اختاروا مشروعاً:';
 ---
 
 {part === 'status' && (
-	<div class="not-content wl-box pj-status" data-pj="status">
+	<div class="not-content wl-box pj-status" data-pj="status" data-course={course}>
 		<div class="wl-grid">
 			<div class="wl-out"><span>التسجيل</span><strong data-pj-out="reg">…</strong><small data-pj-out="regWhen"></small></div>
 			<div class="wl-out"><span>التسليم</span><strong data-pj-out="sub">…</strong><small data-pj-out="subWhen"></small></div>
@@ -17,14 +21,15 @@ const { part } = Astro.props;
 )}
 
 {part === 'register' && (
-	<form class="not-content wl-box pj-reg" data-pj="register" autocomplete="off">
+	<form class="not-content wl-box pj-reg" data-pj="register" data-course={course} autocomplete="off">
 		<h4>📝 تسجيل مجموعة</h4>
 		<p class="wl-msg" data-pj-out="regMsg"></p>
 		<fieldset data-pj-fields disabled>
 			<div class="wl-row" role="group" aria-label="عدد أفراد المجموعة">
 				<span>عدد أفراد المجموعة:</span>
-				<button type="button" class="wl-btn" data-size="2" aria-pressed="false">طالبان</button>
-				<button type="button" class="wl-btn" data-size="3" aria-pressed="true">3 طلاب</button>
+				{sizes.map((n) => (
+					<button type="button" class="wl-btn" data-size={n} aria-pressed={String(n === cp.maxSize)}>{sizeLabel(n)}</button>
+				))}
 			</div>
 			{[1, 2, 3].map((i) => (
 				<div class="pj-member" data-member={i}>
@@ -32,12 +37,12 @@ const { part } = Astro.props;
 					<label>الرقم الجامعي<input class="wl-input" name={`s${i}`} inputmode="numeric" maxlength="20" /></label>
 				</div>
 			))}
-			<p>اختاروا خوارزمية (إضافة إلى FCFS التي تنفّذها كل المجموعات):</p>
+			<p>{optHint}</p>
 			<div class="pj-algos">
-				{ALGOS.map((a) => (
+				{cp.opts.map((a) => (
 					<label class="pj-algo">
-						<input type="radio" name="algo" value={a} />
-						<span><b>{ALGO_NAME[a]}</b><small data-seats={a}>…</small></span>
+						<input type="radio" name="opt" value={a} />
+						<span><b>{cp.optName[a]}</b><small data-seats={a}>…</small></span>
 					</label>
 				))}
 			</div>
@@ -49,7 +54,7 @@ const { part } = Astro.props;
 )}
 
 {part === 'data' && (
-	<div class="not-content wl-box pj-data" data-pj="data">
+	<div class="not-content wl-box pj-data" data-pj="data" data-course={course}>
 		<h4>📄 بيانات مجموعتي</h4>
 		<div class="wl-row">
 			<label>رمز المجموعة <input class="wl-input pj-code" data-pj-in="code" maxlength="6" placeholder="مثلاً K7M2" /></label>
@@ -61,7 +66,7 @@ const { part } = Astro.props;
 )}
 
 {part === 'submit' && (
-	<form class="not-content wl-box pj-sub" data-pj="submit" autocomplete="off">
+	<form class="not-content wl-box pj-sub" data-pj="submit" data-course={course} autocomplete="off">
 		<h4>📤 تسليم المشروع</h4>
 		<p class="wl-msg" data-pj-out="subMsg"></p>
 		<fieldset data-pj-fields disabled>
@@ -103,32 +108,34 @@ const { part } = Astro.props;
 
 <script>
 	import { getFirestore, doc, getDoc, getDocs, collection, writeBatch, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore/lite';
-	import { app } from '../../scripts/quizStore';
-	import { firebaseReady } from '../../data/firebase-config';
+	import { app } from '../scripts/quizStore';
+	import { firebaseReady } from '../data/firebase-config';
 	import {
-		ALGOS, ALGO_NAME, SETTINGS_PATH, CLOSED, DEFAULT_CAP, regState, subState, newCode, newPin, CODE_RE, normCode, normSid, SID_RE,
-		groupData, inputFile, URL_RE, normUrl, linkKind, linkMark, fmtWhen, left, loadLocal, saveLocal, type ProjAlgo, type ProjSettings, type Mode,
-	} from '../../scripts/os1Project';
+		COURSES, CLOSED, DEFAULT_CAP, regState, subState, newCode, newPin, CODE_RE, normCode, normSid, SID_RE, URL_RE, normUrl, linkKind,
+		fmtWhen, left, loadLocal, saveLocal, os1Data, os1Input, rtsData, rtsWokwi, RTS_TASKS, type Course, type ProjSettings, type Mode,
+	} from '../scripts/projects';
 
-	const parts = document.querySelectorAll<HTMLElement>('[data-pj]');
-	if (parts.length) init();
+	const first = document.querySelector<HTMLElement>('[data-pj][data-course]');
+	if (first) init(first.dataset.course as Course);
 
-	function init() {
+	function init(course: Course) {
+		const cp = COURSES[course];
 		const db = firebaseReady() ? getFirestore(app()) : null;
+		const P = ['proj', course] as const;
 		const q = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector<T>(sel);
 		const out = (k: string) => q<HTMLElement>(`[data-pj-out="${k}"]`);
 		const say = (k: string, t: string, cls = '') => { const m = out(k); if (m) { m.className = 'wl-msg' + (cls ? ' ' + cls : ''); m.textContent = t; } };
 		const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-		const local = loadLocal();
+		const local = loadLocal(course);
 		let settings: ProjSettings = CLOSED;
-		let slots: { id: string; g: string; algo: string }[] = [];
+		let slots: { id: string; g: string; opt: string }[] = [];
 
 		const toDate = (v: unknown) => (v instanceof Timestamp ? v.toDate() : null);
 		const mode = (v: unknown): Mode => (v === 'open' || v === 'auto' ? v : 'closed');
 		async function loadSettings() {
 			if (!db) return;
 			try {
-				const s = await getDoc(doc(db, ...SETTINGS_PATH));
+				const s = await getDoc(doc(db, ...P));
 				if (!s.exists()) return;
 				const x = s.data();
 				settings = { regFrom: toDate(x.regFrom), regTo: toDate(x.regTo), subTo: toDate(x.subTo), regMode: mode(x.regMode), subMode: mode(x.subMode), cap: typeof x.cap === 'number' ? x.cap : DEFAULT_CAP };
@@ -136,8 +143,8 @@ const { part } = Astro.props;
 		}
 		async function loadSlots() {
 			if (!db) return;
-			const snap = await getDocs(collection(db, 'slots'));
-			slots = snap.docs.map((d) => ({ id: d.id, g: String(d.data().g), algo: String(d.data().algo) }));
+			const snap = await getDocs(collection(db, ...P, 'slots'));
+			slots = snap.docs.map((d) => ({ id: d.id, g: String(d.data().g), opt: String(d.data().opt) }));
 		}
 
 		// ===== الحالة =====
@@ -152,17 +159,16 @@ const { part } = Astro.props;
 
 		// ===== التسجيل =====
 		const reg = q<HTMLFormElement>('[data-pj="register"]');
-		let size = 3;
+		let size = cp.maxSize;
 		function setSize(n: number) {
 			size = n;
 			reg?.querySelectorAll<HTMLButtonElement>('[data-size]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.size) === n)));
-			const third = q<HTMLElement>('[data-member="3"]', reg!);
-			if (third) third.hidden = n < 3;
+			reg?.querySelectorAll<HTMLElement>('[data-member]').forEach((m) => (m.hidden = Number(m.dataset.member) > n));
 		}
 		function renderSeats() {
 			if (!reg) return;
-			for (const a of ALGOS) {
-				const used = slots.filter((s) => s.algo === a).length;
+			for (const a of cp.opts) {
+				const used = slots.filter((s) => s.opt === a).length;
 				const rest = Math.max(0, settings.cap - used);
 				const el = q<HTMLElement>(`[data-seats="${a}"]`, reg);
 				if (el) el.textContent = rest ? `باقي ${rest} من ${settings.cap}` : 'اكتمل العدد';
@@ -171,10 +177,11 @@ const { part } = Astro.props;
 				if (!rest) input.checked = false;
 			}
 		}
-		function showDone(gid: string, pin: string, algo: ProjAlgo, names: string[]) {
+		function showDone(gid: string, pin: string, opt: string, names: string[]) {
 			const box = out('done')!;
 			box.hidden = false;
-			box.innerHTML = `<b>✓ تم تسجيل مجموعتكم: ${names.map(esc).join('، ')}</b><p>الخوارزمية: <b>${ALGO_NAME[algo]}</b> (مع FCFS).</p>
+			const extra = course === 'os1' ? ' (مع FCFS)' : '';
+			box.innerHTML = `<b>✓ تم تسجيل مجموعتكم: ${names.map(esc).join('، ')}</b><p>${cp.optWord}: <b>${cp.optName[opt] ?? opt}</b>${extra}.</p>
 				<div class="pj-secret"><div>رمز المجموعة<strong>${gid}</strong></div><div>الرقم السري<strong>${pin}</strong></div></div>
 				<p>⚠️ <b>صوّروا هذه الشاشة وأرسلوها لكل أعضاء المجموعة.</b> الرمز يعرض بياناتكم، والرقم السري تحتاجونه عند التسليم. لا تعطوا الرقم السري لأحد خارج المجموعة.</p>
 				<p class="se-note">إذا ضاع الرقم السري، راجعوا المدرّس.</p>`;
@@ -182,8 +189,8 @@ const { part } = Astro.props;
 		async function initRegister() {
 			if (!reg) return;
 			reg.querySelectorAll<HTMLButtonElement>('[data-size]').forEach((b) => b.addEventListener('click', () => setSize(Number(b.dataset.size))));
-			setSize(3);
-			if (local) showDone(local.gid, local.pin, local.algo, local.names);
+			setSize(cp.maxSize);
+			if (local) showDone(local.gid, local.pin, local.opt, local.names);
 			if (!db) return say('regMsg', 'التسجيل غير متاح حالياً.', 'wl-bad');
 			try { await loadSlots(); } catch (e) { console.warn(e); }
 			renderSeats();
@@ -206,33 +213,33 @@ const { part } = Astro.props;
 				members.push({ n, s });
 			}
 			if (new Set(members.map((m) => m.s)).size !== members.length) return say('regMsg', 'الرقم الجامعي نفسه مكتوب مرتين.', 'wl-bad');
-			const algo = fd.get('algo') as ProjAlgo | null;
-			if (!algo) return say('regMsg', 'اختاروا خوارزمية.', 'wl-bad');
+			const opt = fd.get('opt') as string | null;
+			if (!opt) return say('regMsg', course === 'os1' ? 'اختاروا خوارزمية.' : 'اختاروا مشروعاً.', 'wl-bad');
 			if (!fd.get('ok')) return say('regMsg', 'أكّدوا صحة الأسماء والأرقام أولاً.', 'wl-bad');
 			fields.disabled = true;
 			say('regMsg', 'جارٍ التسجيل...');
 			try {
 				// رقم مسجّل بمجموعة تانية؟ (sids مسموح قراءته واحد واحد)
 				for (const m of members) {
-					if ((await getDoc(doc(db, 'sids', m.s))).exists()) {
+					if ((await getDoc(doc(db, ...P, 'sids', m.s))).exists()) {
 						fields.disabled = false;
 						return say('regMsg', `الرقم الجامعي ${m.s} مسجّل في مجموعة أخرى. إذا كان هذا خطأ، راجعوا المدرّس.`, 'wl-bad');
 					}
 				}
-				// أول مقعد فاضي بالخوارزمية؛ وإذا حدا سبقنا عليه (أو انصدف رمز مكرر) منعيد المحاولة
+				// أول مقعد فاضي بالخيار؛ وإذا حدا سبقنا عليه (أو انصدف رمز مكرر) منعيد المحاولة
 				for (let attempt = 0; attempt < 4; attempt++) {
 					await loadSlots();
 					renderSeats();
-					const taken = new Set(slots.filter((s) => s.algo === algo).map((s) => s.id));
+					const taken = new Set(slots.filter((s) => s.opt === opt).map((s) => s.id));
 					let slot = 0;
-					for (let n = 1; n <= settings.cap; n++) if (!taken.has(`${algo}_${n}`)) { slot = n; break; }
-					if (!slot) { fields.disabled = false; return say('regMsg', `اكتمل العدد في ${ALGO_NAME[algo]}. اختاروا خوارزمية أخرى.`, 'wl-bad'); }
+					for (let n = 1; n <= settings.cap; n++) if (!taken.has(`${opt}_${n}`)) { slot = n; break; }
+					if (!slot) { fields.disabled = false; return say('regMsg', `اكتمل العدد في «${cp.optName[opt]}». اختاروا غيره.`, 'wl-bad'); }
 					const gid = newCode(), pin = newPin();
 					const get = (i: number, k: 'n' | 's') => members[i]?.[k] ?? '';
 					const b = writeBatch(db);
-					b.set(doc(db, 'groups', gid), { algo, slot, size, n1: get(0, 'n'), s1: get(0, 's'), n2: get(1, 'n'), s2: get(1, 's'), n3: get(2, 'n'), s3: get(2, 's'), pin, at: serverTimestamp() });
-					for (const m of members) b.set(doc(db, 'sids', m.s), { g: gid, at: serverTimestamp() });
-					b.set(doc(db, 'slots', `${algo}_${slot}`), { g: gid, algo });
+					b.set(doc(db, ...P, 'groups', gid), { opt, slot, size, n1: get(0, 'n'), s1: get(0, 's'), n2: get(1, 'n'), s2: get(1, 's'), n3: get(2, 'n'), s3: get(2, 's'), pin, at: serverTimestamp() });
+					for (const m of members) b.set(doc(db, ...P, 'sids', m.s), { g: gid, at: serverTimestamp() });
+					b.set(doc(db, ...P, 'slots', `${opt}_${slot}`), { g: gid, opt });
 					try {
 						await b.commit();
 					} catch (e) {
@@ -240,11 +247,11 @@ const { part } = Astro.props;
 						continue;
 					}
 					const names = members.map((m) => m.n);
-					saveLocal({ gid, pin, algo, names });
+					saveLocal(course, { gid, pin, opt, names });
 					say('regMsg', '');
-					reg.querySelector<HTMLElement>('[data-pj-fields]')!.hidden = true;
-					showDone(gid, pin, algo, names);
-					slots.push({ id: `${algo}_${slot}`, g: gid, algo });
+					q<HTMLElement>('[data-pj-fields]', reg)!.hidden = true;
+					showDone(gid, pin, opt, names);
+					slots.push({ id: `${opt}_${slot}`, g: gid, opt });
 					const codeIn = q<HTMLInputElement>('[data-pj-in="code"]');
 					if (codeIn) { codeIn.value = gid; showData(); }
 					fillSubmit(gid, pin);
@@ -260,6 +267,30 @@ const { part } = Astro.props;
 		}
 
 		// ===== بيانات المجموعة =====
+		function download(name: string, text: string) {
+			const a = document.createElement('a');
+			a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+			a.download = name;
+			a.click();
+			URL.revokeObjectURL(a.href);
+		}
+		function os1Box(gid: string, opt: string) {
+			const { procs, q: quantum } = os1Data(gid);
+			return `<p>الخوارزميتان: <b>FCFS</b> و<b>${cp.optName[opt]}</b>${opt === 'rr' ? `، والشريحة <b>q = ${quantum}</b>` : ''}.</p>
+				<div class="wl-scroll"><table class="wl-table"><thead><tr><th>العملية</th><th>زمن الوصول</th><th>زمن التنفيذ</th><th>الأولوية</th></tr></thead><tbody>
+				${procs.map((p) => `<tr><td>${p.name}</td><td>${p.arrival}</td><td>${p.burst}</td><td>${p.prio}</td></tr>`).join('')}</tbody></table></div>
+				<p class="se-note">الأولوية: الرقم الأصغر هو الأهم.${opt === 'prio' || opt === 'pprio' ? '' : ' (عمود الأولوية لا تحتاجه خوارزميتكم، لكنه جزء من صيغة الملف.)'}</p>
+				<p>ملف الإدخال <code>input.txt</code>:</p><pre class="pj-file">${esc(os1Input(gid, opt))}</pre>
+				<button type="button" class="wl-btn" data-pj-act="download">⬇ نزّل input.txt</button>`;
+		}
+		function rtsBox(gid: string, opt: string) {
+			const ts = rtsData(gid), names = RTS_TASKS[opt];
+			return `<p>المشروع: <b>${cp.optName[opt]}</b>. المهلة = الدور (D = T)، والأزمنة بالميلي ثانية.</p>
+				<div class="wl-scroll"><table class="wl-table"><thead><tr><th>المهمة</th><th>ماذا تفعل؟</th><th>C</th><th>T</th></tr></thead><tbody>
+				${ts.map((t, i) => `<tr><td>${names[i].ar}</td><td>${names[i].job}</td><td>${t.C}</td><td>${t.T}</td></tr>`).join('')}</tbody></table></div>
+				<p>أسطر جدول <code>tasks</code> لقالب Wokwi. مكان <code>?</code> ضعوا الأولوية التي اخترتموها:</p><pre class="pj-file">${esc(rtsWokwi(gid, opt))}</pre>
+				<button type="button" class="wl-btn" data-pj-act="download">⬇ نزّل tasks.txt</button>`;
+		}
 		const dataBox = q<HTMLElement>('[data-pj="data"]');
 		async function showData() {
 			if (!dataBox) return;
@@ -276,23 +307,12 @@ const { part } = Astro.props;
 			} catch (e) { console.warn(e); }
 			const s = slots.find((x) => x.g === gid);
 			if (!s) return say('dataMsg', 'لا توجد مجموعة بهذا الرمز.', 'wl-bad');
-			const algo = s.algo as ProjAlgo;
-			const { procs, q: quantum } = groupData(gid);
 			say('dataMsg', '');
 			box.hidden = false;
-			box.innerHTML = `<p>الخوارزميتان: <b>FCFS</b> و<b>${ALGO_NAME[algo]}</b>${algo === 'rr' ? `، والشريحة <b>q = ${quantum}</b>` : ''}.</p>
-				<div class="wl-scroll"><table class="wl-table"><thead><tr><th>العملية</th><th>زمن الوصول</th><th>زمن التنفيذ</th><th>الأولوية</th></tr></thead><tbody>
-				${procs.map((p) => `<tr><td>${p.name}</td><td>${p.arrival}</td><td>${p.burst}</td><td>${p.prio}</td></tr>`).join('')}</tbody></table></div>
-				<p class="se-note">الأولوية: الرقم الأصغر هو الأهم.${algo === 'prio' || algo === 'pprio' ? '' : ' (عمود الأولوية لا تحتاجه خوارزميتكم، لكنه جزء من صيغة الملف.)'}</p>
-				<p>ملف الإدخال <code>input.txt</code>:</p><pre class="pj-file">${esc(inputFile(gid, algo))}</pre>
-				<button type="button" class="wl-btn" data-pj-act="download">⬇ نزّل input.txt</button>`;
-			box.querySelector('[data-pj-act="download"]')!.addEventListener('click', () => {
-				const a = document.createElement('a');
-				a.href = URL.createObjectURL(new Blob([inputFile(gid, algo)], { type: 'text/plain' }));
-				a.download = 'input.txt';
-				a.click();
-				URL.revokeObjectURL(a.href);
-			});
+			box.innerHTML = course === 'os1' ? os1Box(gid, s.opt) : rtsBox(gid, s.opt);
+			box.querySelector('[data-pj-act="download"]')!.addEventListener('click', () =>
+				course === 'os1' ? download('input.txt', os1Input(gid, s.opt)) : download('tasks.txt', rtsWokwi(gid, s.opt) + '\n'),
+			);
 		}
 		function initData() {
 			if (!dataBox) return;
@@ -318,7 +338,7 @@ const { part } = Astro.props;
 				: linkKind(url) === 'github' ? '✓ رابط GitHub: علامتا التسليم كاملتان (2 من 2).' : 'رابط غير GitHub: علامة واحدة من علامتي التسليم (1 من 2).';
 		}
 		function showLast() {
-			const l = loadLocal();
+			const l = loadLocal(course);
 			const e = out('last');
 			if (e) e.textContent = l?.url && l.subAt ? `آخر تسليم من هذا الجهاز: ${l.url} (${fmtWhen(new Date(l.subAt))}). يمكنكم تعديله حتى الموعد، والمعتمد هو آخر تسليم.` : '';
 		}
@@ -346,10 +366,10 @@ const { part } = Astro.props;
 				say('subMsg', 'جارٍ التسليم...');
 				try {
 					const kind = linkKind(url);
-					await setDoc(doc(db, 'subs', gid), { pin, url, kind, at: serverTimestamp() });
-					const l = loadLocal();
-					if (l && l.gid === gid) saveLocal({ ...l, url, subAt: Date.now() });
-					else saveLocal({ gid, pin, algo: (slots.find((x) => x.g === gid)?.algo ?? 'sjf') as ProjAlgo, names: l?.gid === gid ? l.names : [], url, subAt: Date.now() });
+					await setDoc(doc(db, ...P, 'subs', gid), { pin, url, kind, at: serverTimestamp() });
+					const l = loadLocal(course);
+					if (l && l.gid === gid) saveLocal(course, { ...l, url, subAt: Date.now() });
+					else saveLocal(course, { gid, pin, opt: slots.find((x) => x.g === gid)?.opt ?? '', names: [], url, subAt: Date.now() });
 					say('subMsg', `✓ تم التسليم (${kind === 'github' ? 'GitHub: علامتان' : 'رابط آخر: علامة واحدة'}). يمكنكم تعديل الرابط حتى الموعد.`, 'wl-good');
 					showLast();
 				} catch (e) {

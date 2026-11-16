@@ -2,6 +2,12 @@
 // صفحة نتائج الاختبارات للمدرّس: تسجيل دخول بـ Google، والقراءة مسموحة بس لـ TEACHER_EMAIL (بقواعد Firestore).
 // مش ظاهرة بالقائمة ولا بالبحث، والطلاب لو فتحوها ما بيشوفوا شي.
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { COURSES } from '../scripts/projects';
+// تبويب لكل مشروع مادة (projectAdmin.ts)
+const PROJ = [
+	{ id: 'os1', title: 'مشروع نظم التشغيل' },
+	{ id: 'rts', title: 'مشروع الزمن الحقيقي' },
+].map((p) => { const c = COURSES[p.id as 'os1' | 'rts']; return { ...p, word: c.optWord.replace(/^ال/, ''), opts: c.opts, names: c.optName }; });
 ---
 
 <StarlightPage frontmatter={{ title: 'نتائج الاختبارات', pagefind: false, head: [{ tag: 'meta', attrs: { name: 'robots', content: 'noindex' } }] }}>
@@ -15,36 +21,39 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 		<div data-panel hidden>
 			<div class="wl-row rs-tabs" role="tablist">
 				<button type="button" class="wl-btn primary" data-sec-btn="quiz">📝 الاختبارات</button>
-				<button type="button" class="wl-btn" data-sec-btn="project">🛠️ مشروع نظم التشغيل</button>
+				{PROJ.map((p) => <button type="button" class="wl-btn" data-sec-btn={p.id}>🛠️ {p.title}</button>)}
 			</div>
-			<div class="pa" data-sec="project" hidden>
-				<p class="wl-msg" data-pa="msg"></p>
-				<details class="pa-settings" open>
-					<summary>⚙️ المواعيد والإعدادات</summary>
-					<p class="pa-state" data-pa="state"></p>
+			{PROJ.map((p) => (
+				<div class="pa" data-sec={p.id} hidden>
+					<p class="wl-msg" data-pa="msg"></p>
+					<details class="pa-settings" open>
+						<summary>⚙️ المواعيد والإعدادات</summary>
+						<p class="pa-state" data-pa="state"></p>
+						<div class="rs-filters">
+							<label>التسجيل <select data-pa="regMode"><option value="closed">مغلق</option><option value="auto">تلقائي حسب المواعيد</option><option value="open">مفتوح الآن (يدوياً)</option></select></label>
+							<label>فتح التسجيل <input type="datetime-local" data-pa="regFrom" /></label>
+							<label>إغلاق التسجيل <input type="datetime-local" data-pa="regTo" /></label>
+							<label>التسليم <select data-pa="subMode"><option value="closed">مغلق</option><option value="auto">تلقائي حتى الموعد</option><option value="open">مفتوح الآن (يدوياً)</option></select></label>
+							<label>آخر موعد للتسليم <input type="datetime-local" data-pa="subTo" /></label>
+							<label>مجموعات لكل {p.word} <input type="number" min="1" max="100" data-pa="cap" /></label>
+						</div>
+						<p class="se-note">«تلقائي» يفتح ويغلق حسب المواعيد. «مفتوح الآن» و«مغلق» يتجاوزان المواعيد (مثلاً لتمديد يوم إضافي). صفحة المشروع مخفية عن الطلاب حالياً، ورابطها: <a href={`../${p.id}/project/`}>/{p.id}/project/</a></p>
+						<button type="button" class="wl-btn primary" data-pa="save">💾 احفظ الإعدادات</button>
+					</details>
+					<div class="wl-grid" data-pa="counts"></div>
 					<div class="rs-filters">
-						<label>التسجيل <select data-pa="regMode"><option value="closed">مغلق</option><option value="auto">تلقائي حسب المواعيد</option><option value="open">مفتوح الآن (يدوياً)</option></select></label>
-						<label>فتح التسجيل <input type="datetime-local" data-pa="regFrom" /></label>
-						<label>إغلاق التسجيل <input type="datetime-local" data-pa="regTo" /></label>
-						<label>التسليم <select data-pa="subMode"><option value="closed">مغلق</option><option value="auto">تلقائي حتى الموعد</option><option value="open">مفتوح الآن (يدوياً)</option></select></label>
-						<label>آخر موعد للتسليم <input type="datetime-local" data-pa="subTo" /></label>
-						<label>مجموعات لكل خوارزمية <input type="number" min="1" max="100" data-pa="cap" /></label>
+						<label>{p.word} <select data-pa="opt"><option value="">الكل</option>{p.opts.map((o) => <option value={o}>{p.names[o]}</option>)}</select></label>
+						<label>التسليم <select data-pa="sub"><option value="">الكل</option><option value="yes">سلّمت</option><option value="no">لم تسلّم</option></select></label>
+						<label>بحث <input type="search" data-pa="q" placeholder="اسم أو رقم جامعي أو رمز" /></label>
 					</div>
-					<p class="se-note">«تلقائي» يفتح ويغلق حسب المواعيد. «مفتوح الآن» و«مغلق» يتجاوزان المواعيد (مثلاً لتمديد يوم إضافي). صفحة المشروع مخفية عن الطلاب حالياً، ورابطها: <a href="../os1/project/">/os1/project/</a></p>
-					<button type="button" class="wl-btn primary" data-pa="save">💾 احفظ الإعدادات</button>
-				</details>
-				<div class="wl-grid" data-pa="counts"></div>
-				<div class="rs-filters">
-					<label>الخوارزمية <select data-pa="algo"><option value="">الكل</option><option value="sjf">SJF</option><option value="srtf">SRTF</option><option value="rr">Round Robin</option><option value="prio">الأولوية</option><option value="pprio">الأولوية مع المقاطعة</option></select></label>
-					<label>التسليم <select data-pa="sub"><option value="">الكل</option><option value="yes">سلّمت</option><option value="no">لم تسلّم</option></select></label>
-					<label>بحث <input type="search" data-pa="q" placeholder="اسم أو رقم جامعي أو رمز" /></label>
+					<div class="wl-row">
+						<button type="button" class="wl-btn" data-pa="reload">↻ تحديث</button>
+						<button type="button" class="wl-btn" data-pa="csv">⬇ تنزيل Excel (سطر لكل طالب)</button>
+					</div>
+					<div class="pa-detail" data-pa="detail" hidden></div>
+					<div class="wl-scroll"><table class="wl-table rs-t" data-pa="table"></table></div>
 				</div>
-				<div class="wl-row">
-					<button type="button" class="wl-btn" data-pa="reload">↻ تحديث</button>
-					<button type="button" class="wl-btn" data-pa="csv">⬇ تنزيل Excel (سطر لكل طالب)</button>
-				</div>
-				<div class="wl-scroll"><table class="wl-table rs-t" data-pa="table"></table></div>
-			</div>
+			))}
 			<div data-sec="quiz">
 			<div class="rs-filters">
 				<label>المادة <select data-f="course"><option value="">الكل</option><option value="ai2">الذكاء الصنعي 2</option><option value="wireless">الشبكات اللاسلكية</option><option value="os1">نظم التشغيل 1</option><option value="rts">نظم الزمن الحقيقي</option></select></label>
@@ -88,6 +97,9 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 	.rs-t td.pa-link { max-width: 16rem; overflow-wrap: anywhere; direction: ltr; }
 	.rs-t td.pa-act { white-space: nowrap; }
 	.pa-exp-box { text-align: right; }
+	.pa .pa-exp-box .pj-file { white-space: pre-wrap; overflow-wrap: anywhere; }
+	.pa-detail { border: 2px solid var(--sl-color-accent); border-radius: 0.6rem; padding: 0.7rem 0.9rem; scroll-margin-top: 5rem; }
+	.pa-detail .wl-row { justify-content: space-between; }
 	.pa-exp-box h5 { margin: 0.4rem 0; }
 	.pa-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; }
 	.pa .pj-file { direction: ltr; text-align: left; white-space: pre; font-family: var(--sl-font-mono); font-size: var(--sl-text-xs); background: var(--sl-color-gray-6); border-radius: 0.4rem; padding: 0.5rem 0.7rem; overflow-x: auto; margin: 0 0 0.4rem; }
@@ -98,7 +110,8 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 	import { getFirestore, collection, getDocs, query, orderBy, limit, Timestamp, deleteDoc, doc } from 'firebase/firestore/lite';
 	import { app } from '../scripts/quizStore';
 	import { firebaseReady, TEACHER_EMAIL } from '../data/firebase-config';
-	import { mountProjectAdmin } from '../scripts/os1ProjectAdmin';
+	import { mountProjectAdmin } from '../scripts/projectAdmin';
+	import type { Course } from '../scripts/projects';
 
 	interface Row { id: string; quiz: string; course: string; name: string; sid: string; score: number; total: number; at: Date | null; client: string; left?: number; secs?: number }
 	const COURSE: Record<string, string> = { ai2: 'الذكاء الصنعي 2', wireless: 'الشبكات اللاسلكية', os1: 'نظم التشغيل 1', rts: 'نظم الزمن الحقيقي' };
@@ -207,19 +220,21 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 		URL.revokeObjectURL(a.href);
 	};
 
-	// تبويب «مشروع نظم التشغيل» (os1ProjectAdmin.ts): بيتحمّل أول مرة بينفتح. ‎#project بالرابط بيفتحه مباشرة
-	let sec: 'quiz' | 'project' = location.hash === '#project' ? 'project' : 'quiz';
-	let pa: ReturnType<typeof mountProjectAdmin> | null = null;
-	const project = () => (pa ??= mountProjectAdmin(root.querySelector<HTMLElement>('[data-sec="project"]')!));
+	// تبويبات مشاريع المواد (projectAdmin.ts): كل وحدة بتتحمّل أول مرة بتنفتح. ‎#os1 أو ‎#rts بالرابط بيفتحها مباشرة (و ‎#project القديم = os1)
+	type Sec = 'quiz' | Course;
+	const hash = location.hash.slice(1);
+	let sec: Sec = hash === 'project' ? 'os1' : hash === 'os1' || hash === 'rts' ? hash : 'quiz';
+	const pas: Partial<Record<Course, ReturnType<typeof mountProjectAdmin>>> = {};
+	const project = (c: Course) => (pas[c] ??= mountProjectAdmin(root.querySelector<HTMLElement>(`[data-sec="${c}"]`)!, c));
 	const showSec = () => {
 		root.querySelectorAll<HTMLElement>('[data-sec]').forEach((s) => (s.hidden = s.dataset.sec !== sec));
 		root.querySelectorAll<HTMLElement>('[data-sec-btn]').forEach((b) => b.classList.toggle('primary', b.dataset.secBtn === sec));
 	};
 	root.querySelectorAll<HTMLButtonElement>('[data-sec-btn]').forEach((b) => b.addEventListener('click', () => {
-		sec = b.dataset.secBtn as 'quiz' | 'project';
-		history.replaceState(null, '', sec === 'project' ? '#project' : location.pathname);
+		sec = b.dataset.secBtn as Sec;
+		history.replaceState(null, '', sec === 'quiz' ? location.pathname : '#' + sec);
 		showSec();
-		if (sec === 'project') project().load();
+		if (sec !== 'quiz') project(sec).load();
 	}));
 	showSec();
 
@@ -235,7 +250,7 @@ const mark = (s: number, t: number) => `${s} من ${t}`;
 			if (!u) { say('سجّل الدخول بحساب المدرّس لترى النتائج.'); return; }
 			if (TEACHER_EMAIL && u.email !== TEACHER_EMAIL) { panel.hidden = true; say('هذا الحساب ليس حساب المدرّس.', 'wl-bad'); return; }
 			load();
-			if (sec === 'project') project().load();
+			if (sec !== 'quiz') project(sec).load();
 		});
 		loginBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => say('فشل تسجيل الدخول: ' + e.code, 'wl-bad')));
 		logoutBtn.addEventListener('click', () => signOut(auth));
