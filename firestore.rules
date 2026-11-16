@@ -46,7 +46,7 @@ service cloud.firestore {
       return {'os1': ['sjf', 'srtf', 'rr', 'prio', 'pprio'], 'rts': ['line', 'drone', 'parking', 'patient', 'traffic']}[course];
     }
     function minSize(course) {
-      return {'os1': 2, 'rts': 1}[course];
+      return {'os1': 2, 'rts': 2}[course];
     }
     function validName(n) {
       return n is string && n.size() >= 2 && n.size() <= 60;

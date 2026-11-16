@@ -40,7 +40,7 @@ export const RTS: CourseProj = {
 	opts: ['line', 'drone', 'parking', 'patient', 'traffic'],
 	optName: { line: 'روبوت متتبع الخط', drone: 'طائرة مسيّرة', parking: 'حسّاس ركن السيارة', patient: 'جهاز مراقبة المريض', traffic: 'إشارة مرور ذكية' },
 	optWord: 'المشروع',
-	minSize: 1,
+	minSize: 2,
 	maxSize: 3,
 };
 export const COURSES: Record<Course, CourseProj> = { os1: OS1, rts: RTS };
