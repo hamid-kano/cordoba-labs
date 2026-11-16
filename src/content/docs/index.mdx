@@ -17,6 +17,7 @@ hero:
 import { Card, CardGrid } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
 import seal from '../../assets/brand/cordoba-seal.jpg';
+import ProjectCard from '../../components/ProjectCard.astro';
 
 ## المواد
 
@@ -38,6 +39,15 @@ import seal from '../../assets/brand/cordoba-seal.jpg';
 		[خطة المادة ←](rts/)
 	</Card>
 </CardGrid>
+
+## مشاريع المواد
+
+مشروع عملي لكل مادة، بمجموعات من طالبين أو ثلاثة. سجّل مجموعتك، وخذ بياناتك الخاصة، وسلّم عبر GitHub.
+
+<div class="pjc-grid">
+	<ProjectCard course="os1" href="os1/project/" />
+	<ProjectCard course="rts" href="rts/project/" />
+</div>
 
 ## المراجع
 
