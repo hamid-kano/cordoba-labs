@@ -42,6 +42,20 @@ export interface Task {
 }
 
 export const deadlineOf = (t: Task) => t.D ?? t.T;
+// حدود جداول المهام بالمحاكيات (الجلسات 2 و 3 و 4 و 5): مشروع المادة بيعطي أدوار لحد 60 و C لحد 30
+export const MAX_T = 100;
+export const MAX_C = 99;
+/** فحص صف بجدول المهام: null = فاضي (منتجاهله)، و 'ok'، وإلا سبب الرفض بالعربي (منعرضه للطالب بدل ما نتجاهله بصمت) */
+export function rowCheck(name: string, C: number, T: number): null | 'ok' | string {
+	if (!name && !C && !T) return null;
+	if (!name) return 'اكتب اسم المهمة';
+	if (!Number.isInteger(C) || C < 1) return 'C يجب أن يكون عدداً صحيحاً من 1 فأكثر';
+	if (!Number.isInteger(T) || T < 1) return 'T يجب أن يكون عدداً صحيحاً من 1 فأكثر';
+	if (T > MAX_T) return `T أكبر من ${MAX_T}`;
+	if (C > MAX_C) return `C أكبر من ${MAX_C}`;
+	if (C > T) return 'C أكبر من T: المهمة لا تنتهي قبل دورها التالي أبداً';
+	return 'ok';
+}
 export const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
 export const lcm = (a: number, b: number) => (a / gcd(a, b)) * b;
 

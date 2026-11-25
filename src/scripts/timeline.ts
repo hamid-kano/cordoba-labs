@@ -26,7 +26,11 @@ const AXIS = 24;
 // frame: إذا انبعت، منرسم خط سميك ببداية كل إطار (الجدولة الدورية)
 export function drawTimeline(svg: SVGSVGElement, rows: TLRow[], horizon: number, frame = 0) {
 	// العرض الحقيقي بالبكسل، لحتى يضل حجم الكتابة ثابت عالموبايل
-	const W = Math.max(320, Math.min(900, Math.round(svg.getBoundingClientRect().width) || 600));
+	// إذا الوحدة صارت أصغر من 9 بكسل (دورة كبرى طويلة)، منعرّض الرسمة والحاوية بتنسحب أفقياً
+	const box = Math.round((svg.parentElement ?? svg).getBoundingClientRect().width) || 600;
+	const need = LABEL + 14 + horizon * 9;
+	const W = Math.max(320, box < need ? need : Math.min(900, box));
+	svg.style.width = box < need ? `${W}px` : '';
 	const H = TOP + rows.length * ROW + AXIS;
 	svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 	const cw = (W - LABEL - 14) / horizon;

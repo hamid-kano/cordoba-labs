@@ -29,8 +29,8 @@ const EX = {
 					[0, 1, 2, 3].map((i) => (
 						<tr data-row={i}>
 							<td><span class={`rts-sw k${i}`} /><input class="wl-input" style="direction:rtl;width:6.5rem" data-f="name" /></td>
-							<td><input class="wl-input" type="number" min="1" max="20" data-f="C" /></td>
-							<td><input class="wl-input" type="number" min="1" max="24" data-f="T" /></td>
+							<td><input class="wl-input" type="number" min="1" max="99" data-f="C" /></td>
+							<td><input class="wl-input" type="number" min="1" max="100" data-f="T" /></td>
 							<td><bdi dir="ltr" data-f="u" /></td>
 						</tr>
 					))
@@ -38,6 +38,7 @@ const EX = {
 			</tbody>
 		</table>
 	</div>
+	<p class="wl-msg wl-bad rts-rowmsg" data-out="rowmsg"></p>
 	<div class="wl-row">
 		<button type="button" class="wl-btn" data-ex-btn="robot">مثال: المكنسة الذكية</button>
 		<button type="button" class="wl-btn" data-ex-btn="heavy">أضف مهمة الكاميرا</button>
@@ -57,7 +58,7 @@ const EX = {
 </div>
 
 <script>
-	import { hyperStats, demandAlone, countAr, type Task } from '../../scripts/rts';
+	import { hyperStats, demandAlone, countAr, rowCheck, type Task } from '../../scripts/rts';
 	import { drawTimeline, type TLRow } from '../../scripts/timeline';
 
 	const fmtU = (u: number) => `${(u * 100).toFixed(1).replace(/\.0$/, '')}%`;
@@ -80,14 +81,19 @@ const EX = {
 
 		function run() {
 			const ts: (Task & { k: number })[] = [];
+			const bad: string[] = [];
 			rows.forEach((r, i) => {
 				const name = f(r, 'name').value.trim();
-				const C = Math.round(+f(r, 'C').value);
-				const T = Math.round(+f(r, 'T').value);
-				const ok = name && C >= 1 && T >= 1 && T <= 24 && C <= 20;
-				r.querySelector('[data-f="u"]')!.textContent = ok ? `${C}/${T} = ${fmtU(C / T)}` : '–';
-				if (ok) ts.push({ name, C, T, k: i });
+				const C = +f(r, 'C').value;
+				const T = +f(r, 'T').value;
+				const chk = rowCheck(name, C, T);
+				r.classList.toggle('rts-bad', !!chk && chk !== 'ok');
+				if (chk && chk !== 'ok') bad.push(`الصف ${i + 1}${name ? ` («${name}»)` : ''}: ${chk}`);
+				r.querySelector('[data-f="u"]')!.textContent = chk === 'ok' ? `${C}/${T} = ${fmtU(C / T)}` : '–';
+				if (chk === 'ok') ts.push({ name, C, T, k: i });
 			});
+			const rm = root.querySelector<HTMLElement>('[data-out="rowmsg"]');
+			if (rm) rm.textContent = bad.length ? `⚠️ لم نُدخل في الحساب: ${bad.join('، ')}.` : '';
 			const msg = out('msg');
 			if (!ts.length) {
 				['U', 'H', 'busy', 'idle'].forEach((k) => (out(k).textContent = '–'));
@@ -104,7 +110,7 @@ const EX = {
 			out('calc').innerHTML =
 				`<bdi dir="ltr">U = ${ts.map((t) => `${t.C}/${t.T}`).join(' + ')} = ${s.U.toFixed(3)}</bdi>` +
 				`<br>وفي الدورة الكبرى تعمل: ${ts.map((t, i) => `${t.name} <bdi dir="ltr">${s.H}÷${t.T}</bdi> = ${countAr(s.jobs[i], "مرة واحدة", "مرتين", "مرات", "مرة")}`).join('، ')}` +
-				(s.H > 48 ? `<br>الدورة الكبرى طويلة، فالرسمة تعرض أول 48 وحدة فقط.` : '');
+				(s.H > 120 ? `<br>الدورة الكبرى طويلة، فالرسمة تعرض أول 120 وحدة فقط.` : '');
 			if (s.U > 1) {
 				msg.innerHTML = `U أكبر من 100%: العمل المطلوب أكثر من وقت المعالج. <b>مستحيل</b> أن تلحق كل المهام مهلها مهما رتّبناها.`;
 				msg.className = 'wl-msg wl-bad';
@@ -112,8 +118,8 @@ const EX = {
 				msg.innerHTML = `U لا تتجاوز 100%: الوقت <b>يكفي من حيث الكمية</b>. لكن انظر إلى الأحمر في صف المعالج: من يعمل أولاً؟ هذا هو سؤال <b>الجدولة</b> في الجلسات القادمة.`;
 				msg.className = 'wl-msg wl-good';
 			}
-			// إذا الدورة الكبرى طويلة كتير منكتفي بأول 48 وحدة
-			const hz = Math.min(s.H, 48);
+			// إذا الدورة الكبرى طويلة كتير منكتفي بأول 120 وحدة (مشروع المادة لحد 60)
+			const hz = Math.min(s.H, 120);
 			const tl: TLRow[] = ts.map((t) => {
 				const blocks = [];
 				const marks = [];

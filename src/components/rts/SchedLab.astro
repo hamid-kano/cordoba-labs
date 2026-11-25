@@ -45,8 +45,8 @@ const shown = mode === 'rm' ? ['watch', 'robot', 'drone'] : ['drone', 'full', 'o
 					[0, 1, 2, 3].map((i) => (
 						<tr data-row={i}>
 							<td><span class={`rts-sw k${i}`} /><input class="wl-input" style="direction:rtl;width:6.5rem" data-f="name" /></td>
-							<td><input class="wl-input" type="number" min="1" max="20" data-f="C" /></td>
-							<td><input class="wl-input" type="number" min="1" max="24" data-f="T" /></td>
+							<td><input class="wl-input" type="number" min="1" max="99" data-f="C" /></td>
+							<td><input class="wl-input" type="number" min="1" max="100" data-f="T" /></td>
 							{mode === 'rm' && <td data-f="rank">–</td>}
 						</tr>
 					))
@@ -54,6 +54,7 @@ const shown = mode === 'rm' ? ['watch', 'robot', 'drone'] : ['drone', 'full', 'o
 			</tbody>
 		</table>
 	</div>
+	<p class="wl-msg wl-bad rts-rowmsg" data-out="rowmsg"></p>
 	<div class="wl-row">
 		{shown.map((k) => <button type="button" class="wl-btn" data-ex-btn={k}>{exNames[k]}</button>)}
 	</div>
@@ -91,12 +92,12 @@ const shown = mode === 'rm' ? ['watch', 'robot', 'drone'] : ['drone', 'full', 'o
 </style>
 
 <script>
-	import { simulate, rmTest, rmRanks, hyperperiod, utilization, countAr, type Task, type Policy } from '../../scripts/rts';
+	import { simulate, rmTest, rmRanks, hyperperiod, utilization, countAr, rowCheck, type Task, type Policy } from '../../scripts/rts';
 	import { drawTimeline, type TLRow } from '../../scripts/timeline';
 
 	const NUM = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
 	const pct = (u: number) => `${(u * 100).toFixed(1).replace(/\.0$/, '')}%`;
-	const MAXH = 48;
+	const MAXH = 120; // مشروع المادة دورته الكبرى لحد 60، فبتنعرض كاملة
 
 	document.querySelectorAll<HTMLElement>('[data-rts-sched]').forEach((root) => {
 		const mode = root.dataset.rtsSched as 'rm' | 'compare';
@@ -146,12 +147,18 @@ const shown = mode === 'rm' ? ['watch', 'robot', 'drone'] : ['drone', 'full', 'o
 
 		function run() {
 			const ts: (Task & { k: number })[] = [];
+			const bad: string[] = [];
 			rows.forEach((r, i) => {
 				const name = f(r, 'name').value.trim();
-				const C = Math.round(+f(r, 'C').value);
-				const T = Math.round(+f(r, 'T').value);
-				if (name && C >= 1 && T >= 1 && T <= 24 && C <= 20) ts.push({ name, C, T, k: i });
+				const C = +f(r, 'C').value;
+				const T = +f(r, 'T').value;
+				const chk = rowCheck(name, C, T);
+				r.classList.toggle('rts-bad', !!chk && chk !== 'ok');
+				if (chk && chk !== 'ok') bad.push(`الصف ${i + 1}${name ? ` («${name}»)` : ''}: ${chk}`);
+				if (chk === 'ok') ts.push({ name, C, T, k: i });
 			});
+			const rm = root.querySelector<HTMLElement>('[data-out="rowmsg"]');
+			if (rm) rm.textContent = bad.length ? `⚠️ لم نُدخل في الحساب: ${bad.join('، ')}.` : '';
 			const runs = [...root.querySelectorAll<HTMLElement>('[data-run]')];
 			if (!ts.length) {
 				runs.forEach((r) => {
