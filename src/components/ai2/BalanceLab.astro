@@ -1,0 +1,279 @@
+---
+// تمرين إضافي: كرة على لوح. المتحكم الضبابي بيميّل اللوح ليرجّع الكرة عالنص.
+// مدخلين: الموقع (5 مجموعات) والحركة (3)، وخرج الميل (5)، يعني 15 قاعدة بتتعدّل بالكبس.
+// ميلان الهاتف الحقيقي: بوضع «أنت تضبط» هو يلي بيميّل اللوح، وبوضع المتحكم هو ريح (اضطراب).
+---
+
+<div class="not-content wl-box bl-lab" data-bal-lab>
+	<h4>تحدَّ المتحكم: ثبّت الكرة في الوسط</h4>
+
+	<div class="wl-row">
+		<span>من يضبط اللوح؟</span>
+		<button type="button" class="wl-btn" data-mode="ai" aria-pressed="true">🤖 المتحكم</button>
+		<button type="button" class="wl-btn" data-mode="me" aria-pressed="false">✋ أنت</button>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-reset>↺ ابدأ من الطرف</button>
+		<button type="button" class="wl-btn" data-push>💨 ادفع الكرة</button>
+		<button type="button" class="wl-btn" data-tiltbtn>📱 استخدم ميلان الهاتف</button>
+	</div>
+	<p class="wl-msg" data-msg></p>
+
+	<div class="bl-stage">
+		<svg viewBox="0 0 600 230" role="img" aria-label="لوح عليه كرة، يميل يميناً ويساراً">
+			<line x1="300" y1="40" x2="300" y2="150" class="bl-target"></line>
+			<text x="300" y="30" class="bl-tl">الهدف</text>
+			<g data-board>
+				<rect x="45" y="150" width="510" height="12" rx="6" class="bl-board"></rect>
+				<circle cx="300" cy="132" r="18" class="bl-ball" data-ball></circle>
+			</g>
+			<path d="M300 162 L282 205 L318 205 Z" class="bl-pivot"></path>
+			<text x="300" y="225" class="bl-tl" data-tiltText></text>
+		</svg>
+	</div>
+
+	<div class="wl-grid ai-metrics">
+		<div class="wl-out"><span>⏱ الزمن</span><strong data-r="time"></strong></div>
+		<div class="wl-out"><span>📍 الموقع</span><strong data-r="x"></strong></div>
+		<div class="wl-out"><span>📐 ميل اللوح</span><strong data-r="tilt"></strong></div>
+		<div class="wl-out"><span>🏆 أفضل زمن</span><strong data-r="best"></strong></div>
+	</div>
+
+	<label class="ai-slider" data-manual hidden><span>ميل اللوح بيدك<output data-o="man"></output></span><input type="range" min="-10" max="10" step="0.5" value="0" data-k="man" /></label>
+
+	<figure class="ai-chart">
+		<svg role="img" aria-label="موقع الكرة وميل اللوح خلال آخر 10 ثوانٍ" data-chart="hist"></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-c1"><i></i>موقع الكرة</span><span class="ai-c2"><i></i>ميل اللوح</span><span class="ai-ref"><i class="dash"></i>الوسط</span>
+		</figcaption>
+	</figure>
+
+	<div data-aionly>
+		<p class="bl-step"><strong>أزرار الضبط:</strong></p>
+		<div class="ai-sliders">
+			<label class="ai-slider"><span>Ke: حساسية الموقع<output data-o="Ke"></output></span><input type="range" min="0.3" max="3" step="0.1" value="1" data-k="Ke" /></label>
+			<label class="ai-slider"><span>Kd: الفرامل<output data-o="Kd"></output></span><input type="range" min="0" max="3" step="0.1" value="1" data-k="Kd" /></label>
+			<label class="ai-slider"><span>Ku: قوة الميل<output data-o="Ku"></output></span><input type="range" min="0.2" max="1" step="0.05" value="1" data-k="Ku" /></label>
+		</div>
+
+		<p class="bl-step"><strong>القواعد الخمس عشرة:</strong> السطر هو مكان الكرة، والعمود هو حركتها. كلما اشتد لون الخانة كانت القاعدة أقوى الآن. <strong>اضغط أي خانة لتغيّر قرارها.</strong></p>
+		<div class="bl-grid" data-grid></div>
+		<div class="wl-row">
+			<button type="button" class="wl-btn" data-rreset>↺ أعد القواعد الأصلية</button>
+		</div>
+	</div>
+</div>
+
+<style is:global>
+	.bl-stage { border-radius: 0.6rem; background: var(--sl-color-gray-6); }
+	.bl-stage svg { width: 100%; height: auto; display: block; direction: ltr; }
+	.bl-board { fill: #8a5a2b; stroke: #5e3b17; stroke-width: 2; }
+	.bl-ball { fill: #e5534b; stroke: #a32a24; stroke-width: 2; }
+	.bl-target { stroke: #2fb36b; stroke-width: 2; stroke-dasharray: 6 5; }
+	.bl-pivot { fill: var(--sl-color-gray-4); }
+	.bl-tl { fill: var(--sl-color-gray-2); font-size: 15px; text-anchor: middle; font-family: var(--sl-font); }
+	.bl-step { margin-top: 1rem !important; }
+	.bl-grid { display: grid; grid-template-columns: 5.4rem repeat(3, minmax(0, 1fr)); gap: 3px; font-size: 0.78rem; text-align: center; }
+	.bl-grid > div { padding: 0.4rem 0.1rem; font-weight: 700; color: var(--sl-color-gray-2); }
+	.bl-grid button, .ty-grid button {
+		font: inherit; cursor: pointer; border: 1px solid var(--sl-color-gray-5); border-radius: 0.3rem; padding: 0.4rem 0.1rem;
+		color: var(--sl-color-white); background: color-mix(in srgb, var(--sl-color-accent) calc(var(--s, 0) * 100%), var(--sl-color-gray-6));
+	}
+	.bl-grid button.on, .ty-grid button.on { color: var(--sl-color-black); font-weight: 700; }
+	.bl-grid button.edited, .ty-grid button.edited { border: 2px dashed #e0a030; }
+</style>
+
+<script>
+	import { drawChart, num } from '../../scripts/chart';
+	import { BAL, BAL_RULES, BAL_POS, BAL_VEL, BAL_OUT, balanceFis, balStep, balDetail, type BalState } from '../../scripts/extraFuzzy';
+
+	type DOE = typeof DeviceOrientationEvent & { requestPermission?: () => Promise<string> };
+
+	document.querySelectorAll<HTMLElement>('[data-bal-lab]').forEach((root) => {
+		const q = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+		const k = (n: string) => q<HTMLInputElement>(`[data-k="${n}"]`);
+		const msg = q('[data-msg]');
+		let mode: 'ai' | 'me' = 'ai';
+		let rules = BAL_RULES.map((r) => [...r]);
+		let fis = balanceFis(rules);
+		const s: BalState = { x: 0.9, v: 0, u: 0 };
+		let tilt = 0; // الميل الكلي بالدرجات (موجب = اليمين واطي)
+		let phone: number | null = null; // ميلان الهاتف بالدرجات
+		let phoneOn = false;
+		let t = 0;
+		let calm = 0;
+		let done = false;
+		let fallen = 0;
+		const best: Record<string, number> = { ai: NaN, me: NaN };
+		let lastDet = balDetail(fis, s.x, s.v);
+		const hist: { t: number; x: number; a: number }[] = [];
+
+		const setMsg = (h: string) => (msg.innerHTML = h);
+		function reset() {
+			s.x = Math.random() < 0.5 ? -0.9 : 0.9;
+			s.v = 0;
+			s.u = 0;
+			t = 0;
+			calm = 0;
+			done = false;
+			fallen = 0;
+			hist.length = 0;
+			if (mode === 'me') k('man').value = '0';
+			setMsg(mode === 'ai' ? 'المتحكم يحاول إرجاع الكرة إلى الوسط وتثبيتها هناك.' : phoneOn ? 'ميّل هاتفك يميناً ويساراً، وحاول تثبيت الكرة في الوسط.' : 'حرّك مؤشر «ميل اللوح بيدك»، وحاول تثبيت الكرة في الوسط.');
+		}
+
+		root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+			b.addEventListener('click', () => {
+				mode = b.dataset.mode as 'ai' | 'me';
+				root.querySelectorAll('[data-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+				q('[data-aionly]').hidden = mode !== 'ai';
+				q('[data-manual]').hidden = mode !== 'me' || phoneOn;
+				reset();
+			}),
+		);
+		q('[data-reset]').addEventListener('click', reset);
+		q('[data-push]').addEventListener('click', () => {
+			s.v += (Math.random() < 0.5 ? -1 : 1) * 0.9;
+			done = false;
+			calm = 0;
+		});
+
+		// ميلان الهاتف الحقيقي
+		const onOri = (e: DeviceOrientationEvent) => {
+			if (e.gamma !== null) phone = e.gamma;
+		};
+		q('[data-tiltbtn]').addEventListener('click', async () => {
+			if (phoneOn) {
+				phoneOn = false;
+				phone = null;
+				removeEventListener('deviceorientation', onOri);
+				q('[data-tiltbtn]').setAttribute('aria-pressed', 'false');
+				q('[data-manual]').hidden = mode !== 'me';
+				setMsg('توقف استخدام ميلان الهاتف.');
+				return;
+			}
+			const D = (window as any).DeviceOrientationEvent as DOE | undefined;
+			if (!D) return setMsg('<span class="wl-bad">هذا الجهاز لا يعطي ميلان الهاتف.</span> استخدم المؤشر بدلاً منه.');
+			if (typeof D.requestPermission === 'function') {
+				const r = await D.requestPermission().catch(() => 'denied');
+				if (r !== 'granted') return setMsg('<span class="wl-bad">لم يسمح المتصفح بحساس الميلان.</span>');
+			}
+			addEventListener('deviceorientation', onOri);
+			phoneOn = true;
+			q('[data-tiltbtn]').setAttribute('aria-pressed', 'true');
+			q('[data-manual]').hidden = true;
+			setTimeout(() => {
+				if (phone === null) setMsg('<span class="wl-bad">لم يصل أي ميلان.</span> هذا الحاسوب لا يملك حساس ميلان غالباً، فجرّب على الهاتف.');
+				else setMsg(mode === 'ai' ? '📱 ميلان هاتفك الآن <strong>ريح</strong> تدفع الكرة. ميّله وحاول أن تُسقطها، والمتحكم يقاومك!' : '📱 أمسك الهاتف عمودياً، وميّله يميناً ويساراً لتثبيت الكرة.');
+			}, 800);
+		});
+
+		// جدول القواعد
+		const grid = q('[data-grid]');
+		grid.innerHTML = '<div>الكرة ↓</div>' + BAL_VEL.map((n) => `<div>${n}</div>`).join('') +
+			BAL_POS.map((p, i) => `<div>${p}</div>` + BAL_VEL.map((_, j) => `<button type="button" data-c="${i},${j}"></button>`).join('')).join('');
+		const cells = [...grid.querySelectorAll<HTMLButtonElement>('button')];
+		cells.forEach((b) =>
+			b.addEventListener('click', () => {
+				const [i, j] = b.dataset.c!.split(',').map(Number);
+				rules[i][j] = (rules[i][j] % 5) + 1;
+				fis = balanceFis(rules);
+				paintGrid();
+			}),
+		);
+		q('[data-rreset]').addEventListener('click', () => {
+			rules = BAL_RULES.map((r) => [...r]);
+			fis = balanceFis(rules);
+			paintGrid();
+		});
+		function paintGrid() {
+			cells.forEach((b, n) => {
+				const i = Math.floor(n / 3);
+				const j = n % 3;
+				const st = lastDet.strengths[n];
+				b.style.setProperty('--s', st.toFixed(2));
+				b.classList.toggle('on', st > 0.45);
+				b.classList.toggle('edited', rules[i][j] !== BAL_RULES[i][j]);
+				b.textContent = BAL_OUT[rules[i][j] - 1];
+			});
+		}
+
+		const gains = () => ({ Ke: +k('Ke').value, Kd: +k('Kd').value, Ku: +k('Ku').value });
+		['Ke', 'Kd', 'Ku'].forEach((n) => {
+			const upd = () => (q(`[data-o="${n}"]`).textContent = k(n).value);
+			k(n).addEventListener('input', upd);
+			upd();
+		});
+		k('man').addEventListener('input', () => (q('[data-o="man"]').textContent = `${k('man').value}°`));
+		q('[data-o="man"]').textContent = '0°';
+
+		// الحلقة: فيزياء 240 مرة بالثانية، والمتحكم 20 مرة
+		const dt = 1 / 240;
+		const every = Math.round(240 / BAL.ctrlHz);
+		let step = 0;
+		let acc = 0;
+		let prev = performance.now();
+		let lastDraw = 0;
+		function frame(now: number) {
+			acc += Math.min(0.1, (now - prev) / 1000);
+			prev = now;
+			while (acc >= dt) {
+				acc -= dt;
+				if (fallen > 0) {
+					fallen -= dt;
+					if (fallen <= 0) reset();
+					continue;
+				}
+				if (step++ % every === 0 && mode === 'ai') {
+					lastDet = balDetail(fis, s.x, s.v, gains());
+					s.u = gains().Ku * lastDet.value;
+				}
+				const wind = phoneOn && phone !== null ? Math.max(-4, Math.min(4, phone * 0.3)) : 0;
+				if (mode === 'ai') tilt = s.u * BAL.tiltMax + wind;
+				else tilt = phoneOn && phone !== null ? Math.max(-10, Math.min(10, phone * 0.5)) : +k('man').value;
+				balStep(s, tilt, dt);
+				t += dt;
+				if (Math.abs(s.x) > 1) {
+					fallen = 1.2;
+					setMsg('<span class="wl-bad">💥 سقطت الكرة!</span> نبدأ من جديد…');
+					continue;
+				}
+				if (Math.abs(s.x) < 0.05 && Math.abs(s.v) < 0.05) calm += dt;
+				else calm = 0;
+				if (!done && calm >= 1) {
+					done = true;
+					const tt = t - 1;
+					if (!(best[mode] <= tt)) best[mode] = tt;
+					setMsg(`<span class="wl-good">✅ ثبتت الكرة في <bdi dir="ltr">${tt.toFixed(1)} s</bdi>.</span> اضغط «💨 ادفع الكرة» أو «↺ ابدأ من الطرف».`);
+				}
+			}
+			if (!hist.length || t - hist[hist.length - 1].t > 0.05) hist.push({ t, x: s.x, a: tilt / 10 });
+			while (hist.length && hist[0].t < t - 10) hist.shift();
+
+			// الرسم
+			q('[data-board]').setAttribute('transform', `rotate(${(tilt * 1.6).toFixed(2)} 300 156)`);
+			q('[data-ball]').setAttribute('cx', String(300 + 250 * Math.max(-1.05, Math.min(1.05, s.x))));
+			q('[data-tiltText]').textContent = Math.abs(tilt) < 0.3 ? 'اللوح مستوٍ' : tilt > 0 ? '↘ يميل يميناً' : '↙ يميل يساراً';
+			q('[data-r="time"]').innerHTML = num(t, 1, 's');
+			q('[data-r="x"]').innerHTML = num(s.x, 2);
+			q('[data-r="tilt"]').innerHTML = num(tilt, 1, '°');
+			q('[data-r="best"]').innerHTML = `🤖 ${Number.isNaN(best.ai) ? '—' : num(best.ai, 1, 's')} · ✋ ${Number.isNaN(best.me) ? '—' : num(best.me, 1, 's')}`;
+			if (now - lastDraw > 150) {
+				lastDraw = now;
+				if (mode === 'ai') paintGrid();
+				drawChart(q<SVGSVGElement>('[data-chart="hist"]'), {
+					series: [
+						{ x: hist.map((p) => p.t - t), y: hist.map((p) => p.x), cls: 'ai-c1' },
+						{ x: hist.map((p) => p.t - t), y: hist.map((p) => p.a), cls: 'ai-c2' },
+					],
+					xMin: -10, xMax: 0, yMin: -1.1, yMax: 1.1, height: 150, xLabel: 't (s)',
+					hlines: [{ y: 0, cls: 'ai-ref' }],
+				});
+			}
+			requestAnimationFrame(frame);
+		}
+		reset();
+		paintGrid();
+		requestAnimationFrame(frame);
+	});
+</script>

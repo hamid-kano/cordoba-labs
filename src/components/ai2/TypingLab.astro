@@ -1,0 +1,319 @@
+---
+// تمرين إضافي: لعبة كتابة بتتكيّف. كل 10 ثواني المتحكم الضبابي بياخد سرعة اللاعب (كلمة بالدقيقة)
+// ونسبة أخطائه بآخر 20 ثانية، وبيقرر تعديل الصعوبة. وفي وضع «تقليدية» الصعوبة بتزيد دايماً للمقارنة.
+---
+
+<div class="not-content wl-box ty-lab" data-typ-lab>
+	<h4>لعبة الكلمات المتساقطة</h4>
+
+	<div class="wl-row">
+		<span>الصعوبة:</span>
+		<button type="button" class="wl-btn" data-tmode="fuzzy" aria-pressed="true">🧠 ضبابية</button>
+		<button type="button" class="wl-btn" data-tmode="classic" aria-pressed="false">📈 تقليدية (تزيد دائماً)</button>
+	</div>
+	<div class="wl-row">
+		<span>اللغة:</span>
+		<button type="button" class="wl-btn" data-lang="ar" aria-pressed="true">العربية</button>
+		<button type="button" class="wl-btn" data-lang="en" aria-pressed="false">English</button>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-play>▶ ابدأ اللعب</button>
+		<button type="button" class="wl-btn" data-halt hidden>■ أوقف</button>
+	</div>
+
+	<div class="ty-field" data-field>
+		<div class="ty-hint" data-hint>اضغط «▶ ابدأ اللعب»، واكتب كل كلمة تراها قبل أن تصل إلى الأسفل.</div>
+	</div>
+	<input class="wl-input ty-input" data-input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="اكتب الكلمة هنا…" disabled />
+
+	<div class="wl-grid ai-metrics">
+		<div class="wl-out"><span>⚡ السرعة</span><strong data-r="wpm"></strong></div>
+		<div class="wl-out"><span>❌ الأخطاء</span><strong data-r="err"></strong></div>
+		<div class="wl-out"><span>🎚 المستوى</span><strong data-r="lvl"></strong></div>
+		<div class="wl-out"><span>⏳ القرار التالي بعد</span><strong data-r="next"></strong></div>
+	</div>
+	<p class="wl-msg" data-msg></p>
+
+	<figure class="ai-chart">
+		<svg role="img" aria-label="المستوى والسرعة خلال اللعب" data-chart="hist"></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-c3"><i></i>المستوى (1 إلى 10)</span><span class="ai-c1"><i></i>السرعة ÷ 4</span><span class="ai-c4"><i></i>الأخطاء ÷ 10</span>
+		</figcaption>
+	</figure>
+
+	<p class="ty-step"><strong>عقل اللعبة:</strong> القواعد التسع. السطر هو سرعتك، والعمود هو أخطاؤك. الخانات الملوّنة هي القواعد التي عملت في آخر قرار. <strong>اضغط أي خانة لتغيّر قرارها.</strong></p>
+	<div class="ty-grid" data-grid></div>
+	<div class="wl-row"><button type="button" class="wl-btn" data-rreset>↺ أعد القواعد الأصلية</button></div>
+
+	<p class="ty-step"><strong>جرّب القرار بدون لعب:</strong> حرّك المؤشرين وشاهد ماذا يقرر المتحكم.</p>
+	<div class="ai-sliders">
+		<label class="ai-slider"><span>السرعة (كلمة في الدقيقة)<output data-o="tw"></output></span><input type="range" min="0" max="40" step="1" value="20" data-k="tw" /></label>
+		<label class="ai-slider"><span>الأخطاء (%)<output data-o="te"></output></span><input type="range" min="0" max="100" step="1" value="10" data-k="te" /></label>
+	</div>
+	<div class="wl-out"><span>قرار المتحكم: تغيير المستوى</span><strong data-r="try"></strong></div>
+</div>
+
+<style is:global>
+	.ty-field { position: relative; height: 15rem; border-radius: 0.6rem; overflow: hidden;
+		background: linear-gradient(180deg, var(--sl-color-gray-6), var(--sl-color-gray-5)); border-bottom: 4px solid #e5534b; }
+	.ty-hint { position: absolute; inset: 0; display: grid; place-items: center; padding: 1rem; text-align: center; color: var(--sl-color-gray-2); }
+	.ty-word { position: absolute; transform: translateX(-50%); padding: 0.15rem 0.55rem; border-radius: 0.4rem; white-space: nowrap;
+		background: var(--sl-color-black); color: var(--sl-color-white); border: 1px solid var(--sl-color-accent); font-weight: 700; font-size: 1.05rem; }
+	.ty-word.near { border-color: #e5534b; color: #e5534b; }
+	.ty-word.hit { animation: ty-pop 0.35s forwards; }
+	.ty-word.miss { animation: ty-miss 0.5s forwards; }
+	@keyframes ty-pop { to { transform: translateX(-50%) scale(1.6); opacity: 0; } }
+	@keyframes ty-miss { to { opacity: 0; filter: blur(2px); } }
+	.ty-input { width: 100%; font-size: 1.15rem; padding: 0.55rem 0.75rem; direction: auto; }
+	.ty-input.bad { border-color: #e5534b; animation: ty-shake 0.3s; }
+	@keyframes ty-shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+	.ty-step { margin-top: 1rem !important; }
+	.ty-grid { display: grid; grid-template-columns: 4.5rem repeat(3, minmax(0, 1fr)); gap: 3px; font-size: 0.8rem; text-align: center; }
+	.ty-grid > div { padding: 0.4rem 0.1rem; font-weight: 700; color: var(--sl-color-gray-2); }
+</style>
+
+<script>
+	import { evalfisDetail } from '../../scripts/control';
+	import { drawChart, num } from '../../scripts/chart';
+	import { TYP_RULES, TYP_SPEED, TYP_ERR, TYP_OUT, TYP_ROUND, typingFis, levelFall, levelGap } from '../../scripts/extraFuzzy';
+
+	const WORDS = {
+		ar: 'باب قلم كتاب شمس قمر بيت نهر ورد سماء بحر جبل شجر مطر نور ليل نهار صوت لون طريق مدرسة حاسوب هاتف شاشة ضوء متحكم قاعدة ذكاء صديق مدينة سيارة ماء خبز تفاح برتقال زهرة نجمة غيمة ريح ثلج'.split(' '),
+		en: 'cat dog sun moon tree book pen cup door road light sound phone screen fuzzy rule logic smart green blue river cloud stone apple bread water train robot level speed error'.split(' '),
+	};
+	// توحيد الحروف لحتى ما نحسب «أ» و «ا» غلط
+	const norm = (s: string) => s.trim().toLowerCase().replace(/[ً-ْـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+	const outName = (d: number) => TYP_OUT[Math.max(0, Math.min(4, Math.round(d) + 2))];
+
+	document.querySelectorAll<HTMLElement>('[data-typ-lab]').forEach((root) => {
+		const q = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+		const field = q('[data-field]');
+		const input = q<HTMLInputElement>('[data-input]');
+		let mode: 'fuzzy' | 'classic' = 'fuzzy';
+		let lang: 'ar' | 'en' = 'ar';
+		let rules = TYP_RULES.map((r) => [...r]);
+		let fis = typingFis(rules);
+		let playing = false;
+		let level = 2;
+		let t = 0;
+		let nextSpawn = 0;
+		let nextRound = TYP_ROUND;
+		let words: { el: HTMLElement; w: string; y: number; x: number }[] = [];
+		const events: { t: number; ok: boolean }[] = [];
+		const hist: { t: number; L: number; w: number; e: number }[] = [];
+		let lastDet = evalfisDetail(fis, [0, 0]);
+		let shown = false; // في قرار فعلي؟
+
+		const stats = () => {
+			const win = events.filter((e) => e.t > t - 20);
+			const ok = win.filter((e) => e.ok).length;
+			const bad = win.length - ok;
+			const span = Math.min(20, Math.max(t, 5));
+			return { wpm: (ok * 60) / span, err: win.length ? (100 * bad) / win.length : 0 };
+		};
+
+		function setBtns(sel: string, val: string) {
+			root.querySelectorAll<HTMLElement>(sel).forEach((b) => b.setAttribute('aria-pressed', String(Object.values(b.dataset)[0] === val)));
+		}
+		root.querySelectorAll<HTMLButtonElement>('[data-tmode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.tmode as any; setBtns('[data-tmode]', mode); }));
+		root.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.addEventListener('click', () => {
+			lang = b.dataset.lang as any;
+			setBtns('[data-lang]', lang);
+			input.dir = lang === 'ar' ? 'rtl' : 'ltr';
+		}));
+
+		function start() {
+			words.forEach((w) => w.el.remove());
+			words = [];
+			events.length = 0;
+			hist.length = 0;
+			level = 2;
+			t = 0;
+			nextSpawn = 0.3;
+			nextRound = TYP_ROUND;
+			shown = false;
+			playing = true;
+			q('[data-hint]').hidden = true;
+			q('[data-play]').hidden = true;
+			q('[data-halt]').hidden = false;
+			input.disabled = false;
+			input.value = '';
+			input.focus();
+			q('[data-msg]').textContent = mode === 'fuzzy' ? 'المتحكم الضبابي يراقبك، وسيقرر بعد 10 ثوانٍ.' : 'الوضع التقليدي: المستوى يزيد 1 كل 10 ثوانٍ مهما كان أداؤك.';
+		}
+		function stop(text?: string) {
+			playing = false;
+			input.disabled = true;
+			q('[data-play]').hidden = false;
+			q('[data-halt]').hidden = true;
+			q('[data-msg]').textContent = text ?? 'توقفت اللعبة.';
+		}
+		q('[data-play]').addEventListener('click', start);
+		q('[data-halt]').addEventListener('click', () => stop());
+
+		function spawn() {
+			const list = WORDS[lang];
+			const w = list[Math.floor(Math.random() * list.length)];
+			const el = document.createElement('span');
+			el.className = 'ty-word';
+			el.textContent = w;
+			el.dir = lang === 'ar' ? 'rtl' : 'ltr';
+			const x = 12 + Math.random() * 76;
+			el.style.left = `${x}%`;
+			field.appendChild(el);
+			words.push({ el, w, y: 0, x });
+		}
+		function judge(ok: boolean) {
+			events.push({ t, ok });
+		}
+		function tryWord(final: boolean) {
+			const v = norm(input.value);
+			if (!v) return;
+			const i = words.findIndex((w) => norm(w.w) === v);
+			if (i >= 0) {
+				const w = words.splice(i, 1)[0];
+				w.el.classList.add('hit');
+				setTimeout(() => w.el.remove(), 350);
+				input.value = '';
+				judge(true);
+			} else if (final) {
+				judge(false);
+				input.value = '';
+				input.classList.remove('bad');
+				void input.offsetWidth;
+				input.classList.add('bad');
+			}
+		}
+		input.addEventListener('input', () => {
+			if (/\s$/.test(input.value)) tryWord(true);
+			else tryWord(false);
+		});
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				tryWord(true);
+			}
+		});
+
+		// القرار
+		function decide() {
+			const st = stats();
+			if (mode === 'fuzzy') {
+				lastDet = evalfisDetail(fis, [st.wpm, st.err]);
+				level = Math.max(1, Math.min(10, level + lastDet.value));
+				shown = true;
+				q('[data-msg]').innerHTML = `🧠 قرار المتحكم: <strong>${outName(lastDet.value)}</strong> (${num(lastDet.value, 2)})، لأن سرعتك <bdi dir="ltr">${st.wpm.toFixed(0)}</bdi> كلمة في الدقيقة وأخطاءك <bdi dir="ltr">${st.err.toFixed(0)}%</bdi>.`;
+				paintGrid();
+			} else {
+				level = Math.min(10, level + 1);
+				q('[data-msg]').innerHTML = `📈 الوضع التقليدي: زاد المستوى إلى <bdi dir="ltr">${level.toFixed(0)}</bdi>، دون النظر إلى أدائك.`;
+			}
+		}
+
+		// جدول القواعد
+		const grid = q('[data-grid]');
+		grid.innerHTML = '<div>السرعة ↓</div>' + TYP_ERR.map((n) => `<div>أخطاء ${n}</div>`).join('') +
+			TYP_SPEED.map((p, i) => `<div>${p}</div>` + TYP_ERR.map((_, j) => `<button type="button" data-c="${i},${j}"></button>`).join('')).join('');
+		const cells = [...grid.querySelectorAll<HTMLButtonElement>('button')];
+		function paintGrid() {
+			cells.forEach((b, n) => {
+				const i = Math.floor(n / 3);
+				const j = n % 3;
+				const s = shown ? lastDet.strengths[n] : 0;
+				b.style.setProperty('--s', s.toFixed(2));
+				b.classList.toggle('on', s > 0.45);
+				b.classList.toggle('edited', rules[i][j] !== TYP_RULES[i][j]);
+				b.textContent = TYP_OUT[rules[i][j] - 1];
+			});
+		}
+		cells.forEach((b) => b.addEventListener('click', () => {
+			const [i, j] = b.dataset.c!.split(',').map(Number);
+			rules[i][j] = (rules[i][j] % 5) + 1;
+			fis = typingFis(rules);
+			paintGrid();
+			tryIt();
+		}));
+		q('[data-rreset]').addEventListener('click', () => {
+			rules = TYP_RULES.map((r) => [...r]);
+			fis = typingFis(rules);
+			paintGrid();
+			tryIt();
+		});
+
+		// جرّب القرار بدون لعب
+		const tw = q<HTMLInputElement>('[data-k="tw"]');
+		const te = q<HTMLInputElement>('[data-k="te"]');
+		function tryIt() {
+			q('[data-o="tw"]').textContent = tw.value;
+			q('[data-o="te"]').textContent = `${te.value}%`;
+			const d = evalfisDetail(fis, [+tw.value, +te.value]);
+			q('[data-r="try"]').innerHTML = `${num(d.value, 2)} · ${outName(d.value)}`;
+			if (!playing) {
+				lastDet = d;
+				shown = true;
+				paintGrid();
+			}
+		}
+		tw.addEventListener('input', tryIt);
+		te.addEventListener('input', tryIt);
+
+		let prev = performance.now();
+		let lastDraw = 0;
+		function frame(now: number) {
+			const dt = Math.min(0.1, (now - prev) / 1000);
+			prev = now;
+			if (playing) {
+				t += dt;
+				nextSpawn -= dt;
+				if (nextSpawn <= 0) {
+					spawn();
+					nextSpawn = levelGap(level);
+				}
+				const fall = levelFall(level);
+				const H = field.clientHeight - 34;
+				for (let i = words.length - 1; i >= 0; i--) {
+					const w = words[i];
+					w.y += dt / fall;
+					w.el.style.top = `${w.y * H}px`;
+					w.el.classList.toggle('near', w.y > 0.75);
+					if (w.y >= 1) {
+						w.el.classList.add('miss');
+						setTimeout(() => w.el.remove(), 500);
+						words.splice(i, 1);
+						judge(false);
+					}
+				}
+				if (t >= nextRound) {
+					nextRound += TYP_ROUND;
+					decide();
+				}
+				if (!hist.length || t - hist[hist.length - 1].t > 0.5) {
+					const st = stats();
+					hist.push({ t, L: level, w: st.wpm, e: st.err });
+				}
+				if (level >= 10 && mode === 'classic' && words.length > 6) stop('📈 انتهت اللعبة: المستوى وصل إلى 10 والكلمات تراكمت. جرّب الوضع الضبابي وقارن!');
+			}
+			if (now - lastDraw > 200) {
+				lastDraw = now;
+				const st = stats();
+				q('[data-r="wpm"]').innerHTML = num(st.wpm, 0);
+				q('[data-r="err"]').innerHTML = num(st.err, 0, '%');
+				q('[data-r="lvl"]').innerHTML = num(level, 1);
+				q('[data-r="next"]').innerHTML = playing ? num(Math.max(0, nextRound - t), 0, 's') : '—';
+				const T = Math.max(60, t);
+				drawChart(q<SVGSVGElement>('[data-chart="hist"]'), {
+					series: [
+						{ x: hist.map((p) => p.t), y: hist.map((p) => p.L), cls: 'ai-c3' },
+						{ x: hist.map((p) => p.t), y: hist.map((p) => p.w / 4), cls: 'ai-c1' },
+						{ x: hist.map((p) => p.t), y: hist.map((p) => p.e / 10), cls: 'ai-c4' },
+					],
+					xMin: Math.max(0, T - 60), xMax: T, yMin: 0, yMax: 10, height: 150, xLabel: 't (s)',
+				});
+			}
+			requestAnimationFrame(frame);
+		}
+		paintGrid();
+		tryIt();
+		requestAnimationFrame(frame);
+	});
+</script>
