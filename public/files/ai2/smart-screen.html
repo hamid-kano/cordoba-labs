@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الشاشة الذكية: متحكم ضبابي</title>
+<style>
+	body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; background: #111; color: #eee; }
+	h1 { font-size: 1.2rem; }
+	button { font: inherit; padding: 0.5rem 1rem; border-radius: 0.5rem; border: 0; background: #2fb36b; color: #000; cursor: pointer; }
+	.box { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; margin-top: 1rem; }
+	#screen { position: relative; width: 12rem; height: 20rem; border-radius: 1.2rem; overflow: hidden; padding: 1rem;
+		box-sizing: border-box; background: linear-gradient(160deg, #0d7a4a, #1d4f8f 60%, #3b2b7a); font-size: 2.5rem; text-align: center; }
+	#dim { position: absolute; inset: 0; background: #000; }
+	video { width: 12rem; transform: scaleX(-1); border-radius: 0.5rem; }
+	pre { background: #222; padding: 0.75rem; border-radius: 0.5rem; direction: ltr; text-align: left; min-width: 16rem; }
+</style>
+</head>
+<body>
+<h1>الشاشة الذكية: متحكم ضبابي على الكاميرا والمايكروفون</h1>
+<button id="start">▶ شغّل الحساسات</button>
+<button id="bell">🔔 جرّب التنبيه</button>
+<div class="box">
+	<div id="screen">🌙<div id="dim"></div></div>
+	<video id="video" muted playsinline></video>
+	<pre id="out">اضغط «شغّل الحساسات»</pre>
+</div>
+
+<script>
+// =====================================================================
+// 1) دوال الانتماء: مثلث وشبه منحرف
+// =====================================================================
+function trimf(x, a, b, c) {
+	const left = b === a ? (x >= a ? 1 : 0) : (x - a) / (b - a);
+	const right = c === b ? (x <= c ? 1 : 0) : (c - x) / (c - b);
+	return Math.max(0, Math.min(left, right));
+}
+function trapmf(x, a, b, c, d) {
+	const left = b === a ? (x >= a ? 1 : 0) : (x - a) / (b - a);
+	const right = d === c ? (x <= d ? 1 : 0) : (d - x) / (d - c);
+	return Math.max(0, Math.min(left, 1, right));
+}
+
+// المدخلات (الضوء والضجيج) من 0 إلى 100، ولكل منها ثلاث مجموعات
+const IN_SETS = [
+	(x) => trapmf(x, 0, 0, 15, 40),   // 0: منخفض (مظلم / هادئ)
+	(x) => trimf(x, 20, 50, 80),      // 1: متوسط
+	(x) => trapmf(x, 60, 85, 100, 100) // 2: عالٍ (ساطع / صاخب)
+];
+// المخرجات (السطوع والصوت) من 0 إلى 100
+const OUT_SETS = [
+	(y) => trimf(y, 0, 0, 50),     // 0: منخفض
+	(y) => trimf(y, 25, 50, 75),   // 1: متوسط
+	(y) => trimf(y, 50, 100, 100)  // 2: عالٍ
+];
+
+// =====================================================================
+// 2) القواعد: السطر = الضوء (مظلم، متوسط، ساطع)، والعمود = الضجيج (هادئ، متوسط، صاخب)
+//    والرقم = قرار الخرج (0 منخفض، 1 متوسط، 2 عالٍ). غيّر هذه الأرقام وجرّب!
+// =====================================================================
+const BRIGHT_RULES = [
+	[0, 0, 1],
+	[1, 1, 1],
+	[2, 2, 2],
+];
+const VOLUME_RULES = [
+	[0, 1, 1],
+	[0, 1, 2],
+	[1, 1, 2],
+];
+
+// =====================================================================
+// 3) المتحكم الضبابي: تضبيب، ثم قواعد (AND = الأصغر)، ثم قص وجمع، ثم مركز الثقل
+// =====================================================================
+function fuzzy(light, noise, rules) {
+	const muL = IN_SETS.map((f) => f(light));
+	const muN = IN_SETS.map((f) => f(noise));
+	let num = 0, den = 0;
+	for (let i = 0; i <= 100; i++) {          // نمرّ على 101 نقطة من 0 إلى 100
+		const y = i;
+		let h = 0;
+		for (let l = 0; l < 3; l++) {
+			for (let n = 0; n < 3; n++) {
+				const strength = Math.min(muL[l], muN[n]);            // قوة القاعدة
+				const cut = Math.min(strength, OUT_SETS[rules[l][n]](y)); // القص
+				h = Math.max(h, cut);                                  // الجمع
+			}
+		}
+		num += y * h;
+		den += h;
+	}
+	return den === 0 ? 50 : num / den;          // مركز الثقل
+}
+
+// =====================================================================
+// 4) الحساسات الحقيقية: الكاميرا للضوء، والمايكروفون للضجيج
+// =====================================================================
+const video = document.getElementById('video');
+const canvas = document.createElement('canvas');
+canvas.width = 40; canvas.height = 30;
+const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
+let analyser = null, audio = null, light = 30, noise = 30, volume = 50;
+const samples = new Float32Array(2048);
+
+function readLight() {
+	ctx2d.drawImage(video, 0, 0, 40, 30);
+	const d = ctx2d.getImageData(0, 0, 40, 30).data;
+	let sum = 0;
+	for (let i = 0; i < d.length; i += 4) sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+	const value = Math.min(100, (sum / (d.length / 4)) / 255 * 125);
+	light += 0.25 * (value - light);            // تنعيم بسيط حتى لا يرتجف الرقم
+}
+function readNoise() {
+	analyser.getFloatTimeDomainData(samples);
+	let s = 0;
+	for (const x of samples) s += x * x;
+	const db = 20 * Math.log10(Math.sqrt(s / samples.length) + 1e-9);
+	const value = Math.max(0, Math.min(100, (db + 70) / 55 * 100));
+	noise += (value > noise ? 0.5 : 0.08) * (value - noise);
+}
+
+function loop() {
+	if (video.readyState >= 2) readLight();
+	if (analyser) readNoise();
+	const brightness = fuzzy(light, noise, BRIGHT_RULES);
+	volume = fuzzy(light, noise, VOLUME_RULES);
+	document.getElementById('dim').style.opacity = 0.88 * (1 - brightness / 100);
+	document.getElementById('out').textContent =
+		`light      = ${light.toFixed(0)} %\n` +
+		`noise      = ${noise.toFixed(0)} %\n` +
+		`brightness = ${brightness.toFixed(1)} %\n` +
+		`volume     = ${volume.toFixed(1)} %`;
+	requestAnimationFrame(loop);
+}
+
+document.getElementById('start').onclick = async () => {
+	const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+	video.srcObject = stream;
+	await video.play();
+	audio = new AudioContext();
+	analyser = audio.createAnalyser();
+	analyser.fftSize = 2048;
+	audio.createMediaStreamSource(stream).connect(analyser);
+};
+
+// التنبيه: صوته هو قرار المتحكم
+document.getElementById('bell').onclick = () => {
+	const ac = audio || new AudioContext();
+	const g = ac.createGain();
+	g.gain.value = 0.02 + 0.6 * (volume / 100) ** 2;
+	g.connect(ac.destination);
+	const o = ac.createOscillator();
+	o.frequency.value = 880;
+	o.connect(g);
+	o.start();
+	o.stop(ac.currentTime + 0.3);
+};
+
+loop();
+</script>
+</body>
+</html>

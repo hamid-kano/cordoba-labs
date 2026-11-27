@@ -1,0 +1,393 @@
+---
+// الشاشة الذكية (الجلسة 9): متحكم ضبابي على حساسات حقيقية بالمتصفح.
+// الكاميرا ← ضوء الغرفة، والمايكروفون ← ضجيجها، والمتحكم بيقرر سطوع الشاشة وصوت التنبيه.
+// القواعد بتتعدّل بالكبس على الخانة. المحرك: scripts/smartScreen.ts (فوق control.ts).
+---
+
+<div class="not-content wl-box ss-lab" data-ss-lab>
+	<h4>الشاشة الذكية: متحكم ضبابي يرى ويسمع</h4>
+
+	<div class="wl-row">
+		<button type="button" class="wl-btn primary" data-start>▶ شغّل الحساسات</button>
+		<button type="button" class="wl-btn" data-stop hidden>■ أوقف الحساسات</button>
+		<button type="button" class="wl-btn" data-bell>🔔 جرّب التنبيه</button>
+	</div>
+	<p class="wl-msg" data-msg>اضغط «▶ شغّل الحساسات» واسمح للمتصفح باستخدام الكاميرا والمايكروفون. أو حرّك المؤشرين بيدك.</p>
+
+	<div class="ss-top">
+		<div class="ss-phone" aria-label="شاشة الهاتف الذكية">
+			<div class="ss-screen">
+				<div class="ss-clock" data-clock>12:00</div>
+				<div class="ss-note">
+					<b>💬 رسالة جديدة</b>
+					<span>المحاضرة غداً في الساعة التاسعة</span>
+				</div>
+				<div class="ss-bell" data-bellbox><span>🔔</span><i></i><i></i><i></i></div>
+				<div class="ss-dim" data-dim></div>
+			</div>
+		</div>
+		<div class="ss-side">
+			<video class="ss-video" data-video muted playsinline hidden></video>
+			<div class="ss-meters">
+				<div class="wl-out"><span>☀️ ضوء الغرفة</span><strong data-r="light"></strong></div>
+				<div class="wl-out"><span>🔊 ضجيج الغرفة</span><strong data-r="noise"></strong></div>
+				<div class="wl-out ss-res"><span>💡 سطوع الشاشة</span><strong data-r="b"></strong></div>
+				<div class="wl-out ss-res"><span>🔔 صوت التنبيه</span><strong data-r="v"></strong></div>
+			</div>
+			<div class="ai-sliders">
+				<label class="ai-slider"><span>الضوء<output data-o="light"></output></span><input type="range" min="0" max="100" step="1" value="30" data-k="light" /></label>
+				<label class="ai-slider"><span>الضجيج<output data-o="noise"></output></span><input type="range" min="0" max="100" step="1" value="70" data-k="noise" /></label>
+			</div>
+		</div>
+	</div>
+
+	<figure class="ai-chart">
+		<svg role="img" aria-label="الإشارات خلال آخر 30 ثانية" data-chart="hist"></svg>
+		<figcaption class="ai-legend">
+			<span class="ai-c2"><i></i>الضوء</span><span class="ai-c1"><i></i>الضجيج</span><span class="ai-c3"><i></i>السطوع</span><span class="ai-c4"><i></i>الصوت</span>
+			<span>آخر 30 ثانية</span>
+		</figcaption>
+	</figure>
+
+	<p class="ss-step"><strong>1. التضبيب:</strong> إلى أي حد ينتمي كل مدخل إلى كل مجموعة؟</p>
+	<div class="ai-two">
+		<div>
+			<figure class="ai-chart">
+				<svg role="img" aria-label="دوال انتماء الضوء" data-chart="inL"></svg>
+				<figcaption class="ai-legend"><span class="ai-c1"><i></i>مظلم</span><span class="ai-c3"><i></i>متوسط</span><span class="ai-c2"><i></i>ساطع</span></figcaption>
+			</figure>
+			<div class="ai-bars" data-r="degL"></div>
+		</div>
+		<div>
+			<figure class="ai-chart">
+				<svg role="img" aria-label="دوال انتماء الضجيج" data-chart="inN"></svg>
+				<figcaption class="ai-legend"><span class="ai-c1"><i></i>هادئ</span><span class="ai-c3"><i></i>متوسط</span><span class="ai-c4"><i></i>صاخب</span></figcaption>
+			</figure>
+			<div class="ai-bars" data-r="degN"></div>
+		</div>
+	</div>
+
+	<p class="ss-step"><strong>2. القواعد:</strong> كل خانة قاعدة. كلما اشتد لون الخانة كانت القاعدة أقوى الآن. <strong>اضغط أي خانة لتغيّر قرارها.</strong></p>
+	<div class="ai-two">
+		<div><p class="ss-gt">💡 قواعد السطوع</p><div class="ss-grid" data-grid="b"></div></div>
+		<div><p class="ss-gt">🔔 قواعد الصوت</p><div class="ss-grid" data-grid="v"></div></div>
+	</div>
+	<div class="wl-row">
+		<button type="button" class="wl-btn" data-reset>↺ أعد القواعد الأصلية</button>
+		<span class="ss-changed" data-changed></span>
+	</div>
+
+	<p class="ss-step"><strong>3. القص والجمع، ثم مركز الثقل:</strong> رقم واحد لكل مخرج.</p>
+	<div class="ai-two">
+		<figure class="ai-chart">
+			<svg role="img" aria-label="شكل خرج السطوع" data-chart="outB"></svg>
+			<figcaption class="ai-legend"><span class="ai-c3"><i></i>شكل السطوع</span><span class="ai-c4"><i></i>مركز الثقل</span></figcaption>
+		</figure>
+		<figure class="ai-chart">
+			<svg role="img" aria-label="شكل خرج الصوت" data-chart="outV"></svg>
+			<figcaption class="ai-legend"><span class="ai-c4"><i></i>شكل الصوت ومركز ثقله</span></figcaption>
+		</figure>
+	</div>
+</div>
+
+<style is:global>
+	.ss-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem; align-items: start; }
+	@media (max-width: 34rem) { .ss-top { grid-template-columns: minmax(0, 1fr); justify-items: center; } .ss-side { width: 100%; } }
+	.ss-side > * + * { margin-top: 0.6rem; }
+	.ss-phone { width: 10.5rem; padding: 0.55rem; border-radius: 1.6rem; background: #1b1b1f; box-shadow: 0 0 0 2px #3a3a42, 0 8px 24px rgb(0 0 0 / 0.35); }
+	.ss-screen { position: relative; height: 18rem; border-radius: 1.15rem; overflow: hidden; padding: 1rem 0.7rem; color: #fff;
+		background: linear-gradient(160deg, #0d7a4a, #1d4f8f 60%, #3b2b7a); display: flex; flex-direction: column; gap: 0.8rem; }
+	.ss-clock { font-size: 2.4rem; font-weight: 700; text-align: center; direction: ltr; letter-spacing: 0.04em; }
+	.ss-note { background: rgb(255 255 255 / 0.18); border-radius: 0.7rem; padding: 0.45rem 0.55rem; font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.15rem; }
+	.ss-bell { margin-top: auto; align-self: center; position: relative; width: 4rem; height: 4rem; display: grid; place-items: center; font-size: 1.8rem; }
+	.ss-bell i { position: absolute; inset: 0; border: 2px solid #fff; border-radius: 50%; opacity: 0; }
+	.ss-bell.ring i { animation: ss-wave 0.9s ease-out; }
+	.ss-bell.ring i:nth-of-type(2) { animation-delay: 0.15s; }
+	.ss-bell.ring i:nth-of-type(3) { animation-delay: 0.3s; }
+	.ss-bell.ring span { animation: ss-shake 0.5s; }
+	@keyframes ss-wave { from { transform: scale(0.6); opacity: var(--amp, 0.8); } to { transform: scale(var(--sc, 1.8)); opacity: 0; } }
+	@keyframes ss-shake { 25% { transform: rotate(-18deg); } 50% { transform: rotate(14deg); } 75% { transform: rotate(-8deg); } }
+	.ss-dim { position: absolute; inset: 0; background: #000; pointer-events: none; transition: opacity 0.3s; }
+	.ss-video { width: 100%; max-width: 14rem; border-radius: 0.5rem; transform: scaleX(-1); display: block; }
+	.ss-meters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+	.ss-meters .wl-out strong { font-size: var(--sl-text-base); }
+	.ss-res { outline: 2px solid var(--sl-color-accent); }
+	.ss-step { margin-top: 1.2rem !important; }
+	.ss-gt { margin: 0 0 0.35rem; font-weight: 700; }
+	.ss-grid { display: grid; grid-template-columns: 3.6rem repeat(3, minmax(0, 1fr)); gap: 3px; font-size: 0.8rem; text-align: center; }
+	.ss-grid > div { padding: 0.45rem 0.1rem; border-radius: 0.3rem; }
+	.ss-grid .h { font-weight: 700; color: var(--sl-color-gray-2); }
+	.ss-grid button { font: inherit; cursor: pointer; border: 1px solid var(--sl-color-gray-5); border-radius: 0.3rem; padding: 0.45rem 0.1rem;
+		color: var(--sl-color-white); background: color-mix(in srgb, var(--sl-color-accent) calc(var(--s, 0) * 100%), var(--sl-color-gray-6)); }
+	.ss-grid button.on { color: var(--sl-color-black); font-weight: 700; }
+	.ss-grid button.edited { border: 2px dashed #e0a030; }
+	.ss-grid button small { display: block; font-size: 0.7rem; opacity: 0.85; direction: ltr; }
+	.ss-changed { font-size: var(--sl-text-sm); color: #e0a030; }
+</style>
+
+<script>
+	import { mf } from '../../scripts/control';
+	import { drawChart, num, type Series } from '../../scripts/chart';
+	import {
+		BRIGHT_RULES, VOLUME_RULES, LEVEL_MFS, OUT_MFS, LIGHT_NAMES, NOISE_NAMES, OUT_NAMES,
+		decide, lightFromLuma, noiseFromDb, type RuleTable,
+	} from '../../scripts/smartScreen';
+
+	const xs = Array.from({ length: 101 }, (_, i) => i);
+	const inCls = [['ai-c1', 'ai-c3', 'ai-c2'], ['ai-c1', 'ai-c3', 'ai-c4']];
+	const bar = (label: string, v: number) =>
+		`<div class="ai-bar"><span>${label}</span><b><i style="width:${(v * 100).toFixed(0)}%"></i></b><output>${v.toFixed(2)}</output></div>`;
+	const clone = (t: RuleTable) => t.map((r) => [...r]);
+
+	document.querySelectorAll<HTMLElement>('[data-ss-lab]').forEach((root) => {
+		const q = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+		const sl = { light: q<HTMLInputElement>('[data-k="light"]'), noise: q<HTMLInputElement>('[data-k="noise"]') };
+		const msg = q('[data-msg]');
+		const video = q<HTMLVideoElement>('[data-video]');
+		const rules = { b: clone(BRIGHT_RULES), v: clone(VOLUME_RULES) };
+		const orig = { b: BRIGHT_RULES, v: VOLUME_RULES };
+
+		// ===== الحساسات =====
+		let stream: MediaStream | null = null;
+		let ctx: AudioContext | null = null;
+		let analyser: AnalyserNode | null = null;
+		let cam = false;
+		let mic = false;
+		let raf = 0;
+		let muteMicUntil = 0;
+		let L = +sl.light.value;
+		let N = +sl.noise.value;
+		const canvas = document.createElement('canvas');
+		canvas.width = 40;
+		canvas.height = 30;
+		const c2d = canvas.getContext('2d', { willReadFrequently: true })!;
+		const buf = new Float32Array(2048);
+
+		function readSensors() {
+			if (cam && video.readyState >= 2) {
+				c2d.drawImage(video, 0, 0, 40, 30);
+				const d = c2d.getImageData(0, 0, 40, 30).data;
+				let s = 0;
+				for (let i = 0; i < d.length; i += 4) s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+				L += 0.25 * (lightFromLuma(s / (d.length / 4)) - L);
+				sl.light.value = String(Math.round(L));
+			}
+			if (mic && analyser && performance.now() > muteMicUntil) {
+				analyser.getFloatTimeDomainData(buf);
+				let s = 0;
+				for (const x of buf) s += x * x;
+				const db = 20 * Math.log10(Math.sqrt(s / buf.length) + 1e-9);
+				const target = noiseFromDb(db);
+				// بيطلع بسرعة وبينزل بهدوء، متل مؤشر الصوت الحقيقي
+				N += (target > N ? 0.5 : 0.08) * (target - N);
+				sl.noise.value = String(Math.round(N));
+			}
+			raf = requestAnimationFrame(readSensors);
+		}
+
+		async function start() {
+			msg.textContent = 'جارٍ طلب الإذن…';
+			try {
+				stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 320, height: 240 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+			} catch {
+				try {
+					stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+				} catch {
+					try {
+						stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+					} catch {
+						msg.innerHTML = '<span class="wl-bad">لم يسمح المتصفح بالكاميرا ولا بالمايكروفون.</span> حرّك المؤشرين بيدك، أو افتح الصفحة على الهاتف.';
+						return;
+					}
+				}
+			}
+			cam = stream.getVideoTracks().length > 0;
+			mic = stream.getAudioTracks().length > 0;
+			if (cam) {
+				video.srcObject = stream;
+				video.hidden = false;
+				await video.play().catch(() => {});
+			}
+			if (mic) {
+				ctx = new AudioContext();
+				analyser = ctx.createAnalyser();
+				analyser.fftSize = 2048;
+				ctx.createMediaStreamSource(new MediaStream(stream.getAudioTracks())).connect(analyser);
+			}
+			sl.light.disabled = cam;
+			sl.noise.disabled = mic;
+			const parts = [cam ? '📷 الكاميرا تقيس الضوء' : 'الكاميرا غير متاحة: حرّك مؤشر الضوء', mic ? '🎤 المايكروفون يقيس الضجيج' : 'المايكروفون غير متاح: حرّك مؤشر الضجيج'];
+			msg.innerHTML = `<span class="wl-good">${parts.join('، و')}.</span> غطِّ الكاميرا بيدك، أو تكلّم بصوت عالٍ، وراقب الشاشة.`;
+			q('[data-start]').hidden = true;
+			q('[data-stop]').hidden = false;
+			cancelAnimationFrame(raf);
+			readSensors();
+		}
+		function stop() {
+			stream?.getTracks().forEach((t) => t.stop());
+			ctx?.close();
+			stream = null;
+			ctx = null;
+			analyser = null;
+			cam = mic = false;
+			cancelAnimationFrame(raf);
+			video.hidden = true;
+			sl.light.disabled = sl.noise.disabled = false;
+			q('[data-start]').hidden = false;
+			q('[data-stop]').hidden = true;
+			msg.textContent = 'توقفت الحساسات. حرّك المؤشرين بيدك، أو شغّلها من جديد.';
+		}
+		q('[data-start]').addEventListener('click', start);
+		q('[data-stop]').addEventListener('click', stop);
+		if (!navigator.mediaDevices?.getUserMedia) {
+			q<HTMLButtonElement>('[data-start]').disabled = true;
+			msg.textContent = 'هذا المتصفح لا يسمح بالكاميرا والمايكروفون هنا. حرّك المؤشرين بيدك.';
+		}
+
+		// ===== التنبيه: صوته = قرار المتحكم =====
+		let lastV = 50;
+		q('[data-bell]').addEventListener('click', () => {
+			const ac = ctx ?? new AudioContext();
+			const g = ac.createGain();
+			g.connect(ac.destination);
+			const t0 = ac.currentTime;
+			const amp = 0.02 + 0.6 * (lastV / 100) ** 2;
+			[880, 1175].forEach((f, i) => {
+				const o = ac.createOscillator();
+				o.type = 'sine';
+				o.frequency.value = f;
+				o.connect(g);
+				o.start(t0 + i * 0.18);
+				o.stop(t0 + i * 0.18 + 0.16);
+			});
+			g.gain.setValueAtTime(amp, t0);
+			g.gain.setValueAtTime(amp, t0 + 0.33);
+			g.gain.linearRampToValueAtTime(0, t0 + 0.36);
+			muteMicUntil = performance.now() + 700; // لحتى ما يسمع المايك التنبيه نفسه
+			if (!ctx) setTimeout(() => ac.close(), 600);
+			const box = q('[data-bellbox]');
+			box.style.setProperty('--amp', String(0.3 + 0.7 * (lastV / 100)));
+			box.style.setProperty('--sc', String(1.2 + 1.3 * (lastV / 100)));
+			box.classList.remove('ring');
+			void box.offsetWidth;
+			box.classList.add('ring');
+		});
+
+		// ===== جداول القواعد =====
+		function buildGrid(key: 'b' | 'v') {
+			const g = q(`[data-grid="${key}"]`);
+			let h = '<div class="h">الضوء ↓</div>' + NOISE_NAMES.map((n) => `<div class="h">${n}</div>`).join('');
+			for (let l = 0; l < 3; l++) {
+				h += `<div class="h">${LIGHT_NAMES[l]}</div>`;
+				for (let n = 0; n < 3; n++) h += `<button type="button" data-cell="${l}${n}"></button>`;
+			}
+			g.innerHTML = h;
+			g.querySelectorAll<HTMLButtonElement>('button').forEach((b) =>
+				b.addEventListener('click', () => {
+					const [l, n] = b.dataset.cell!.split('').map(Number);
+					rules[key][l][n] = (rules[key][l][n] % 3) + 1;
+					render(true);
+				}),
+			);
+		}
+		buildGrid('b');
+		buildGrid('v');
+		q('[data-reset]').addEventListener('click', () => {
+			rules.b = clone(BRIGHT_RULES);
+			rules.v = clone(VOLUME_RULES);
+			render(true);
+		});
+
+		// ===== السجل =====
+		const hist: { t: number; l: number; n: number; b: number; v: number }[] = [];
+		const t0 = performance.now();
+
+		let lastDraw = 0;
+		function render(force = false) {
+			const now = performance.now();
+			const Lv = +sl.light.value;
+			const Nv = +sl.noise.value;
+			const d = decide(Lv, Nv, rules.b, rules.v);
+			lastV = d.v.value;
+			q('[data-o="light"]').textContent = String(Lv);
+			q('[data-o="noise"]').textContent = String(Nv);
+			q('[data-r="light"]').innerHTML = num(Lv, 0, '%');
+			q('[data-r="noise"]').innerHTML = num(Nv, 0, '%');
+			q('[data-r="b"]').innerHTML = num(d.b.value, 1, '%');
+			q('[data-r="v"]').innerHTML = num(d.v.value, 1, '%');
+			q('[data-dim]').style.opacity = String(0.88 * (1 - d.b.value / 100));
+			const tm = new Date();
+			q('[data-clock]').textContent = `${String(tm.getHours()).padStart(2, '0')}:${String(tm.getMinutes()).padStart(2, '0')}`;
+
+			const t = (now - t0) / 1000;
+			if (!hist.length || t - hist[hist.length - 1].t > 0.2) hist.push({ t, l: Lv, n: Nv, b: d.b.value, v: d.v.value });
+			while (hist.length && hist[0].t < t - 30) hist.shift();
+
+			// الرسومات 5 مرات بالثانية بس
+			if (!force && now - lastDraw < 200) return;
+			lastDraw = now;
+
+			const hx = hist.map((p) => p.t - t);
+			drawChart(q<SVGSVGElement>('[data-chart="hist"]'), {
+				series: [
+					{ x: hx, y: hist.map((p) => p.l), cls: 'ai-c2' },
+					{ x: hx, y: hist.map((p) => p.n), cls: 'ai-c1' },
+					{ x: hx, y: hist.map((p) => p.b), cls: 'ai-c3' },
+					{ x: hx, y: hist.map((p) => p.v), cls: 'ai-c4' },
+				],
+				xMin: -30, xMax: 0, yMin: 0, yMax: 100, height: 170, xLabel: 't (s)', yLabel: '%',
+			});
+
+			[['inL', Lv, 0, LIGHT_NAMES, 'degL'], ['inN', Nv, 1, NOISE_NAMES, 'degN']].forEach(([id, x, i, names, degId]) => {
+				const deg = (d.b.degrees as number[][])[i as number];
+				drawChart(q<SVGSVGElement>(`[data-chart="${id}"]`), {
+					series: LEVEL_MFS.map((m, j) => ({ x: xs, y: xs.map((v) => mf(v, m)), cls: inCls[i as number][j] })),
+					xMin: 0, xMax: 100, yMin: 0, yMax: 1.1, height: 160, xLabel: i ? 'noise (%)' : 'light (%)', yLabel: 'μ',
+					vlines: [{ x: x as number, cls: 'ai-ref' }],
+					points: deg.map((y, j) => ({ x: x as number, y, cls: inCls[i as number][j] })).filter((p) => p.y > 0),
+				});
+				q(`[data-r="${degId}"]`).innerHTML = deg.map((v, j) => bar((names as string[])[j], v)).join('');
+			});
+
+			(['b', 'v'] as const).forEach((key) => {
+				const det = d[key];
+				q(`[data-grid="${key}"]`).querySelectorAll<HTMLButtonElement>('button').forEach((btn, k) => {
+					const l = Math.floor(k / 3);
+					const n = k % 3;
+					const s = det.strengths[k];
+					btn.style.setProperty('--s', s.toFixed(2));
+					btn.classList.toggle('on', s > 0.45);
+					btn.classList.toggle('edited', rules[key][l][n] !== orig[key][l][n]);
+					btn.innerHTML = `${OUT_NAMES[rules[key][l][n] - 1]}<small>${s.toFixed(2)}</small>`;
+				});
+				const sm = det.samples!;
+				const ghosts: Series[] = OUT_MFS.map((m) => ({ x: sm.x, y: sm.x.map((x) => mf(x, m)), cls: 'ai-ghost' }));
+				drawChart(q<SVGSVGElement>(`[data-chart="out${key.toUpperCase()}"]`), {
+					series: [...ghosts, { x: sm.x, y: sm.agg, cls: key === 'b' ? 'ai-c3' : 'ai-c4', fill: true }],
+					xMin: 0, xMax: 100, yMin: 0, yMax: 1.1, height: 160, xLabel: key === 'b' ? 'brightness (%)' : 'volume (%)', yLabel: 'μ',
+					vlines: [{ x: det.value, cls: 'ai-c4', label: det.value.toFixed(1) }],
+				});
+			});
+			const edits = (['b', 'v'] as const).reduce((a, key) => a + rules[key].flat().filter((v, i) => v !== orig[key].flat()[i]).length, 0);
+			q('[data-changed]').textContent = edits ? `غيّرت ${edits === 1 ? 'قاعدة واحدة' : edits === 2 ? 'قاعدتين' : edits + (edits <= 10 ? ' قواعد' : ' قاعدة')} (الخانات المنقّطة)` : '';
+		}
+
+		// حلقة العرض: بتشتغل دايماً (لحتى السجل يمشي حتى بالوضع اليدوي)
+		function loop() {
+			render();
+			setTimeout(() => requestAnimationFrame(loop), 50);
+		}
+		sl.light.addEventListener('input', () => { L = +sl.light.value; render(true); });
+		sl.noise.addEventListener('input', () => { N = +sl.noise.value; render(true); });
+		render(true);
+		loop();
+		let lastW = innerWidth;
+		addEventListener('resize', () => {
+			if (innerWidth !== lastW) {
+				lastW = innerWidth;
+				render(true);
+			}
+		});
+		addEventListener('pagehide', stop);
+	});
+</script>
